@@ -21,23 +21,23 @@ from erp_framework import (
 _test_app = Flask(__name__)
 
 
-@_test_app.route("/dashboard")
-def _dashboard():
+@_test_app.route("/dashboard", endpoint="dashboard")
+def dashboard():
     return "ok"
 
 
-@_test_app.route("/projects/dashboard")
-def _projects_dashboard():
+@_test_app.route("/projects/dashboard", endpoint="projects_dashboard")
+def projects_dashboard():
     return "ok"
 
 
-@_test_app.route("/department/<slug>")
-def _department_portal(slug):
+@_test_app.route("/department/<slug>", endpoint="department_portal")
+def department_portal(slug):
     return slug
 
 
-@_test_app.route("/projects")
-def _projects():
+@_test_app.route("/projects", endpoint="projects")
+def projects():
     return "ok"
 
 
@@ -54,8 +54,11 @@ def test_build_breadcrumb_items():
         crumbs = build_breadcrumb_items(PROJECTS_MODULE, current_label="Project List")
         assert crumbs[0]["label"] == "Dashboard"
         assert crumbs[1]["label"] == "Projects"
-        assert crumbs[-1]["label"] == "Project List"
-        assert crumbs[-1].get("url") is None
+        assert crumbs[2]["label"] == "Project List"
+        assert crumbs[2]["url"]  # list link when label matches module list
+        crumbs_view = build_breadcrumb_items(PROJECTS_MODULE, current_label="View Project")
+        assert crumbs_view[-1]["label"] == "View Project"
+        assert crumbs_view[-1].get("url") is None
 
 
 def test_crud_urls():
