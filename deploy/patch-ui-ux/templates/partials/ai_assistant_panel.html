@@ -1,0 +1,75 @@
+<style>
+  .ai-assistant-fab { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 1200; }
+  .ai-assistant-fab-btn { box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+  .ai-assistant-card { max-width: 36rem; width: min(96vw, 36rem); }
+  .ai-assistant-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.75rem 0; }
+  .ai-assistant-tab.active { background: var(--erp-primary, #1d4ed8); color: #fff; }
+  .ai-assistant-label { display: block; margin-bottom: 0.75rem; font-size: 0.9rem; }
+  .ai-assistant-label textarea, .ai-assistant-label input { width: 100%; margin-top: 0.35rem; }
+  .ai-assistant-output { margin-top: 0.75rem; padding: 0.75rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .ai-assistant-output-body { white-space: pre-wrap; font-family: inherit; font-size: 0.9rem; margin: 0; }
+  .ai-assistant-status { margin-top: 0.5rem; font-size: 0.85rem; color: #475569; }
+  .ai-assistant-status--error { color: #b91c1c; }
+</style>
+
+<div class="ai-assistant-fab" id="ai-assistant-fab" hidden aria-hidden="true">
+  <button type="button" class="erp-btn erp-btn-primary ai-assistant-fab-btn" data-ai-assistant-open aria-label="Open AI assistant">
+    <i class="fa-solid fa-wand-magic-sparkles"></i> AI
+  </button>
+</div>
+
+<div class="erp-modal ai-assistant-modal" id="ai-assistant-modal" hidden aria-hidden="true">
+  <div class="erp-modal-backdrop" data-ai-assistant-close></div>
+  <div class="erp-modal-card ai-assistant-card" role="dialog" aria-modal="true" aria-labelledby="ai-assistant-title">
+    <div class="erp-modal-header">
+      <h3 id="ai-assistant-title">MAXEK AI Assistant</h3>
+      <p class="ai-assistant-subtitle" data-ai-assistant-subtitle>Ask about projects, BOQ, DPR, or documents.</p>
+    </div>
+    <div class="ai-assistant-tabs" role="tablist">
+      <button type="button" class="erp-btn erp-btn-sm erp-btn-ghost ai-assistant-tab active" data-ai-tab="assistant">Chat</button>
+      <button type="button" class="erp-btn erp-btn-sm erp-btn-ghost ai-assistant-tab" data-ai-tab="dpr">DPR Writer</button>
+      <button type="button" class="erp-btn erp-btn-sm erp-btn-ghost ai-assistant-tab" data-ai-tab="boq">BOQ Search</button>
+      <button type="button" class="erp-btn erp-btn-sm erp-btn-ghost ai-assistant-tab" data-ai-tab="document">Documents</button>
+    </div>
+
+    <div class="ai-assistant-panel" data-ai-panel="assistant">
+      <label class="ai-assistant-label">Message
+        <textarea rows="3" data-ai-assistant-message placeholder="Ask about this project or module…"></textarea>
+      </label>
+      <button type="button" class="erp-btn erp-btn-primary" data-ai-assistant-send>Send</button>
+    </div>
+
+    <div class="ai-assistant-panel" data-ai-panel="dpr" hidden>
+      <label class="ai-assistant-label">Notes / site observations
+        <textarea rows="3" data-ai-dpr-notes placeholder="Weather, manpower, material, issues…"></textarea>
+      </label>
+      <label class="ai-assistant-label">Extra measurements (optional JSON)
+        <textarea rows="2" data-ai-dpr-measurements placeholder='[{"item":"PCC","qty":12,"unit":"Cum"}]'></textarea>
+      </label>
+      <button type="button" class="erp-btn erp-btn-primary" data-ai-dpr-generate>Generate DPR narrative</button>
+    </div>
+
+    <div class="ai-assistant-panel" data-ai-panel="boq" hidden>
+      <label class="ai-assistant-label">Natural language search
+        <input type="text" data-ai-boq-query placeholder="e.g. shuttering for slab level 2">
+      </label>
+      <button type="button" class="erp-btn erp-btn-primary" data-ai-boq-search>Search BOQ</button>
+    </div>
+
+    <div class="ai-assistant-panel" data-ai-panel="document" hidden>
+      <label class="ai-assistant-label">Paste text to summarize
+        <textarea rows="4" data-ai-doc-text placeholder="Paste agreement excerpt or site instruction…"></textarea>
+      </label>
+      <button type="button" class="erp-btn erp-btn-primary" data-ai-doc-summarize>Summarize</button>
+    </div>
+
+    <div class="ai-assistant-output" data-ai-output hidden>
+      <h4 class="ai-assistant-output-title" data-ai-output-title>Result</h4>
+      <pre class="ai-assistant-output-body" data-ai-output-body></pre>
+    </div>
+    <div class="ai-assistant-status" data-ai-status hidden></div>
+    <div class="erp-form-actions" style="margin-top: 0.75rem;">
+      <button type="button" class="erp-btn erp-btn-ghost" data-ai-assistant-close>Close</button>
+    </div>
+  </div>
+</div>

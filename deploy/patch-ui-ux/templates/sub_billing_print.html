@@ -1,0 +1,79 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sub Bill — {{ bill.subcontractor_name }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx) }}
+  <style>
+    .num { text-align: right; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; font-size: 0.72rem; }
+    th, td { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; }
+    th { background: #f0f0f0; }
+    .final-report h2 { background: var(--maxek-primary); color: #fff; padding: 0.35rem; margin: 0.75rem 0 0.35rem; font-size: 0.85rem; }
+    .summary-table th { background: #4472c4; color: #fff; }
+    .net { color: var(--maxek-primary); font-weight: bold; }
+  </style>
+  {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='SUBCONTRACTOR BILL', extra_meta=[
+      ('Subcontractor', bill.subcontractor_name),
+      ('Period From', bill.period_from),
+      ('Period To', bill.period_to),
+    ]) }}
+
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Designation</th><th class="num">No</th><th class="num">Salary</th><th class="num">OT HR</th><th class="num">OT Amt</th><th class="num">Total</th></tr>
+      </thead>
+      <tbody>
+        {% for line in bill.lines %}
+        <tr>
+          <td>{{ line.worker_code or '—' }}</td>
+          <td>{{ line.worker_name }}</td>
+          <td>{{ line.designation or '—' }}</td>
+          <td class="num">{{ line.days_worked or 0 }}</td>
+          <td class="num">{{ '%.2f'|format(line.salary_amount or 0) }}</td>
+          <td class="num">{{ line.ot_hours or 0 }}</td>
+          <td class="num">{{ '%.2f'|format(line.ot_amount or 0) }}</td>
+          <td class="num">{{ '%.2f'|format(line.total_amount or 0) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="final-report">
+      <h2>FINAL REPORT</h2>
+      <table class="summary-table">
+        <thead><tr><th>Role</th><th class="num">Nos</th><th class="num">OT HR</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+          {% for row in bill.designation_summary %}
+          <tr>
+            <td>{{ row.designation }}</td>
+            <td class="num">{{ row.mandays }}</td>
+            <td class="num">{{ row.ot_hours }}</td>
+            <td class="num">{{ '%.2f'|format(row.total_amount or 0) }}</td>
+          </tr>
+          {% endfor %}
+          {% if bill.old_mess_amount %}
+          <tr><td>OLD Mess</td><td class="num"></td><td class="num"></td><td class="num">{{ '%.2f'|format(bill.old_mess_amount) }}</td></tr>
+          {% endif %}
+          <tr><td><strong>Total Amount</strong></td><td colspan="2"></td><td class="num"><strong>{{ '%.2f'|format(bill.gross_amount or 0) }}</strong></td></tr>
+          <tr><td>TDS 1 %</td><td colspan="2"></td><td class="num">{{ '%.2f'|format(bill.tds_amount or 0) }}</td></tr>
+          <tr><td>MESS</td><td colspan="2"></td><td class="num">{{ '%.2f'|format(bill.mess_deduction or 0) }}</td></tr>
+          <tr><td>ADVANCE</td><td colspan="2"></td><td class="num">{{ '%.2f'|format(bill.advance_deduction or 0) }}</td></tr>
+          <tr><td><strong>NET PAYMENT</strong></td><td colspan="2"></td><td class="num net">{{ '%.2f'|format(bill.net_payment or 0) }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

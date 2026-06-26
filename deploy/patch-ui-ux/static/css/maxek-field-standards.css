@@ -1,0 +1,285 @@
+/* MAXEK ERP — Field width, button, layout & workflow standards */
+
+:root {
+  --erp-field-sm: 100px;
+  --erp-field-md: 150px;
+  --erp-field-lg: 300px;
+  --erp-btn-standard-height: 40px;
+  --erp-btn-standard-min-width: 120px;
+}
+
+/* Screen utilization — 90%+ width for module layouts */
+.maxek-layout .shell-main-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.maxek-layout .dashboard-body {
+  width: min(100%, 100%);
+  max-width: 100%;
+  padding: var(--layout-content-padding, 24px);
+}
+
+.maxek-layout .module-layout {
+  width: 100%;
+  max-width: 100%;
+}
+
+.maxek-layout .module-layout.module-layout--full,
+.maxek-layout .module-layout.module-layout--list-only {
+  grid-template-columns: 1fr;
+  width: 100%;
+}
+
+.maxek-layout .erp-table-panel {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Field width classes */
+.maxek-layout .erp-field--sm input,
+.maxek-layout .erp-field--sm select,
+.maxek-layout .erp-field input.erp-input--sm,
+.maxek-layout .erp-field select.erp-input--sm,
+.maxek-layout input.erp-field-width-sm,
+.maxek-layout select.erp-field-width-sm {
+  width: var(--erp-field-sm);
+  max-width: 100%;
+}
+
+.maxek-layout .erp-field--md input,
+.maxek-layout .erp-field--md select,
+.maxek-layout .erp-field input.erp-input--md,
+.maxek-layout .erp-field select.erp-input--md,
+.maxek-layout input.erp-field-width-md,
+.maxek-layout select.erp-field-width-md {
+  width: var(--erp-field-md);
+  max-width: 100%;
+}
+
+.maxek-layout .erp-field--lg input,
+.maxek-layout .erp-field--lg select,
+.maxek-layout .erp-field input.erp-input--lg,
+.maxek-layout .erp-field select.erp-input--lg,
+.maxek-layout input.erp-field-width-lg,
+.maxek-layout select.erp-field-width-lg {
+  width: var(--erp-field-lg);
+  max-width: 100%;
+}
+
+.maxek-layout .erp-field--full input,
+.maxek-layout .erp-field--full select,
+.maxek-layout .erp-field--full textarea,
+.maxek-layout .erp-field textarea.erp-input--full,
+.maxek-layout textarea.erp-field-width-full {
+  width: 100%;
+}
+
+/* Semantic aliases for common fields */
+.maxek-layout input[name*="qty"],
+.maxek-layout input[name*="quantity"],
+.maxek-layout input[name*="rate"],
+.maxek-layout input[name*="_pct"],
+.maxek-layout input[name*="percent"],
+.maxek-layout input[name*="ot_hours"],
+.maxek-layout input[data-field-size="sm"] {
+  max-width: var(--erp-field-sm);
+}
+
+.maxek-layout input[name*="amount"]:not([name*="description"]),
+.maxek-layout input[name*="salary"],
+.maxek-layout input[name*="invoice_value"],
+.maxek-layout input[data-field-size="md"] {
+  max-width: var(--erp-field-md);
+}
+
+.maxek-layout select[name*="project"],
+.maxek-layout select[name*="employee"],
+.maxek-layout select[name*="staff"],
+.maxek-layout select[name*="vendor"],
+.maxek-layout select[name*="material"],
+.maxek-layout input[data-field-size="lg"] {
+  max-width: var(--erp-field-lg);
+}
+
+.maxek-layout textarea[name*="remark"],
+.maxek-layout textarea[name*="description"],
+.maxek-layout textarea[data-field-size="full"] {
+  width: 100%;
+}
+
+/* Standard action buttons */
+.maxek-layout .erp-btn--standard {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--erp-btn-standard-height);
+  height: var(--erp-btn-standard-height);
+  min-width: var(--erp-btn-standard-min-width);
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.maxek-layout .erp-btn--standard.erp-btn-sm {
+  min-height: 34px;
+  height: 34px;
+  min-width: 96px;
+  font-size: 13px;
+  padding: 0 10px;
+}
+
+.maxek-layout .erp-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Workflow progress bar */
+.maxek-layout .erp-workflow-progress {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 12px 14px;
+  background: var(--bg-card-dark, #1e2533);
+  border: 1px solid var(--border-subtle, #2e374a);
+  border-radius: 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.maxek-layout .erp-workflow-progress__step {
+  flex: 1 1 0;
+  min-width: 72px;
+  text-align: center;
+  position: relative;
+  padding: 6px 4px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.maxek-layout .erp-workflow-progress__step::before {
+  content: "";
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  background: #374151;
+  border: 2px solid #4b5563;
+}
+
+.maxek-layout .erp-workflow-progress__step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: calc(50% + 10px);
+  right: calc(-50% + 10px);
+  height: 2px;
+  background: #374151;
+  z-index: 0;
+}
+
+.maxek-layout .erp-workflow-progress__step.is-done {
+  color: #86efac;
+}
+
+.maxek-layout .erp-workflow-progress__step.is-done::before {
+  background: #16a34a;
+  border-color: #22c55e;
+}
+
+.maxek-layout .erp-workflow-progress__step.is-done:not(:last-child)::after {
+  background: #16a34a;
+}
+
+.maxek-layout .erp-workflow-progress__step.is-active {
+  color: #fff;
+}
+
+.maxek-layout .erp-workflow-progress__step.is-active::before {
+  background: var(--maxek-red, #e30613);
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.25);
+}
+
+/* Accounts sub-toolbar sections */
+.maxek-layout .department-subbar-section-label {
+  display: inline-flex;
+  align-items: center;
+  height: calc(var(--layout-control-height, 36px) - 4px);
+  padding: 0 8px;
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #9ca3af);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.maxek-layout .department-subbar-section-label:first-child {
+  margin-left: 0;
+}
+
+.maxek-layout .department-subbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-subtle, #2e374a);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.maxek-layout .department-subbar-scroll {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  row-gap: 4px;
+}
+
+/* Global search — advanced panel */
+.maxek-layout .global-search-advanced {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border-subtle, #2e374a);
+}
+
+.maxek-layout .global-search-advanced label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #9ca3af);
+  margin-bottom: 4px;
+}
+
+.maxek-layout .global-search-advanced select {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: var(--bg-dark-ops, #141822);
+  border: 1px solid var(--border-subtle, #2e374a);
+  color: var(--text-main, #f3f4f6);
+  border-radius: 6px;
+}
+
+.maxek-layout .global-search-cat.is-active {
+  background: rgba(227, 6, 19, 0.2);
+  border-color: rgba(227, 6, 19, 0.5);
+  color: #fff;
+}

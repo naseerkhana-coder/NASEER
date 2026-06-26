@@ -1,0 +1,39 @@
+MAXEK ERP Import Hotfix (complete root modules)
+Generated: 2026-06-20T01:52:47.395622
+Zip: C:\Users\rajee\Documents\New project\MAXEK_ERP\deploy\packages\maxek-erp-import-hotfix.zip
+Module count: 30
+
+Includes every repo-root *_service.py and *_routes.py so
+`python3 -c "import app"` succeeds after unzip to /var/www/maxek-erp-flask.
+
+FILES:
+  accounts_service.py
+  alert_engine_service.py
+  attendance_service.py
+  bbs_service.py
+  budget_service.py
+  claims_service.py
+  client_billing_service.py
+  command_center_service.py
+  company_master_service.py
+  contract_service.py
+  corporate_dms_service.py
+  cost_planning_service.py
+  document_numbering_service.py
+  employee_timesheet_service.py
+  equipment_costing_service.py
+  helpdesk_service.py
+  labour_productivity_service.py
+  office_fleet_service.py
+  payroll_service.py
+  plant_service.py
+  precast_service.py
+  profitability_service.py
+  project_photos_service.py
+  qc_service.py
+  store_service.py
+  subcontract_payment_service.py
+  subcontractor_billing_service.py
+  treasury_routes.py
+  treasury_service.py
+  workflow_service.py

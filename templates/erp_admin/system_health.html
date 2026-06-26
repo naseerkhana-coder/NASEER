@@ -1,0 +1,22 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'System Health' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; System Health' %}
+{% block content %}
+{% include 'erp_admin/_subtoolbar.html' %}
+<div class="module-layout">
+  <div class="erp-kpi-grid">
+    {% for key, val in health.metrics.items() %}
+    <div class="erp-kpi-card"><div class="erp-kpi-label">{{ key|replace('_', ' ')|title }}</div><div class="erp-kpi-value">{{ val }}</div></div>
+    {% endfor %}
+  </div>
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Health Checks</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>Component</th><th>Status</th><th>Detail</th></tr></thead>
+        <tbody>{% for row in health.checks %}<tr><td>{{ row.name }}</td><td>{{ row.status }}</td><td>{{ row.detail }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

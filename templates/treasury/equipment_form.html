@@ -1,0 +1,76 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = (equipment and 'Edit Machine' or 'New Machine') %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_equipment_costing') ~ '">Equipment Costing</a> &gt; ' ~ page_title %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_equipment_costing') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+{% if equipment %}
+<a href="{{ url_for('treasury_equipment_costing_detail', equipment_id=equipment.id) }}" class="erp-btn erp-btn-ghost">View Detail</a>
+{% endif %}
+{% endblock %}
+{% block content %}
+<form method="post" class="erp-form-card"{% if equipment %} action="{{ url_for('treasury_equipment_costing_detail', equipment_id=equipment.id) }}"{% endif %}>
+  <input type="hidden" name="form_action" value="save_equipment">
+  <div class="erp-form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+    <div class="erp-field">
+      <input type="text" name="equipment_code" value="{{ equipment.equipment_code if equipment else '' }}" required placeholder="e.g. EX-01">
+      <label>Equipment Code *</label>
+    </div>
+    <div class="erp-field">
+      <input type="text" name="name" value="{{ equipment.name if equipment else '' }}" required placeholder="Excavator — Hitachi">
+      <label>Machine Name *</label>
+    </div>
+    <div class="erp-field">
+      <input type="text" name="type" value="{{ equipment.type if equipment else '' }}" placeholder="Excavator, Truck, Crane">
+      <label>Equipment Type</label>
+    </div>
+    <div class="erp-field">
+      <input type="text" name="registration_no" value="{{ equipment.registration_no if equipment else '' }}" placeholder="Reg / fleet no.">
+      <label>Registration No.</label>
+    </div>
+    <div class="erp-field">
+      <select name="project_id">
+        <option value="">— Optional project —</option>
+        {% for p in projects %}
+        <option value="{{ p.id }}" {% if equipment and equipment.project_id == p.id %}selected{% elif preset_project_id and preset_project_id == p.id %}selected{% endif %}>{{ p.project_name }}</option>
+        {% endfor %}
+      </select>
+      <label>Default Project</label>
+    </div>
+    <div class="erp-field">
+      <select name="status" required>
+        {% for s in equipment_statuses %}
+        <option value="{{ s }}" {% if (equipment and equipment.status == s) or (not equipment and s == 'Active') %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <label>Status</label>
+    </div>
+    <div class="erp-field">
+      <select name="owner_type">
+        {% for o in owner_types %}
+        <option value="{{ o }}" {% if equipment and equipment.owner_type == o %}selected{% elif not equipment and o == 'Company Owned' %}selected{% endif %}>{{ o }}</option>
+        {% endfor %}
+      </select>
+      <label>Ownership</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="hourly_rate" value="{{ equipment.hourly_rate if equipment else '' }}" placeholder="DPR hourly rate">
+      <label>Hourly Rate (₹)</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="km_rate" value="{{ equipment.km_rate if equipment else '' }}" placeholder="DPR km rate">
+      <label>KM Rate (₹)</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="trip_rate" value="{{ equipment.trip_rate if equipment else '' }}" placeholder="DPR trip rate">
+      <label>Trip Rate (₹)</label>
+    </div>
+  </div>
+  <p style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;">
+    Uses the shared <strong>equipment master</strong> also referenced by DPR and cost planning. Add monthly cost lines from the machine detail page.
+  </p>
+  <div class="erp-form-actions" style="margin-top:1rem;">
+    <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Machine</button>
+    <a href="{{ url_for('treasury_equipment_costing') }}" class="erp-btn erp-btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

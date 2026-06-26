@@ -1,0 +1,52 @@
+﻿MAXEK ERP HR + workflow deploy package
+Generated: 2026-06-16T12:47:07.1156592+05:30
+Zip: deploy/maxek-erp-deploy.zip
+VPS target: /var/www/maxek-erp-flask/
+Files: 45
+
+FILE LIST:
+app.py
+deploy/fix_dpr_db.sql
+deploy/fix_workers_db.sql
+deploy/migrate_db.py
+deploy/migrate_production.py
+deploy/post_deploy_test.sh
+deploy/UPDATE_FILES.txt
+deploy/vps_backup.sh
+deploy/vps_fix_schema.sh
+deploy/VPS_PATCH_maxek-erp-flask.txt
+deploy/vps_pull_from_github.sh
+deploy/vps_update.sh
+deploy/WINSCP_maxek-erp-flask.txt
+requirements.txt
+static/css/maxek-dashboard.css
+static/js/app.js
+static/js/attendance-form.js
+static/js/boq-forms.js
+static/js/dpr-forms.js
+static/js/master-forms.js
+static/js/staff-bonus.js
+static/js/staff-forms.js
+static/js/subcontractors.js
+static/js/workers-form.js
+static/js/workflow.js
+templates/attendance.html
+templates/base_maxek.html
+templates/boq.html
+templates/clients.html
+templates/dashboard.html
+templates/department_hub.html
+templates/dpr.html
+templates/dpr_client_bill_print.html
+templates/macros/erp_ui.html
+templates/notifications.html
+templates/projects.html
+templates/settings.html
+templates/staff.html
+templates/staff_bonus.html
+templates/subcontractors.html
+templates/timesheet.html
+templates/users.html
+templates/workers.html
+workflow_service.py
+wsgi.py

@@ -1,0 +1,126 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Backup System' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Backup System' %}
+{% block page_actions %}
+{% if is_admin %}
+<a href="{{ url_for('treasury_backup_settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
+{% endif %}
+<form method="post" action="{{ url_for('treasury_backup_create') }}" style="display:inline;">
+  <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-database"></i> Backup Now</button>
+</form>
+<a href="{{ url_for('treasury_hub') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Treasury Hub</a>
+{% endblock %}
+{% block content %}
+<p style="color:#64748b;margin-top:0;">
+  Automatic daily, weekly, and monthly database backups with server storage.
+  OneDrive and external targets are <strong>stubs</strong> until cloud sync is configured.
+</p>
+
+<div class="erp-summary-grid" style="margin-bottom:1.5rem;">
+  <div class="erp-stat-card"><span>Total Backups</span><strong>{{ stats.total_backups }}</strong></div>
+  <div class="erp-stat-card"><span>Completed</span><strong>{{ stats.completed_backups }}</strong></div>
+  <div class="erp-stat-card"><span>Total Size</span><strong>{{ stats.total_size_mb }} MB</strong></div>
+  <div class="erp-stat-card"><span>Storage</span><strong>Server</strong></div>
+</div>
+
+<div class="erp-form-card" style="margin-bottom:1.5rem;">
+  <h3 class="erp-form-title">Last Scheduled Runs</h3>
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr><th>Schedule</th><th>Last Run</th><th>File</th><th>Size</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for btype, label in [('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('manual', 'Manual')] %}
+        {% set run = stats.last_runs.get(btype) %}
+        <tr>
+          <td>{{ label }}</td>
+          <td>{{ run.created_at if run else '—' }}</td>
+          <td>{% if run %}<code style="font-size:0.85rem;">{{ run.filename or '—' }}</code>{% else %}—{% endif %}</td>
+          <td>{% if run %}{{ '{:,.2f}'.format((run.file_size or 0) / 1048576) }} MB{% else %}—{% endif %}</td>
+          <td>{{ run.status if run else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:0.85rem;color:#64748b;margin:1rem 0 0;">
+    Retention: {{ stats.settings.retention_daily }} daily,
+    {{ stats.settings.retention_weekly }} weekly,
+    {{ stats.settings.retention_monthly }} monthly.
+    Backup folder: <code>{{ stats.backup_dir }}</code>
+  </p>
+</div>
+
+<div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-toolbar">
+    <h3 class="erp-table-title">Backup Register</h3>
+  </div>
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Type</th>
+          <th>Filename</th>
+          <th>Size</th>
+          <th>Storage</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>By</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in backups %}
+        <tr>
+          <td>{{ row.id }}</td>
+          <td>{{ row.backup_type|capitalize }}</td>
+          <td><code style="font-size:0.85rem;">{{ row.filename or '—' }}</code></td>
+          <td>{{ row.file_size_mb }} MB</td>
+          <td>{{ row.storage_target or 'server' }}</td>
+          <td>
+            {% if row.status == 'completed' %}
+            <span class="approval-badge approval-approved">{{ row.status }}</span>
+            {% elif row.status == 'failed' %}
+            <span class="approval-badge approval-bounced">{{ row.status }}</span>
+            {% else %}
+            {{ row.status }}
+            {% endif %}
+          </td>
+          <td>{{ row.created_at }}</td>
+          <td>{{ row.created_by or '—' }}</td>
+          <td style="max-width:200px;font-size:0.85rem;">{{ row.notes or '—' }}</td>
+          <td style="white-space:nowrap;">
+            {% if is_admin and row.file_exists and row.status == 'completed' %}
+            <a href="{{ url_for('treasury_backup_download', backup_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Download</a>
+            <form method="post" action="{{ url_for('treasury_backup_restore', backup_id=row.id) }}" style="display:inline;" onsubmit="return confirm('Restore database from this backup? A safety backup will be created first. You must restart the application after restore.');">
+              <input type="hidden" name="confirm_restore" value="yes">
+              <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Restore</button>
+            </form>
+            <form method="post" action="{{ url_for('treasury_backup_delete', backup_id=row.id) }}" style="display:inline;" onsubmit="return confirm('Delete this backup file permanently?');">
+              <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Delete</button>
+            </form>
+            {% elif is_admin and not row.file_exists %}
+            <span class="workflow-hint">File missing</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">No backups yet. Use <strong>Backup Now</strong> or wait for the scheduled run on startup.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if is_admin %}
+<div class="erp-alert erp-alert-warning" style="margin-top:1.25rem;padding:0.75rem 1rem;border-radius:0.5rem;background:#fef3c7;border:1px solid #f59e0b;">
+  <strong><i class="fa-solid fa-triangle-exclamation"></i> Restore requires application restart</strong>
+  <p style="margin:0.5rem 0 0;font-size:0.9rem;">
+    Restoring overwrites the live database file. Stop active sessions and restart Gunicorn / the dev server after restore.
+  </p>
+</div>
+{% endif %}
+{% endblock %}

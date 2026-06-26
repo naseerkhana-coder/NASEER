@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign In — MAXEK Technologies ERP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root{
+      --mx-bg:#0e1422; --mx-panel:#1b2336; --mx-panel2:#222c43; --mx-line:#33405c;
+      --mx-text:#eaf0f8; --mx-muted:#9aa6bd; --mx-red:#e0362c; --mx-red-d:#b62a22; --mx-green:#22c55e;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body.login-page{
+      font-family:'Inter','Segoe UI',Roboto,system-ui,Arial,sans-serif;
+      min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(1200px 600px at 70% -10%, rgba(224,54,44,.10) 0, transparent 60%), var(--mx-bg);
+      background-color:var(--mx-bg);color:var(--mx-text);padding:24px;
+    }
+    .login-wrap{
+      width:100%;max-width:940px;display:grid;grid-template-columns:1.05fr 1fr;
+      background:var(--mx-panel);border:1px solid var(--mx-line);border-radius:16px;
+      box-shadow:0 24px 60px rgba(0,0,0,.45);overflow:hidden;
+    }
+    .login-brand-panel{background:linear-gradient(150deg,#1b2336,#0f1727);padding:46px 40px;display:flex;align-items:center}
+    .login-brand-inner{width:100%}
+    .brand-logo-box{width:96px;height:96px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;padding:10px;margin-bottom:18px}
+    .brand-logo-box img{max-width:100%;max-height:100%}
+    .login-brand-inner h1{font-size:2rem;letter-spacing:-.01em;margin-bottom:4px}
+    .login-brand-inner h1 .mx-accent{color:var(--mx-red)}
+    .login-tagline{font-weight:600;color:#cfd7e6;margin:0}
+    .login-tagline-sub{color:var(--mx-muted);margin:6px 0 22px;font-size:.92rem;line-height:1.5}
+    .login-features{list-style:none;display:flex;flex-direction:column;gap:12px}
+    .login-features li{display:flex;align-items:center;gap:10px;color:#dbe3f0;font-size:.92rem}
+    .login-features i{color:var(--mx-green)}
+    .login-card{padding:42px 40px;display:flex;flex-direction:column;background:var(--mx-panel)}
+    .login-card h2{font-size:1.5rem;margin-bottom:4px}
+    .login-card .sub{color:var(--mx-muted);margin-bottom:22px;font-size:.92rem}
+    .login-alert{display:flex;align-items:center;gap:10px;background:rgba(224,54,44,.14);color:#ff8b84;border:1px solid rgba(224,54,44,.4);border-radius:10px;padding:10px 13px;font-size:.86rem;font-weight:600;margin-bottom:16px}
+    .login-form{display:flex;flex-direction:column;gap:15px}
+    .form-field{display:flex;flex-direction:column;gap:6px}
+    .form-field label{font-size:.78rem;font-weight:700;color:var(--mx-muted)}
+    .input-wrap{position:relative;display:flex;align-items:center}
+    .input-wrap .input-icon{position:absolute;left:12px;color:#8a93a8;font-size:.9rem;pointer-events:none}
+    .input-wrap input{width:100%;border:1px solid #cdd5e3;background:#fff;color:#15202e;border-radius:10px;padding:12px 14px 12px 38px;font-size:.95rem;outline:none;transition:border-color .15s,box-shadow .15s}
+    .input-wrap input::placeholder{color:#9aa6bd}
+    .input-wrap input:focus{border-color:var(--mx-red);box-shadow:0 0 0 3px rgba(224,54,44,.22)}
+    .toggle-pass{position:absolute;right:8px;background:none;border:none;color:#8a93a8;cursor:pointer;padding:6px 8px;border-radius:8px}
+    .toggle-pass:hover{background:rgba(0,0,0,.06)}
+    .login-row{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+    .remember{display:flex;align-items:center;gap:8px;font-size:.86rem;color:var(--mx-muted);cursor:pointer}
+    .remember input{accent-color:var(--mx-red);width:15px;height:15px}
+    .login-forgot{font-size:.86rem;color:var(--mx-red);text-decoration:none;font-weight:600}
+    .login-forgot:hover{text-decoration:underline}
+    .login-submit{position:relative;margin-top:8px;width:100%;background:var(--mx-red);color:#fff;border:none;border-radius:10px;padding:13px 16px;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .05s}
+    .login-submit:hover{background:var(--mx-red-d)}
+    .login-submit:active{transform:translateY(1px)}
+    .login-submit:disabled{opacity:.85;cursor:default}
+    .btn-spinner{display:none;width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;animation:mxspin .7s linear infinite}
+    .login-submit.is-loading .btn-label{display:none}
+    .login-submit.is-loading .btn-spinner{display:inline-block}
+    @keyframes mxspin{to{transform:rotate(360deg)}}
+    .login-footer{margin-top:22px;display:flex;flex-direction:column;gap:3px;align-items:center;color:var(--mx-muted);font-size:.74rem;text-align:center}
+    @media(max-width:760px){.login-wrap{grid-template-columns:1fr;max-width:430px}.login-brand-panel{padding:28px;text-align:center}.brand-logo-box{margin-left:auto;margin-right:auto}.login-features{display:none}.login-card{padding:26px 22px}}
+  </style>
+</head>
+<body class="login-page">
+  <div class="login-wrap">
+    <aside class="login-brand-panel">
+      <div class="login-brand-inner">
+        <div class="brand-logo-box">
+          <img src="{{ url_for('static', filename='images/maxek-logo.png') }}" alt="MAXEK Technologies" onerror="this.parentNode.style.display='none'" />
+        </div>
+        <h1>MAX<span class="mx-accent">EK</span> ERP</h1>
+        <p class="login-tagline">MAXEK Technologies</p>
+        <p class="login-tagline-sub">Construction Operations &amp; Enterprise Resource Planning</p>
+        <ul class="login-features">
+          <li><i class="fa-solid fa-circle-check"></i> Site workflow approvals</li>
+          <li><i class="fa-solid fa-circle-check"></i> Payroll &amp; attendance</li>
+          <li><i class="fa-solid fa-circle-check"></i> Store &amp; purchase control</li>
+        </ul>
+      </div>
+    </aside>
+
+    <section class="login-card">
+      <h2>Welcome back</h2>
+      <p class="sub">Sign in to your MAXEK Technologies workspace</p>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="login-alert"><i class="fa-solid fa-circle-exclamation"></i><span>{{ messages[0] }}</span></div>
+        {% endif %}
+      {% endwith %}
+
+      <form class="login-form" method="post" autocomplete="on" novalidate>
+        <div class="form-field">
+          <label for="company_code">Company Code</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-building input-icon"></i>
+            <input id="company_code" name="company_code" type="text" placeholder="Company Code" required autocomplete="organization" />
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="username">Username</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-user input-icon"></i>
+            <input id="username" name="username" type="text" placeholder="Username" required autocomplete="username" list="login-usernames" />
+            <datalist id="login-usernames">{% for u in (remembered_usernames or []) %}<option value="{{ u }}"></option>{% endfor %}</datalist>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input id="password" name="password" type="password" placeholder="Password" required autocomplete="current-password" />
+            <button type="button" class="toggle-pass" aria-label="Show password" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <div class="login-row">
+          <label class="remember"><input type="checkbox" name="remember" {% if remembered_user %}checked{% endif %} /> <span>Remember me</span></label>
+          <a href="{{ url_for('forgot_password') }}" class="login-forgot">Forgot password?</a>
+        </div>
+        <button class="login-submit" type="submit">
+          <span class="btn-label"><i class="fa-solid fa-right-to-bracket"></i> Sign In</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <footer class="login-footer">
+        <span>MAXEK Technologies ERP v{{ app_version or '1.0.0' }}</span>
+        <span>&copy; 2026 MAXEK Technologies</span>
+      </footer>
+    </section>
+  </div>
+
+  <script>
+    (function(){
+      var f=document.querySelector('.login-form'), b=document.querySelector('.login-submit');
+      if(f&&b){f.addEventListener('submit',function(){b.classList.add('is-loading');b.disabled=true;});}
+      var t=document.querySelector('.toggle-pass'), p=document.getElementById('password');
+      if(t&&p){t.addEventListener('click',function(){var s=p.type==='password';p.type=s?'text':'password';t.firstElementChild.className='fa-solid '+(s?'fa-eye-slash':'fa-eye');});}
+      ['company_code','username','password'].some(function(id){var el=document.getElementById(id);if(el&&!el.value){el.focus();return true;}return false;});
+    })();
+  </script>
+</body>
+</html>

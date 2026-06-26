@@ -1,0 +1,24 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Login Monitoring' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Login Monitoring' %}
+{% block content %}
+{% include 'erp_admin/_subtoolbar.html' %}
+<div class="module-layout">
+  <div class="erp-form-card">
+    <form method="get" class="erp-form-grid">
+      <div class="erp-field"><input type="date" name="from_date" value="{{ date_from or '' }}"><label>From Date</label></div>
+      <div class="erp-field"><input type="date" name="to_date" value="{{ date_to or '' }}"><label>To Date</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Filter</button></div>
+    </form>
+  </div>
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Login Sessions</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>User</th><th>Role</th><th>Login Time</th><th>Logout Time</th><th>IP Address</th><th>Duration</th></tr></thead>
+        <tbody>{% for row in login_rows %}<tr><td>{{ row.employee_name or row.username or '—' }}</td><td>{{ row.role or '—' }}</td><td>{{ row.login_time or '—' }}</td><td>{{ row.logout_time or 'Active' }}</td><td>{{ row.ip_address or '—' }}</td><td>{{ row.duration_minutes or '—' }}</td></tr>{% else %}<tr><td colspan="6">No login records for selected period.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,187 @@
+/* MAXEK ERP — Global table standardization (erp-table / erp-table-module) */
+
+.maxek-layout {
+  --erp-table-header-height: 45px;
+  --erp-table-row-height: 40px;
+  --erp-table-font-size: 14px;
+  --erp-table-header-bg: #1a2233;
+  --erp-table-row-odd: rgba(30, 37, 51, 0.55);
+  --erp-table-row-even: rgba(24, 30, 42, 0.85);
+  --erp-table-row-hover: rgba(227, 6, 19, 0.1);
+  --erp-table-border: #2e374a;
+}
+
+/* Core table — always-visible text, fixed row heights */
+.maxek-layout .erp-table,
+.maxek-layout .erp-table-module {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--erp-table-font-size);
+  color: var(--text-main, #f3f4f6);
+}
+
+.maxek-layout .erp-table thead th,
+.maxek-layout .erp-table-module thead th {
+  height: var(--erp-table-header-height);
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #e2e8f0;
+  background: var(--erp-table-header-bg);
+  border-bottom: 2px solid var(--erp-table-border);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.maxek-layout .erp-table tbody td,
+.maxek-layout .erp-table-module tbody td {
+  height: var(--erp-table-row-height);
+  padding: 0 10px;
+  font-size: var(--erp-table-font-size);
+  color: var(--text-main, #f3f4f6);
+  border-bottom: 1px solid var(--erp-table-border);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.maxek-layout .erp-table tbody tr:nth-child(odd),
+.maxek-layout .erp-table-module tbody tr:nth-child(odd) {
+  background: var(--erp-table-row-odd);
+}
+
+.maxek-layout .erp-table tbody tr:nth-child(even),
+.maxek-layout .erp-table-module tbody tr:nth-child(even) {
+  background: var(--erp-table-row-even);
+}
+
+.maxek-layout .erp-table tbody tr:hover,
+.maxek-layout .erp-table-module tbody tr:hover {
+  background: var(--erp-table-row-hover);
+}
+
+.maxek-layout .erp-table tbody tr:hover td,
+.maxek-layout .erp-table-module tbody tr:hover td {
+  color: var(--text-main, #f3f4f6);
+}
+
+.maxek-layout .erp-table a,
+.maxek-layout .erp-table-module a {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.maxek-layout .erp-table a:hover,
+.maxek-layout .erp-table-module a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* Full-width panel — 90%+ utilization, no forced horizontal scroll */
+.maxek-layout .erp-table-panel {
+  width: 100%;
+  max-width: 100%;
+}
+
+.maxek-layout .erp-table-panel--full {
+  width: min(100%, 100%);
+}
+
+.maxek-layout .erp-table-scroll {
+  overflow-x: visible;
+}
+
+.maxek-layout .erp-table-scroll--fit {
+  overflow-x: auto;
+}
+
+.maxek-layout .erp-table-compact th,
+.maxek-layout .erp-table-compact td {
+  height: 36px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+/* Alert engine — rows always visible (no hover-to-reveal) */
+.maxek-layout .erp-alert-table-panel .erp-table tbody td,
+.maxek-layout .erp-alert-table-panel .erp-table-module tbody td {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  line-height: 1.35;
+  padding: 8px 10px;
+  height: auto;
+  min-height: var(--erp-table-row-height);
+  color: var(--text-main, #f3f4f6);
+}
+
+.maxek-layout .erp-alert-table-panel .erp-table tbody tr,
+.maxek-layout .erp-alert-table-panel .erp-table-module tbody tr {
+  opacity: 1;
+  visibility: visible;
+}
+
+.maxek-layout .erp-alert-table-panel .erp-table tbody tr.alert-row--critical {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.maxek-layout .erp-alert-table-panel .erp-table tbody tr.alert-row--warning {
+  background: rgba(217, 119, 6, 0.1);
+}
+
+.maxek-layout .erp-alert-table-panel .erp-table tbody tr.alert-row--info {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* Petty cash list columns */
+.maxek-layout .erp-table--petty-cash .col-request { width: 9%; }
+.maxek-layout .erp-table--petty-cash .col-date { width: 8%; }
+.maxek-layout .erp-table--petty-cash .col-project { width: 12%; }
+.maxek-layout .erp-table--petty-cash .col-staff { width: 10%; }
+.maxek-layout .erp-table--petty-cash .col-purpose { width: 14%; }
+.maxek-layout .erp-table--petty-cash .col-amount { width: 8%; }
+.maxek-layout .erp-table--petty-cash .col-status { width: 10%; }
+.maxek-layout .erp-table--petty-cash .col-action { width: 11%; }
+
+/* Line-item table column widths */
+.maxek-layout .erp-table--line-items .col-item { width: 250px; min-width: 180px; }
+.maxek-layout .erp-table--line-items .col-qty { width: 100px; }
+.maxek-layout .erp-table--line-items .col-unit { width: 80px; }
+.maxek-layout .erp-table--line-items .col-rate { width: 120px; }
+.maxek-layout .erp-table--line-items .col-amount { width: 150px; }
+
+/* Filter row — single horizontal row */
+.maxek-layout .erp-filter-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 8px 0;
+}
+
+.maxek-layout .erp-filter-row .erp-table-search {
+  flex: 1 1 180px;
+  min-width: 140px;
+}
+
+.maxek-layout .erp-filter-row select,
+.maxek-layout .erp-filter-row input[type="date"] {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: var(--bg-dark-ops, #141822);
+  border: 1px solid var(--border-subtle, #2e374a);
+  color: var(--text-main, #f3f4f6);
+  border-radius: 8px;
+}

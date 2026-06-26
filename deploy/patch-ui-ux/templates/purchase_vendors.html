@@ -1,0 +1,161 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Vendor Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Masters &gt; Vendor Master' %}
+{% set form_vendor = editing_vendor %}
+{% block page_actions %}
+<a href="{{ url_for('purchase_vendors') }}#add-vendor" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> Add Vendor</a>
+<a href="{{ url_for('subcontractors') }}#add-subcontractor" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-people-group"></i> Subcontract Setup</a>
+{% if form_vendor %}<a href="{{ url_for('purchase_vendors') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel Edit</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="module-layout">
+  <div class="erp-form-card" id="add-vendor">
+    <h3 class="erp-form-title">{{ 'Edit Vendor' if form_vendor else 'Create Vendor' }}</h3>
+    <p class="erp-hint" style="margin-top:0;">Single master record for suppliers, subcontractors, labour contractors, and other external parties. Vendor code is assigned automatically (VEN101+).</p>
+    <form method="post" class="erp-form-grid" id="vendor-form" enctype="multipart/form-data">
+      <input type="hidden" name="form_action" value="save_vendor">
+      {% if form_vendor %}<input type="hidden" name="vendor_id" value="{{ form_vendor.id }}">{% endif %}
+      <div class="erp-field">
+        {% if form_vendor %}
+        <input name="code" id="vendor_code" required placeholder=" " value="{{ form_vendor.code }}" class="has-value">
+        {% else %}
+        <input id="vendor_code" placeholder=" " readonly class="has-value" value="{{ next_vendor_code }}">
+        {% endif %}
+        <label>Code {% if form_vendor %}*{% else %}(Auto){% endif %}</label>
+      </div>
+      <div class="erp-field span-2"><input name="name" id="vendor_name" required placeholder=" " value="{{ form_vendor.name if form_vendor else '' }}"{% if form_vendor %} class="has-value"{% endif %}><label>Name *</label></div>
+
+      <div class="span-2">
+        <span class="erp-form-subtitle">Vendor Type *</span>
+        <div class="erp-checkbox-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));gap:0.5rem 1rem;margin-top:0.5rem;">
+          {% for vt in vendor_types %}
+          <label class="coa-check">
+            <input type="checkbox" name="vendor_types[]" value="{{ vt }}"{% if vt in editing_vendor_types %} checked{% endif %}>
+            {{ vt }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="span-2">
+        <span class="erp-form-subtitle">Trade Categories</span>
+        <div class="erp-checkbox-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:0.5rem 1rem;margin-top:0.5rem;">
+          {% for tc in trade_categories %}
+          <label class="coa-check">
+            <input type="checkbox" name="trade_categories[]" value="{{ tc }}"{% if tc in editing_trade_categories %} checked{% endif %}>
+            {{ tc }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="erp-field">
+        <select name="gender" id="vendor_gender" class="{% if form_vendor and form_vendor.gender %}has-value{% endif %}">
+          <option value="">Select gender</option>
+          <option value="Male"{% if form_vendor and form_vendor.gender == 'Male' %} selected{% endif %}>Male</option>
+          <option value="Female"{% if form_vendor and form_vendor.gender == 'Female' %} selected{% endif %}>Female</option>
+        </select>
+        <label>Gender</label>
+      </div>
+      <div class="erp-field" data-dob-age>
+        <input name="date_of_birth" id="vendor_dob" type="date" placeholder=" " value="{{ form_vendor.date_of_birth if form_vendor else '' }}" data-dob-input>
+        <label>Date of Birth</label>
+      </div>
+      <div class="erp-field">
+        <input id="vendor_age_display" placeholder=" " readonly tabindex="-1" value="" data-age-display aria-readonly="true">
+        <label>Age (Auto)</label>
+      </div>
+      <div class="erp-field"><input name="contact_person" id="vendor_contact" placeholder=" " value="{{ form_vendor.contact_person if form_vendor else '' }}"{% if form_vendor and form_vendor.contact_person %} class="has-value"{% endif %}><label>Contact Person</label></div>
+      <div class="erp-field"><input name="phone" id="vendor_phone" placeholder=" " value="{{ form_vendor.phone if form_vendor else '' }}"{% if form_vendor and form_vendor.phone %} class="has-value"{% endif %}><label>Mobile</label></div>
+      <div class="erp-field"><input name="email" id="vendor_email" placeholder=" " value="{{ form_vendor.email if form_vendor else '' }}"{% if form_vendor and form_vendor.email %} class="has-value"{% endif %}><label>Email</label></div>
+      <div class="erp-field span-2"><input name="address" id="vendor_address" placeholder=" " value="{{ form_vendor.address if form_vendor else '' }}"{% if form_vendor and form_vendor.address %} class="has-value"{% endif %}><label>Address</label></div>
+      <div class="erp-field"><input name="city" id="vendor_city" placeholder=" " value="{{ form_vendor.city if form_vendor else '' }}"{% if form_vendor and form_vendor.city %} class="has-value"{% endif %}><label>City</label></div>
+      <div class="erp-field"><input name="state" id="vendor_state" placeholder=" " value="{{ form_vendor.state if form_vendor else '' }}"{% if form_vendor and form_vendor.state %} class="has-value"{% endif %}><label>State</label></div>
+      <div class="erp-field"><input name="pincode" id="vendor_pincode" placeholder=" " value="{{ form_vendor.pincode if form_vendor else '' }}"{% if form_vendor and form_vendor.pincode %} class="has-value"{% endif %}><label>Pincode</label></div>
+
+      <div class="erp-field"><input name="gstin" id="vendor_gstin" placeholder=" " value="{{ form_vendor.gstin if form_vendor else '' }}"{% if form_vendor and form_vendor.gstin %} class="has-value"{% endif %}><label>GST Number</label></div>
+      <div class="erp-field"><input name="pan" id="vendor_pan" placeholder=" " value="{{ form_vendor.pan if form_vendor else '' }}"{% if form_vendor and form_vendor.pan %} class="has-value"{% endif %}><label>PAN Number</label></div>
+      <div class="erp-field"><input name="aadhaar_number" id="vendor_aadhaar" placeholder=" " value="{{ form_vendor.aadhaar_number if form_vendor else '' }}"{% if form_vendor and form_vendor.aadhaar_number %} class="has-value"{% endif %}><label>Aadhaar Number</label></div>
+
+      <div class="erp-field"><input name="bank_account" placeholder=" " value="{{ form_vendor.bank_account if form_vendor else '' }}"{% if form_vendor and form_vendor.bank_account %} class="has-value"{% endif %}><label>Bank Account Number</label></div>
+      <div class="erp-field"><input name="bank_name" placeholder=" " value="{{ form_vendor.bank_name if form_vendor else '' }}"{% if form_vendor and form_vendor.bank_name %} class="has-value"{% endif %}><label>Bank Name</label></div>
+      <div class="erp-field"><input name="ifsc_code" placeholder=" " value="{{ form_vendor.ifsc_code if form_vendor else '' }}"{% if form_vendor and form_vendor.ifsc_code %} class="has-value"{% endif %}><label>IFSC Code</label></div>
+      <div class="erp-field"><input name="branch_name" placeholder=" " value="{{ form_vendor.branch_name if form_vendor else '' }}"{% if form_vendor and form_vendor.branch_name %} class="has-value"{% endif %}><label>Branch Name</label></div>
+
+      <div class="erp-field"><input name="photo" type="file" accept="image/*"><label>Vendor Photo{% if form_vendor and form_vendor.photo %} <span class="erp-hint">(on file)</span>{% endif %}</label></div>
+      <div class="erp-field"><input name="gst_document" type="file" accept="image/*,.pdf"><label>GST Document{% if form_vendor and form_vendor.gst_document %} <span class="erp-hint">(on file)</span>{% endif %}</label></div>
+      <div class="erp-field"><input name="pan_document" type="file" accept="image/*,.pdf"><label>PAN Document{% if form_vendor and form_vendor.pan_document %} <span class="erp-hint">(on file)</span>{% endif %}</label></div>
+      <div class="erp-field"><input name="aadhaar_document" type="file" accept="image/*,.pdf"><label>Aadhaar Document{% if form_vendor and form_vendor.aadhaar_document %} <span class="erp-hint">(on file)</span>{% endif %}</label></div>
+      <div class="erp-field"><input name="bank_proof_document" type="file" accept="image/*,.pdf"><label>Bank Account Proof{% if form_vendor and form_vendor.bank_proof_document %} <span class="erp-hint">(on file)</span>{% endif %}</label></div>
+      <div class="erp-field span-2"><input name="other_documents" type="file" accept="image/*,.pdf" multiple><label>Other Documents (multiple allowed)</label></div>
+
+      <div class="span-2"><label class="coa-check"><input type="checkbox" name="is_active" id="vendor_active" value="1"{% if not form_vendor or form_vendor.is_active %} checked{% endif %}> Active</label></div>
+      <div class="erp-form-actions span-2">
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Vendor</button>
+        {% if form_vendor %}<a href="{{ url_for('purchase_vendors') }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="erp-table-panel" id="vendor-list" data-erp-table>
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Vendor List</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr><th>Code</th><th>Name</th><th>Types</th><th>Trades</th><th>GSTIN</th><th>Contact</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ row.code }}</td>
+            <td><a href="{{ url_for('purchase_vendors', view=row.id) }}#vendor-list">{{ row.name }}</a></td>
+            <td>{{ row.vendor_types_display or '—' }}</td>
+            <td>{{ row.trade_categories_display or '—' }}</td>
+            <td>{{ row.gstin or '—' }}</td>
+            <td>{{ row.contact_person or '—' }}</td>
+            <td>{{ row.phone or '—' }}</td>
+            <td>{{ 'Active' if row.is_active else 'Inactive' }}</td>
+            <td>
+              <a href="{{ url_for('purchase_vendors', edit=row.id) }}#add-vendor" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No vendors yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if view_vendor %}
+<div class="erp-form-card" style="margin-top:1.25rem;" id="vendor-detail">
+  <h3 class="erp-form-title">{{ view_vendor.name }} — Details</h3>
+  <p><strong>Code:</strong> {{ view_vendor.code }} |
+    <strong>Types:</strong> {{ view_vendor.vendor_types_display or '—' }} |
+    <strong>Trades:</strong> {{ view_vendor.trade_categories_display or '—' }}</p>
+  <p><strong>GSTIN:</strong> {{ view_vendor.gstin or '—' }} |
+    <strong>PAN:</strong> {{ view_vendor.pan or '—' }}</p>
+  <p><strong>Gender:</strong> {{ view_vendor.gender or '—' }} |
+    <strong>DOB:</strong> {{ view_vendor.date_of_birth or '—' }} |
+    <strong>Bank:</strong> {{ view_vendor.bank_name or '—' }} ({{ view_vendor.bank_account or '—' }})</p>
+  <h4 class="erp-form-subtitle" style="margin-top:1rem;">Documents</h4>
+  <table class="erp-table">
+    <thead><tr><th>Type</th><th>File</th><th>Uploaded</th><th>By</th></tr></thead>
+    <tbody>
+      {% for doc in view_docs %}
+      <tr>
+        <td>{{ doc.doc_type or '—' }}</td>
+        <td><a href="{{ url_for('vendor_document_download', vendor_id=view_vendor.id, filename=doc.filename) }}">{{ doc.filename }}</a></td>
+        <td>{{ doc.uploaded_at or '—' }}</td>
+        <td>{{ doc.uploaded_by or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4">No documents uploaded.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_btn_close %}
+{% set page_title = 'Alert Engine' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Alert Engine' %}
+{% block page_actions %}
+<form method="post" action="{{ url_for('treasury_alert_engine_refresh') }}" style="display:inline;">
+  <button type="submit" class="erp-btn erp-btn--standard erp-btn-primary"><i class="fa-solid fa-rotate"></i> Refresh Alerts</button>
+</form>
+<a href="{{ url_for('treasury_alert_engine_settings') }}" class="erp-btn erp-btn--standard erp-btn-ghost"><i class="fa-solid fa-gear"></i> Notification Settings</a>
+<a href="{{ url_for('treasury_hub') }}" class="erp-btn erp-btn--standard erp-btn-ghost" data-erp-back data-back-href="{{ url_for('treasury_hub') }}"><i class="fa-solid fa-arrow-left"></i> Treasury Hub</a>
+{{ erp_btn_close() }}
+{% endblock %}
+{% block content %}
+<p class="erp-form-hint" style="margin-top:0;">
+  Unified alert inbox across treasury, budget, workflow, fleet, and ops modules. Email and WhatsApp dispatch are stubbed (log-only).
+</p>
+
+<div class="erp-summary-grid" style="margin-bottom:1.25rem;">
+  <div class="erp-stat-card"><span>Active Alerts</span><strong>{{ counts.total }}</strong></div>
+  <div class="erp-stat-card"><span>Critical</span><strong style="color:#f87171;">{{ counts.critical }}</strong></div>
+  <div class="erp-stat-card"><span>Warning</span><strong style="color:#fbbf24;">{{ counts.warning }}</strong></div>
+  <div class="erp-stat-card"><span>Info</span><strong style="color:#60a5fa;">{{ counts.info }}</strong></div>
+</div>
+
+<form method="get" class="erp-filter-row" style="margin-bottom:1rem;padding:0;">
+  <select name="alert_type" aria-label="Alert type">
+    <option value="">All types</option>
+    {% for t in alert_types %}
+    <option value="{{ t }}"{% if filters.alert_type == t %} selected{% endif %}>{{ t|replace('_', ' ')|title }}</option>
+    {% endfor %}
+  </select>
+  <select name="severity" aria-label="Severity">
+    <option value="">All severities</option>
+    {% for s in severities %}
+    <option value="{{ s }}"{% if filters.severity == s %} selected{% endif %}>{{ s|title }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" aria-label="Status">
+    <option value="active"{% if filters.status == 'active' %} selected{% endif %}>Active</option>
+    <option value="dismissed"{% if filters.status == 'dismissed' %} selected{% endif %}>Dismissed</option>
+    <option value="resolved"{% if filters.status == 'resolved' %} selected{% endif %}>Resolved</option>
+    <option value="all"{% if filters.status == 'all' %} selected{% endif %}>All statuses</option>
+  </select>
+  <button type="submit" class="erp-btn erp-btn--standard erp-btn-primary erp-btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+  <a href="{{ url_for('treasury_alert_engine') }}" class="erp-btn erp-btn--standard erp-btn-ghost erp-btn-sm">Reset</a>
+</form>
+
+<div class="erp-table-panel erp-alert-table-panel" data-erp-table>
+  <div class="erp-table-scroll">
+    <table class="erp-table erp-table-module">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Type</th>
+          <th>Title</th>
+          <th>Message</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in alerts %}
+        <tr class="alert-row--{{ a.severity }}">
+          <td>
+            {% if a.severity == 'critical' %}
+            <span class="approval-badge approval-bounced">Critical</span>
+            {% elif a.severity == 'warning' %}
+            <span class="approval-badge" style="background:#78350f;color:#fde68a;">Warning</span>
+            {% else %}
+            <span class="approval-badge approval-pending-checker">Info</span>
+            {% endif %}
+          </td>
+          <td>{{ a.alert_type|replace('_', ' ')|title }}</td>
+          <td><strong>{{ a.title }}</strong></td>
+          <td>{{ a.message }}</td>
+          <td>{{ a.due_date or '—' }}</td>
+          <td>{{ a.status|title }}</td>
+          <td>
+            {% if a.status == 'active' %}
+            <form method="post" action="{{ url_for('treasury_alert_engine_dismiss', alert_id=a.id) }}" style="display:inline;">
+              <button type="submit" class="erp-btn erp-btn--standard erp-btn-ghost erp-btn-sm">Dismiss</button>
+            </form>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No alerts match the current filters. Click <strong>Refresh Alerts</strong> to scan modules.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

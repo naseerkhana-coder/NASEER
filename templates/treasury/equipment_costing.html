@@ -1,0 +1,80 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Equipment Costing' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Equipment Costing' %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_equipment_costing_new') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Machine</a>
+<a href="{{ url_for('treasury_budget_control') }}" class="erp-btn erp-btn-ghost">Budget Control</a>
+{% endblock %}
+{% block content %}
+<p style="color:#64748b;margin-top:0;">
+  Machine-wise costing: fuel, operator, maintenance, tyre, and spare parts. Computes cost per hour, km, and day. Optional project allocation syncs to budget Equipment category.
+</p>
+
+{% if summary %}
+<div class="erp-summary-grid" style="margin-bottom:1.5rem;">
+  <div class="erp-stat-card"><span>Machines</span><strong>{{ summary.machine_count }}</strong></div>
+  <div class="erp-stat-card"><span>Active</span><strong>{{ summary.active_count }}</strong></div>
+  <div class="erp-stat-card"><span>With Cost Data</span><strong>{{ summary.with_costs_count }}</strong></div>
+  <div class="erp-stat-card"><span>Total Cost (all)</span><strong>₹{{ '{:,.2f}'.format(summary.total_cost) }}</strong></div>
+</div>
+{% endif %}
+
+<form method="get" class="erp-table-toolbar" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+  <input name="search" value="{{ search or '' }}" placeholder="Search code / name / reg" style="max-width:200px;">
+  <select name="project_id" style="max-width:220px;">
+    <option value="">All projects</option>
+    {% for p in projects %}
+    <option value="{{ p.id }}" {% if project_id == p.id %}selected{% endif %}>{{ p.project_name }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" style="max-width:160px;">
+    <option value="">All statuses</option>
+    {% for s in equipment_statuses %}
+    <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+  <a href="{{ url_for('treasury_equipment_costing') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Reset</a>
+</form>
+
+<div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Machine</th>
+          <th>Type</th>
+          <th>Project</th>
+          <th>Total Cost (₹)</th>
+          <th>₹/Hour</th>
+          <th>₹/KM</th>
+          <th>₹/Day</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in equipment %}
+        <tr>
+          <td><strong>{{ row.equipment_code or row.registration_no }}</strong></td>
+          <td>{{ row.name }}</td>
+          <td>{{ row.type or '—' }}</td>
+          <td>{{ row.project_name or '—' }}</td>
+          <td>{% if row.entry_count %}₹{{ '{:,.2f}'.format(row.total_cost) }}{% else %}—{% endif %}</td>
+          <td>{% if row.cost_per_hour is not none %}₹{{ '{:,.2f}'.format(row.cost_per_hour) }}{% else %}—{% endif %}</td>
+          <td>{% if row.cost_per_km is not none %}₹{{ '{:,.2f}'.format(row.cost_per_km) }}{% else %}—{% endif %}</td>
+          <td>{% if row.cost_per_day is not none %}₹{{ '{:,.2f}'.format(row.cost_per_day) }}{% else %}—{% endif %}</td>
+          <td>{{ row.status or '—' }}</td>
+          <td>
+            <a href="{{ url_for('treasury_equipment_costing_detail', equipment_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">No equipment registered. <a href="{{ url_for('treasury_equipment_costing_new') }}">Add the first machine</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

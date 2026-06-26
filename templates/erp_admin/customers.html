@@ -1,0 +1,108 @@
+{% extends 'base_maxek.html' %}
+
+{% from 'macros/erp_ui.html' import approval_badge, erp_pagination, erp_module_toolbar, erp_module_form_panel, erp_module_table_panel %}
+
+{% set page_title = 'Customer Master' %}
+
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Customer Master' %}
+
+{% block content %}
+
+{% include 'erp_admin/_subtoolbar.html' %}
+
+<div class="erp-module-layout">
+
+  {{ erp_module_toolbar(
+
+    search_placeholder='Search customers...',
+
+    search_name='q',
+
+    add_url='#add-customer',
+
+    export_name='customers',
+
+    print_target='#customer-records'
+
+  ) }}
+
+
+
+  {% call erp_module_form_panel(id='add-customer', title=('Edit Customer' if edit_record else 'Register Customer')) %}
+
+    <form method="post" class="erp-form-grid">
+
+      {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
+
+      <div class="erp-field"><input name="customer_code" placeholder=" " required value="{{ edit_record.customer_code if edit_record else next_customer_code }}"><label>Customer Code</label></div>
+
+      <div class="erp-field span-2"><input name="company_name" placeholder=" " required value="{{ edit_record.company_name if edit_record else '' }}"><label>Company Name</label></div>
+
+      <div class="erp-field"><select name="country"><option value="">Select country</option>{% for c in countries %}<option{% if edit_record and edit_record.country == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select><label>Country</label></div>
+
+      <div class="erp-field"><input name="contact_person" placeholder=" " value="{{ edit_record.contact_person if edit_record else '' }}"><label>Contact Person</label></div>
+
+      <div class="erp-field"><input name="mobile" placeholder=" " value="{{ edit_record.mobile if edit_record else '' }}"><label>Mobile</label></div>
+
+      <div class="erp-field"><input type="email" name="email" placeholder=" " value="{{ edit_record.email if edit_record else '' }}"><label>Email</label></div>
+
+      <div class="erp-field"><input name="vat_gst_number" placeholder=" " value="{{ edit_record.vat_gst_number if edit_record else '' }}"><label>VAT/GST Number</label></div>
+
+      <div class="erp-field"><input type="number" name="num_branches" min="0" placeholder=" " value="{{ edit_record.num_branches if edit_record else 0 }}"><label>No of Branches</label></div>
+
+      <div class="erp-field"><input type="number" name="num_users" min="0" placeholder=" " value="{{ edit_record.num_users if edit_record else 0 }}"><label>No of Users</label></div>
+
+      <div class="erp-field"><select name="plan">{% for p in plans %}<option{% if edit_record and edit_record.plan == p %} selected{% elif not edit_record and p == 'Standard' %} selected{% endif %}>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
+
+      <div class="erp-field"><select name="status">{% for s in statuses %}<option{% if edit_record and edit_record.status == s %} selected{% elif not edit_record and s == 'Active' %} selected{% endif %}>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>{% if edit_record %}<a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}</div>
+
+    </form>
+
+  {% endcall %}
+
+
+
+  {% call erp_module_table_panel(id='customer-records', title='Customer List') %}
+
+    <div class="erp-table-scroll">
+
+      <table class="erp-table erp-table-module">
+
+        <thead><tr><th>Code</th><th>Company</th><th>Country</th><th>Contact</th><th>Mobile</th><th>Email</th><th>VAT/GST</th><th>Branches</th><th>Users</th><th>Plan</th><th>Status</th><th></th></tr></thead>
+
+        <tbody>
+
+          {% for row in rows %}
+
+          <tr>
+
+            <td>{{ row.customer_code }}</td><td>{{ row.company_name }}</td><td>{{ row.country or '—' }}</td>
+
+            <td>{{ row.contact_person or '—' }}</td><td>{{ row.mobile or '—' }}</td><td>{{ row.email or '—' }}</td>
+
+            <td>{{ row.vat_gst_number or '—' }}</td><td>{{ row.num_branches }}</td><td>{{ row.num_users }}</td>
+
+            <td>{{ row.plan }}</td><td>{{ approval_badge(row.status) }}</td>
+
+            <td><a href="{{ url_for('erp_admin_customers', edit=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a></td>
+
+          </tr>
+
+          {% else %}<tr><td colspan="12">No customers found.</td></tr>{% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    {{ erp_pagination(rows|length) }}
+
+  {% endcall %}
+
+</div>
+
+{% endblock %}
+

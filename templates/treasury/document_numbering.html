@@ -1,0 +1,66 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Document Numbering' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Document Numbering' %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_hub') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Treasury Hub</a>
+{% endblock %}
+{% block content %}
+<p style="color:#64748b;margin-top:0;">
+  Central master numbering for tenders, projects, BOQ, DPR, purchase documents, store transactions, bills, vouchers, and bank guarantees.
+  Numbers are unique per document type and fiscal year (April–March).
+</p>
+
+<form method="get" class="erp-table-toolbar" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+  <label style="font-size:0.9rem;color:#64748b;">Fiscal year</label>
+  <input name="fiscal_year" value="{{ fiscal_year }}" placeholder="2025-26" style="max-width:120px;">
+  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Show</button>
+  <a href="{{ url_for('treasury_document_numbering') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Current FY</a>
+</form>
+
+<div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Document Type</th>
+          <th>Prefix</th>
+          <th>Format Pattern</th>
+          <th>Current Seq</th>
+          <th>Last Generated</th>
+          <th>Next Preview</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in sequences %}
+        <tr>
+          <td><strong>{{ row.label }}</strong><br><span style="font-size:0.8rem;color:#64748b;">{{ row.doc_type }}</span></td>
+          <td>{{ row.prefix }}</td>
+          <td><code style="font-size:0.85rem;">{{ row.format_pattern }}</code></td>
+          <td>{{ row.current_sequence }}</td>
+          <td>{{ row.last_number }}</td>
+          <td><strong>{{ row.next_preview }}</strong></td>
+          <td style="white-space:nowrap;">
+            <a href="{{ url_for('treasury_document_numbering_edit', doc_type=row.doc_type, fiscal_year=fiscal_year) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Configure</a>
+            {% if is_admin %}
+            <form method="post" action="{{ url_for('treasury_document_numbering_generate', doc_type=row.doc_type) }}" style="display:inline;">
+              <input type="hidden" name="fiscal_year" value="{{ fiscal_year }}">
+              <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm" title="Admin test generate">Test</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No sequences found. Restart the app or run init_db to seed defaults.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p style="font-size:0.85rem;color:#64748b;margin-top:1rem;">
+  Integrated modules auto-assign numbers on create when the number field is left blank
+  (Bank Guarantees → BG No, Bank Payments → Payment Voucher No, Claims → Bill No).
+  Other modules can call <code>integrate_next_number(db, doc_type, form_value)</code>.
+</p>
+{% endblock %}

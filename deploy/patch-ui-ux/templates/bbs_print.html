@@ -1,0 +1,93 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BBS Report — {{ report.ref_no }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx, orientation='landscape') }}
+  <style>
+    table { width: 100%; border-collapse: collapse; margin-top: 0.35rem; }
+    th, td { border: 1px solid #333; padding: 0.15rem 0.2rem; text-align: center; }
+    th { background: #e6b8b7; font-size: 0.68rem; }
+    td.desc { text-align: left; min-width: 8rem; }
+    .dia-group th { background: #e6b8b7; }
+    tfoot td { font-weight: bold; background: #f5f5f5; }
+    .weight-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.5rem 0; }
+    .weight-box { border: 1px solid #333; padding: 0.35rem; }
+    .bbs-extra-meta { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; border: 1px solid var(--maxek-secondary); font-size: 0.72rem; margin-top: 0.35rem; }
+    .bbs-extra-meta > div { padding: 0.25rem 0.4rem; border-right: 1px solid var(--maxek-secondary); }
+    .bbs-extra-meta > div:last-child { border-right: none; }
+  </style>
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='BBS REPORT', extra_meta=[
+      ('Building No', report.building_number),
+      ('Cutting/Bending', report.cutting_bending or 'Cutting & Bending'),
+      ('Measurement From', report.measurement_from),
+      ('Measurement To', report.measurement_to),
+    ]) }}
+
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2">S. No.</th>
+        <th rowspan="2">Description</th>
+        <th rowspan="2">Side</th>
+        <th rowspan="2">Unit</th>
+        <th rowspan="2">Nos</th>
+        <th rowspan="2">No of bars</th>
+        <th rowspan="2">CL</th>
+        <th rowspan="2">Dia</th>
+        <th colspan="7" class="dia-group">Steel Qty</th>
+        <th rowspan="2">Total</th>
+        <th rowspan="2">Remarks</th>
+      </tr>
+      <tr>
+        {% for d in diameters %}<th>{{ d }}mm</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in report.lines %}
+      <tr>
+        <td>{{ line.line_no }}</td>
+        <td class="desc">{{ line.description or '' }}</td>
+        <td>{{ line.side or '' }}</td>
+        <td>{{ line.unit or 'Mt' }}</td>
+        <td>{{ line.nos or '' }}</td>
+        <td>{{ line.num_bars or '' }}</td>
+        <td>{{ line.cutting_length or '' }}</td>
+        <td>{{ line.diameter_mm or '' }}</td>
+        {% for d in diameters %}
+        <td>{% set k = 'steel_qty_' ~ d %}{{ '%.3f'|format(line[k] or 0) if line[k] else '' }}</td>
+        {% endfor %}
+        <td>{{ '%.3f'|format(line.total_qty or 0) if line.total_qty else '' }}</td>
+        <td>{{ line.remarks or '' }}</td>
+      </tr>
+      {% endfor %}
+      {% for _ in range(3) %}<tr>{% for _ in range(17) %}<td>&nbsp;</td>{% endfor %}</tr>{% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="8" style="text-align:right;">Diameter Totals</td>
+        {% for d in diameters %}
+        <td>{{ '%.3f'|format(report.diameter_totals[d] or 0) }}</td>
+        {% endfor %}
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="weight-row">
+    <div class="weight-box"><strong>UP to 12 mm TOTAL WEIGHT:</strong> {{ '%.3f'|format(report.weight_up_to_12mm or 0) }} Mt</div>
+    <div class="weight-box"><strong>Above 12 mm TOTAL WEIGHT:</strong> {{ '%.3f'|format(report.weight_above_12mm or 0) }} Mt</div>
+  </div>
+
+  {{ corporate_report_signatures(ctx, show_digital_hint=false) }}
+  {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

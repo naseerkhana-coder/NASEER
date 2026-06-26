@@ -1,0 +1,144 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Settings' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Settings' %}
+{% block content %}
+<div class="module-layout settings-module-layout">
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Workflow Administration</h3>
+    <p>Configure module assignments, employee designations, and audit reporting for the MAXEK 3-step approval standard.</p>
+    <div class="erp-form-actions">
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('company_master') }}"><i class="fa-solid fa-building"></i> Company Master</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('corporate_template_master') }}"><i class="fa-solid fa-palette"></i> Corporate Template Master</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('corporate_reports_hub') }}"><i class="fa-solid fa-file-lines"></i> Corporate Reports Registry</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('user_management') }}"><i class="fa-solid fa-user-plus"></i> User Management</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('user_settings') }}"><i class="fa-solid fa-user-gear"></i> User Access Settings</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('workflow_settings') }}"><i class="fa-solid fa-table"></i> Workflow Assignment Matrix</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('user_activity_monitor') }}"><i class="fa-solid fa-chart-line"></i> User Activity Monitor</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('staff') }}"><i class="fa-solid fa-users"></i> Employee Designation Mapping</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('workflow_audit_report') }}"><i class="fa-solid fa-clipboard-list"></i> Workflow Audit Report</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('approvals') }}"><i class="fa-solid fa-clipboard-check"></i> Approvals Queue</a>
+    </div>
+  </div>
+
+  <div class="erp-form-card" id="company-settings">
+    <h3 class="erp-form-title">Company &amp; Regional Settings</h3>
+    <p class="erp-form-hint">Current server time: <strong>{{ app_now_display }}</strong></p>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_type" value="company">
+      <div class="erp-field span-2">
+        <select name="timezone" class="has-value">
+          {% for tz_value, tz_label in timezone_options %}
+          <option value="{{ tz_value }}"{% if tz_value == current_timezone %} selected{% endif %}>{{ tz_label }}</option>
+          {% endfor %}
+        </select>
+        <label>Application Timezone</label>
+      </div>
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Company Settings</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="erp-form-card" id="dashboard-display">
+    <h3 class="erp-form-title">Dashboard Display</h3>
+    <p class="erp-form-hint">Control which widgets appear on the home dashboard for all users.</p>
+    <form method="post" class="erp-form-grid dash-display-form">
+      <input type="hidden" name="form_type" value="dashboard_display">
+      <div class="dash-display-toggles span-2">
+        {% for key, label in dashboard_display_options %}
+        <label><input type="checkbox" name="dash_{{ key }}"{% if dashboard_display[key] %} checked{% endif %}> {{ label }}</label>
+        {% endfor %}
+      </div>
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Dashboard Display</button>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('dashboard') }}"><i class="fa-solid fa-gauge-high"></i> Open Dashboard</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="erp-form-card" id="dashboard-preferences">
+    <h3 class="erp-form-title">My Dashboard Preferences</h3>
+    <p class="erp-form-hint">Saved for your user account only. Choose role profile and widgets.</p>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_type" value="user_dashboard_preferences">
+      <div class="erp-field span-2">
+        <select name="role_profile" class="has-value">
+          <option value="default"{% if user_dashboard_prefs.role_profile == 'default' %} selected{% endif %}>Default</option>
+          <option value="accounts"{% if user_dashboard_prefs.role_profile == 'accounts' %} selected{% endif %}>Accounts User</option>
+          <option value="project_engineer"{% if user_dashboard_prefs.role_profile == 'project_engineer' %} selected{% endif %}>Project Engineer</option>
+          <option value="store"{% if user_dashboard_prefs.role_profile == 'store' %} selected{% endif %}>Store User</option>
+        </select>
+        <label>Role Profile</label>
+      </div>
+      <div class="dash-display-toggles span-2">
+        <p><strong>Dashboard cards</strong></p>
+        {% for card in ['payments','receipts','gst','boq','dpr','billing','grn','material_request','stock_status','pending_approvals','active_projects'] %}
+        <label><input type="checkbox" name="dashboard_cards" value="{{ card }}"{% if card in (user_dashboard_prefs.dashboard_cards or []) %} checked{% endif %}> {{ card|replace('_',' ')|title }}</label>
+        {% endfor %}
+      </div>
+      <div class="dash-display-toggles span-2">
+        <p><strong>Favourite modules</strong></p>
+        {% for mod in ['accounts_payments','accounts_receipts','boq_management','dpr_entry','client_billing_register','store','material_request','purchase_orders','payroll','approvals'] %}
+        <label><input type="checkbox" name="favorite_modules" value="{{ mod }}"{% if mod in (user_dashboard_prefs.favorite_modules or []) %} checked{% endif %}> {{ mod|replace('_',' ')|title }}</label>
+        {% endfor %}
+      </div>
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save My Preferences</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="erp-form-card" id="department-master">
+    <h3 class="erp-form-title">Department Creation</h3>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_type" value="department">
+      <div class="erp-field span-2"><input name="department_name" placeholder=" " required><label>Department Name</label></div>
+      <div class="erp-field span-2"><input name="description" placeholder=" "><label>Description</label></div>
+      <div class="erp-field"><select name="status" class="has-value"><option selected>Active</option><option>Inactive</option></select><label>Status</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Department</button></div>
+    </form>
+  </div>
+
+  <div class="erp-table-panel" data-erp-table>
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Department List</h3>
+      <div class="erp-table-controls">
+        <div class="erp-table-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-table-search placeholder="Search departments..."></div>
+      </div>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>#</th><th>Department</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for dept in departments %}
+          <tr>
+            <td>{{ dept.id }}</td>
+            <td>{{ dept.department_name }}</td>
+            <td>{{ dept.description or '—' }}</td>
+            <td>{{ dept.status }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4">No departments configured.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Role Security Policy</h3></div>
+    <div class="erp-table-scroll" style="padding: 1rem;">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>Role</th><th>Permissions</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Maker</strong></td><td>Create · Edit rejected records · View own records</td></tr>
+          <tr><td><strong>Checker</strong></td><td>View assigned records · Verify · Reject</td></tr>
+          <tr><td><strong>Approver</strong></td><td>Approve · Reject · View all approved records</td></tr>
+          <tr><td><strong>Administrator</strong></td><td>Reopen approved transactions (mandatory reason + audit)</td></tr>
+        </tbody>
+      </table>
+      <p class="workflow-hint" style="margin-top: 1rem;">Flow: Save → Pending Checker → Verify → Pending Approval → Approve → Approved. Reject returns to Maker. Reopen (Admin) → Pending Checker.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

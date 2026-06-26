@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign In — MAXEK Technologies ERP</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-dashboard.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-login.css') }}" />
+  </head>
+  <body class="login-page">
+    <div class="login-wrap">
+      <!-- Brand panel (hidden on small screens) -->
+      <aside class="login-brand-panel">
+        <div class="login-brand-inner">
+          <img class="maxek-logo--login"
+               src="{{ url_for('static', filename='images/maxek-logo.png') }}"
+               alt="MAXEK Technologies" onerror="this.style.display='none'" />
+          <h1>MAXEK ERP</h1>
+          <p class="login-tagline">MAXEK Technologies</p>
+          <p class="login-tagline-sub">Construction Operations &amp; Enterprise Resource Planning</p>
+          <ul class="login-features">
+            <li><i class="fa-solid fa-circle-check"></i> Site workflow approvals</li>
+            <li><i class="fa-solid fa-circle-check"></i> Payroll &amp; attendance</li>
+            <li><i class="fa-solid fa-circle-check"></i> Store &amp; purchase control</li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Sign-in card -->
+      <section class="login-card" role="main">
+        <div class="login-card-head">
+          <h2>Welcome back</h2>
+          <p>Sign in to your MAXEK Technologies workspace</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="login-alert" role="alert">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <span>{{ messages[0] }}</span>
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form class="login-form" method="post" autocomplete="on" novalidate>
+          <div class="form-field">
+            <label for="company_code">Company Code</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-building input-icon"></i>
+              <input id="company_code" name="company_code" type="text" placeholder="Company Code"
+                     required autocomplete="organization" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="username">Username</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-user input-icon"></i>
+              <input id="username" name="username" type="text" placeholder="Username"
+                     required autocomplete="username" list="login-usernames" />
+              <datalist id="login-usernames">
+                {% for u in (remembered_usernames or []) %}<option value="{{ u }}"></option>{% endfor %}
+              </datalist>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="password">Password</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input id="password" name="password" type="password" placeholder="Password"
+                     required autocomplete="current-password" />
+              <button type="button" class="toggle-pass" aria-label="Show password" tabindex="-1">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="login-row">
+            <label class="remember">
+              <input type="checkbox" name="remember" {% if remembered_user %}checked{% endif %} />
+              <span>Remember me</span>
+            </label>
+            <a href="{{ url_for('forgot_password') }}" class="login-forgot">Forgot password?</a>
+          </div>
+
+          <button class="login-submit" type="submit">
+            <span class="btn-label"><i class="fa-solid fa-right-to-bracket"></i> Sign In</span>
+            <span class="btn-spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+
+        <footer class="login-footer">
+          <span>MAXEK Technologies ERP v{{ app_version or '1.0.0' }}</span>
+          <span>&copy; 2026 MAXEK Technologies</span>
+        </footer>
+      </section>
+    </div>
+
+    <script>
+      (function () {
+        var form = document.querySelector('.login-form');
+        var btn = document.querySelector('.login-submit');
+        if (form && btn) {
+          form.addEventListener('submit', function () {
+            btn.classList.add('is-loading');
+            btn.disabled = true;
+          });
+        }
+        var toggle = document.querySelector('.toggle-pass');
+        var pass = document.getElementById('password');
+        if (toggle && pass) {
+          toggle.addEventListener('click', function () {
+            var show = pass.type === 'password';
+            pass.type = show ? 'text' : 'password';
+            toggle.firstElementChild.className = 'fa-solid ' + (show ? 'fa-eye-slash' : 'fa-eye');
+          });
+        }
+        // focus first empty field
+        ['company_code','username','password'].some(function(id){
+          var el=document.getElementById(id); if(el && !el.value){el.focus(); return true;} return false;
+        });
+      })();
+    </script>
+  </body>
+</html>

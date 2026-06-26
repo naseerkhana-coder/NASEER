@@ -1,0 +1,79 @@
+{# Universal view screen — details, attachments, approval history, audit #}
+{% macro universal_view_panel(view_record, module_id='', record_table='', endpoint='', history=none, audit_trail=none, related_records=none) %}
+{% if view_record %}
+<section class="universal-view-panel erp-form-card" data-universal-view>
+  <header class="universal-view-head">
+    <h3 class="erp-form-title">View Details</h3>
+    <div class="universal-view-meta">
+      {% if view_record.get('approval_status') %}
+      {{ approval_badge(view_record.approval_status) }}
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="universal-view-grid">
+    {% for key, value in view_record.items() %}
+      {% if key not in ['id'] and value is not none and value != '' %}
+      <div class="universal-view-field">
+        <span class="universal-view-label">{{ key|replace('_', ' ')|title }}</span>
+        <span class="universal-view-value">{{ value }}</span>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {% if record_table and view_record.id is defined %}
+  <section class="universal-view-section" data-attachments-panel data-record-table="{{ record_table }}" data-record-id="{{ view_record.id }}" data-module-id="{{ module_id }}">
+    <h4>Attachments</h4>
+    <div class="universal-attachments-list" data-attachments-list></div>
+    <form class="universal-attachment-upload" data-attachment-upload enctype="multipart/form-data">
+      <input type="file" name="file" accept=".pdf,.xls,.xlsx,.png,.jpg,.jpeg,.dwg,.dxf,.doc,.docx" required>
+      <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-paperclip"></i> Upload</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if history %}
+  <section class="universal-view-section">
+    <h4>Approval History</h4>
+    {{ approval_history_timeline(history) }}
+  </section>
+  {% endif %}
+
+  {% if audit_trail %}
+  <section class="universal-view-section">
+    <h4>Audit Trail</h4>
+    <ul class="universal-audit-list">
+      {% for ev in audit_trail %}
+      <li>
+        <strong>{{ ev.action }}</strong>
+        <span>{{ ev.changed_by }} · {{ ev.changed_at }}</span>
+        {% if ev.remarks %}<p>{{ ev.remarks }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if related_records %}
+  <section class="universal-view-section">
+    <h4>Related Records</h4>
+    <ul class="universal-related-list">
+      {% for rel in related_records %}
+      <li><a href="{{ rel.url }}">{{ rel.label }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <div class="erp-entry-actions">
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" onclick="history.back()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+    {% if endpoint and view_record.id is defined %}
+    <a href="{{ url_for(endpoint, edit=view_record.id) }}" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-pen"></i> Edit</a>
+    {% endif %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-print data-erp-print-target="[data-universal-view]"><i class="fa-solid fa-print"></i> Print</button>
+    <a href="{{ url_for('dashboard') }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-xmark"></i> Close</a>
+  </div>
+</section>
+{% endif %}
+{% endmacro %}

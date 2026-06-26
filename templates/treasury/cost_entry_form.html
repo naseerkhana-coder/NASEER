@@ -1,0 +1,84 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = (cost_entry and 'Edit Cost Entry' or 'New Cost Entry') ~ ' — ' ~ equipment.name %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_equipment_costing') ~ '">Equipment Costing</a> &gt; <a href="' ~ url_for('treasury_equipment_costing_detail', equipment_id=equipment.id) ~ '">' ~ equipment.name ~ '</a> &gt; ' ~ page_title %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_equipment_costing_detail', equipment_id=equipment.id) }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Machine Detail</a>
+{% endblock %}
+{% block content %}
+<p style="color:#64748b;margin-top:0;">
+  Machine: <strong>{{ equipment.equipment_code or equipment.registration_no }}</strong> — {{ equipment.name }} ({{ equipment.type or '—' }})
+</p>
+
+<form method="post" class="erp-form-card" id="cost-entry-form">
+  <div class="erp-form-subtitle">Period &amp; Project</div>
+  <div class="erp-form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+    <div class="erp-field">
+      <input type="month" name="period_month" value="{{ cost_entry.period_month if cost_entry else default_period }}" required>
+      <label>Period Month *</label>
+    </div>
+    <div class="erp-field">
+      <select name="project_id">
+        <option value="">— Optional project —</option>
+        {% for p in projects %}
+        <option value="{{ p.id }}" {% if (cost_entry and cost_entry.project_id == p.id) or (not cost_entry and equipment.project_id == p.id) %}selected{% endif %}>{{ p.project_name }}</option>
+        {% endfor %}
+      </select>
+      <label>Project (optional)</label>
+    </div>
+  </div>
+
+  <div class="erp-form-subtitle" style="margin-top:1rem;">Cost Components (₹)</div>
+  <div class="erp-form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="fuel_cost" value="{{ cost_entry.fuel_cost if cost_entry else '' }}" placeholder="0">
+      <label>Fuel Cost</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="operator_cost" value="{{ cost_entry.operator_cost if cost_entry else '' }}" placeholder="0">
+      <label>Operator Cost</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="maintenance_cost" value="{{ cost_entry.maintenance_cost if cost_entry else '' }}" placeholder="0">
+      <label>Maintenance Cost</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="tyre_cost" value="{{ cost_entry.tyre_cost if cost_entry else '' }}" placeholder="0">
+      <label>Tyre Cost</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="spare_parts_cost" value="{{ cost_entry.spare_parts_cost if cost_entry else '' }}" placeholder="0">
+      <label>Spare Parts Cost</label>
+    </div>
+  </div>
+
+  <div class="erp-form-subtitle" style="margin-top:1rem;">Operating Units</div>
+  <div class="erp-form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="operating_hours" value="{{ cost_entry.operating_hours if cost_entry else '' }}" placeholder="0">
+      <label>Operating Hours</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="operating_km" value="{{ cost_entry.operating_km if cost_entry else '' }}" placeholder="0">
+      <label>Operating KM</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="operating_days" value="{{ cost_entry.operating_days if cost_entry else '' }}" placeholder="0">
+      <label>Operating Days</label>
+    </div>
+  </div>
+
+  <div class="erp-field" style="margin-top:0.75rem;">
+    <textarea name="notes" rows="2" placeholder="Remarks, breakdown, invoice refs">{{ cost_entry.notes if cost_entry else '' }}</textarea>
+    <label>Notes</label>
+  </div>
+
+  <p style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;">
+    Total cost and cost per hour/km/day are computed on save. Project-linked entries sync to <a href="{{ url_for('treasury_budget_control') }}">Budget Control</a> Equipment actuals.
+  </p>
+
+  <div class="erp-form-actions" style="margin-top:1rem;">
+    <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Cost Entry</button>
+    <a href="{{ url_for('treasury_equipment_costing_detail', equipment_id=equipment.id) }}" class="erp-btn erp-btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

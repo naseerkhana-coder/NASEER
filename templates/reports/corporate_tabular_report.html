@@ -1,0 +1,33 @@
+{% extends 'layouts/corporate_report_base.html' %}
+{% block report_body %}
+<style>.num { text-align: right; }</style>
+{% if summary %}
+<p style="font-size:0.75rem;margin-bottom:0.5rem;">
+  {% for key, val in summary.items() %}
+  <strong>{{ key|replace('_', ' ')|title }}:</strong> {{ val }}{% if not loop.last %} · {% endif %}
+  {% endfor %}
+</p>
+{% endif %}
+<div class="corp-report-content">
+  <table>
+    <thead>
+      <tr>
+        {% for col in columns %}
+        <th>{{ col.label }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        {% for col in columns %}
+        <td class="{{ col.class or '' }}">{{ row[col.key] if row[col.key] is not none else '—' }}</td>
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr><td colspan="{{ columns|length }}">No records found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

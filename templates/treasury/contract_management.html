@@ -1,0 +1,84 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Contract Management' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Contract Management' %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_contract_management_new') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Contract</a>
+{% endblock %}
+{% block content %}
+<p style="color:#64748b;margin-top:0;">
+  Register contract agreements, work orders, amendments, and variation orders. Track original vs revised contract value, extra items, and claims — linked to projects and profitability.
+</p>
+
+{% if summary %}
+<div class="erp-summary-grid" style="margin-bottom:1.5rem;">
+  <div class="erp-stat-card"><span>Contracts</span><strong>{{ summary.contract_count }}</strong></div>
+  <div class="erp-stat-card"><span>Original Value</span><strong>₹{{ '{:,.2f}'.format(summary.original_total) }}</strong></div>
+  <div class="erp-stat-card"><span>Revised Value</span><strong>₹{{ '{:,.2f}'.format(summary.revised_total) }}</strong></div>
+  <div class="erp-stat-card"><span>Extra Items</span><strong>₹{{ '{:,.2f}'.format(summary.extra_items_total) }}</strong></div>
+  <div class="erp-stat-card"><span>Claims</span><strong>₹{{ '{:,.2f}'.format(summary.claims_total) }}</strong></div>
+</div>
+{% endif %}
+
+<form method="get" class="erp-table-toolbar" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+  <input name="search" value="{{ search or '' }}" placeholder="Search contract / project" style="max-width:200px;">
+  <select name="contract_type" style="max-width:180px;">
+    <option value="">All types</option>
+    {% for t in contract_types %}
+    <option value="{{ t }}" {% if contract_type == t %}selected{% endif %}>{{ t }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" style="max-width:140px;">
+    <option value="">All statuses</option>
+    {% for s in contract_statuses %}
+    <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+  <a href="{{ url_for('treasury_contract_management') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Reset</a>
+</form>
+
+<div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Contract No.</th>
+          <th>Type</th>
+          <th>Project</th>
+          <th>Original (₹)</th>
+          <th>Revised (₹)</th>
+          <th>Extra Items</th>
+          <th>Claims</th>
+          <th>Effective</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in contracts %}
+        <tr>
+          <td><strong>{{ row.contract_number }}</strong></td>
+          <td>{{ row.contract_type }}</td>
+          <td>
+            <a href="{{ url_for('treasury_contract_management_project', project_id=row.project_id) }}">{{ row.project_name }}</a>
+            {% if row.location %}<br><span style="font-size:0.85rem;color:#64748b;">{{ row.location }}</span>{% endif %}
+          </td>
+          <td>₹{{ '{:,.2f}'.format(row.original_value) }}</td>
+          <td>₹{{ '{:,.2f}'.format(row.revised_value) }}</td>
+          <td>₹{{ '{:,.2f}'.format(row.extra_items_value) }}</td>
+          <td>₹{{ '{:,.2f}'.format(row.claims_value) }}</td>
+          <td>{{ row.effective_date or '—' }}</td>
+          <td>{{ row.status or '—' }}</td>
+          <td>
+            <a href="{{ url_for('treasury_contract_management_detail', contract_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+            <a href="{{ url_for('treasury_contract_management_detail', contract_id=row.id, edit=1) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">No contracts registered. <a href="{{ url_for('treasury_contract_management_new') }}">Add the first contract</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

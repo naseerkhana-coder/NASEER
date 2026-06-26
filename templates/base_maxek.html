@@ -1,0 +1,405 @@
+<!doctype html>
+
+<html lang="en">
+
+  <head>
+
+    <meta charset="utf-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <meta name="description" content="MAXEK ERP — Construction enterprise resource planning.">
+
+    <title>{% block title %}MAXEK ERP{% endblock %}</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-dashboard.css') }}?v=20260623-dashfix">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-table-standards.css') }}?v=20260623-dashfix">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-field-standards.css') }}?v=20260623-dashfix">
+
+    {% block head_extra %}{% endblock %}
+
+  </head>
+
+  <body class="maxek-layout maxek-topnav-layout maxek-shell-layout{% if show_command_sidebar %} command-centre-layout{% endif %}{% block body_class %}{% endblock %}">
+
+    {% from 'macros/erp_ui.html' import erp_sub_toolbar_secondary, erp_main_toolbar, erp_command_sidebar, erp_breadcrumb, erp_department_subbar_link %}
+
+    <div class="sidebar-overlay"></div>
+
+    {% if show_command_sidebar %}
+    {{ erp_command_sidebar(
+      command_sidebar_items,
+      active_slug='command-centre',
+      user_name=welcome_name or session.get('employee_name') or session.get('username') or 'Administrator',
+      user_role=command_user_role|default(session.get('role') or 'Owner'),
+      user_branch=command_centre_branch|default(selected_branch),
+      user_initial=admin_initial
+    ) }}
+    {% endif %}
+
+
+
+    {% if not hide_module_nav %}
+    <nav class="maxek-mobile-nav" hidden aria-label="Mobile navigation drawer">
+
+      <div class="maxek-mobile-nav-head">
+
+        <span class="maxek-mobile-nav-title">Modules</span>
+
+        <button type="button" class="rail-close" data-sidebar-close aria-label="Close navigation">
+
+          <i class="fa-solid fa-xmark"></i>
+
+        </button>
+
+      </div>
+
+      {{ erp_main_toolbar(main_toolbar, 'drawer') }}
+
+    </nav>
+    {% endif %}
+
+    <main class="main-window">
+
+      <div class="maxek-toolbar-stack">
+
+      <header class="top-utility-strip">
+
+        <div class="header-left">
+
+          {% if not hide_module_nav or show_command_sidebar %}
+          <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-label="Toggle navigation menu" aria-expanded="false">
+
+            <i class="fa-solid fa-bars"></i>
+
+          </button>
+          {% endif %}
+
+          <a class="header-brand" href="{{ url_for('dashboard') }}">
+
+            <img
+              src="{{ url_for('static', filename='images/maxek-logo.png') }}"
+              alt=""
+              class="maxek-logo maxek-logo--header"
+              width="28"
+              height="28"
+              aria-hidden="true"
+            >
+
+            <span class="header-logo">MAX<span>EK</span></span>
+
+            <span class="header-brand-sub">ERP</span>
+
+          </a>
+
+          {% if context_companies %}
+          <select class="company-select" name="company" aria-label="Company selection" data-company-select>
+            <option value="">Company</option>
+            {% for company in context_companies %}
+            <option value="{{ company.id }}" data-code="{{ company.code or '' }}"{% if company.id == selected_company_id %} selected{% endif %}>{{ company.name }}</option>
+            {% endfor %}
+          </select>
+          {% else %}
+          <span class="header-company-name" title="Company">{{ company_display_name }}</span>
+          {% endif %}
+
+          <select class="branch-select" name="branch" aria-label="Branch selection" data-branch-select>
+
+            {% for branch in branches %}
+
+            <option value="{{ branch }}"{% if branch == selected_branch %} selected{% endif %}>{{ branch }}</option>
+
+            {% endfor %}
+
+          </select>
+
+          <select class="project-select" name="project" aria-label="Project selection (optional)" data-project-select>
+
+            <option value="">All Projects</option>
+
+            {% for project in header_projects %}
+
+            <option value="{{ project.id }}"{% if project.id == selected_project_id %} selected{% endif %}>{{ project.name }}</option>
+
+            {% endfor %}
+
+          </select>
+
+        </div>
+
+
+
+        <div class="header-center">
+
+          <div class="search-wrapper search-wrapper--global">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            <input type="search" id="header-search-trigger" placeholder="Search project, BOQ, DPR, material..." readonly aria-label="Open global search">
+
+            <button type="button" class="erp-btn erp-btn-primary erp-btn-sm" data-global-search-open>Search</button>
+
+            <kbd class="header-search-kbd" title="Global search shortcut">Ctrl+K</kbd>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="header-actions user-status-cluster">
+
+          <a class="header-icon-btn" href="{{ url_for('notifications') }}" title="Notifications">
+
+            <i class="fa-regular fa-bell"></i>
+
+            {% if notification_count %}<span class="header-badge">{{ notification_count }}</span>{% endif %}
+
+          </a>
+
+
+
+          <a class="header-icon-btn" href="{{ url_for('approvals') }}" title="Pending Approvals">
+
+            <i class="fa-solid fa-clipboard-check"></i>
+
+            {% if approval_total %}<span class="header-badge">{{ approval_total }}</span>{% endif %}
+
+          </a>
+
+
+
+          <div class="header-quick-actions" data-quick-actions>
+
+            <button type="button" class="header-icon-btn" data-quick-actions-toggle title="Quick Actions" aria-expanded="false">
+
+              <i class="fa-solid fa-bolt"></i>
+
+            </button>
+
+            <div class="header-quick-menu" hidden>
+
+              <a href="{{ safe_url_for('dpr_entry') }}"><i class="fa-solid fa-clipboard-list"></i> New DPR</a>
+
+              <a href="{{ safe_url_for('material_request') }}"><i class="fa-solid fa-box"></i> Material Request</a>
+
+              <a href="{{ safe_url_for('purchase_orders') }}"><i class="fa-solid fa-file-invoice"></i> Purchase Order</a>
+
+              <a href="{{ safe_url_for('accounts_payments') }}"><i class="fa-solid fa-money-bill-transfer"></i> Payment Voucher</a>
+
+            </div>
+
+          </div>
+
+
+
+          <a class="header-icon-btn" href="{{ url_for('settings') }}" title="Settings">
+
+            <i class="fa-solid fa-gear"></i>
+
+          </a>
+
+
+
+          <div class="profile-chip" title="User profile">
+
+            <div class="admin-avatar">{{ admin_initial }}</div>
+
+            <span>{{ session.get('employee_name') or session.get('username') or 'Administrator' }}</span>
+
+          </div>
+
+
+
+          <a class="header-logout-btn" href="{{ url_for('logout') }}" title="Logout" aria-label="Logout">
+
+            <i class="fa-solid fa-right-from-bracket"></i>
+
+            <span>Logout</span>
+
+          </a>
+
+        </div>
+
+      </header>
+
+
+
+      {% if not hide_module_nav %}
+      {{ erp_main_toolbar(main_toolbar, 'horizontal') }}
+      {% endif %}
+
+
+
+      {% set sub_toolbar_items = sub_toolbar_items|default([]) %}
+
+      {% set nav_group = current_nav_group|default({'slug': 'dashboard', 'label': 'Dashboard', 'icon': 'fa-gauge-high'}) %}
+
+      {% set show_department_subbar = not hide_module_nav and sub_toolbar_items and (nav_group.get('slug') != 'dashboard' or request.endpoint in ['dashboard', 'dashboard_choice_b']) %}
+
+      {% if show_department_subbar %}
+
+      <div class="department-subbar" id="department-subbar" data-subbar-key="{{ active_toolbar_slug or nav_group.slug }}" aria-label="{{ nav_group.label }} toolbar">
+
+        <div class="department-subbar-title">
+
+          <i class="fa-solid {{ nav_group.icon }}"></i>
+
+          <span>{{ nav_group.label }}</span>
+
+        </div>
+
+        <div class="department-subbar-scroll">
+
+          {% if sub_toolbar_sections is defined and sub_toolbar_sections %}
+          {% for section in sub_toolbar_sections %}
+          {% if not loop.first %}<span class="department-subbar-divider" aria-hidden="true"></span>{% endif %}
+          <span class="department-subbar-section-label">{{ section.label }}</span>
+          {% for item in section.get('items', []) %}
+          {{ erp_department_subbar_link(item, nav_group.slug) }}
+          {% endfor %}
+          {% endfor %}
+          {% else %}
+          {% for item in sub_toolbar_items %}
+          {{ erp_department_subbar_link(item, nav_group.slug) }}
+          {% endfor %}
+          {% endif %}
+
+        </div>
+
+        <button type="button" class="department-subbar-close" data-subbar-close aria-label="Close department toolbar">
+
+          <i class="fa-solid fa-xmark"></i>
+
+        </button>
+
+      </div>
+
+      <button type="button" class="department-subbar-reopen" data-subbar-reopen aria-label="Show department toolbar" hidden>
+
+        <i class="fa-solid fa-bars-staggered"></i>
+
+        <span>Show toolbar</span>
+
+      </button>
+
+      {% endif %}
+
+
+
+      {% if module_sub_toolbar %}
+
+      {{ erp_sub_toolbar_secondary(module_sub_toolbar, module_sub_toolbar_label or 'Section tools') }}
+
+      {% endif %}
+
+      </div>
+
+
+
+      <div class="shell-workspace">
+
+        {% if not hide_quick_panel|default(false) %}
+        {% include 'partials/shell_quick_panel.html' %}
+        {% endif %}
+
+        <div class="shell-main-content">
+
+          <div class="dashboard-body">
+
+            {% with messages = get_flashed_messages() %}
+
+            {% if messages %}
+
+            <div class="flash-messages erp-validation">
+
+              {% for message in messages %}
+
+                <div>{{ message }}</div>
+
+              {% endfor %}
+
+            </div>
+
+            {% endif %}
+
+            {% endwith %}
+
+
+
+            {% if page_title is defined and page_title %}
+
+            <div class="page-header-bar">
+
+              <div>
+
+                <h1 class="page-title">{{ page_title }}</h1>
+
+                {% if breadcrumb_items is defined and breadcrumb_items %}
+
+                {{ erp_breadcrumb(breadcrumb_items) }}
+
+                {% elif breadcrumbs is defined and breadcrumbs %}
+
+                <nav class="breadcrumb">{{ breadcrumbs|safe }}</nav>
+
+                {% endif %}
+
+              </div>
+
+              {% if self.page_actions() %}
+
+              <div class="page-header-actions">
+
+                {% block page_actions %}{% endblock %}
+
+              </div>
+
+              {% endif %}
+
+            </div>
+
+            {% endif %}
+
+
+
+            {% block content %}{% endblock %}
+
+          </div>
+
+        </div>
+
+        {% if not hide_action_panel|default(false) %}
+        {% include 'partials/shell_action_panel.html' %}
+        {% endif %}
+
+      </div>
+
+      {% include 'partials/shell_help_center.html' %}
+
+      {% include 'partials/shell_status_strip.html' %}
+
+    </main>
+
+    {% include 'partials/shell_global_search.html' %}
+
+    {% if session.get('user_id') %}
+    {% include 'partials/ai_assistant_panel.html' %}
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/maxek-ui.js') }}?v=20260623-shell"></script>
+    <script src="{{ url_for('static', filename='js/dob-age.js') }}?v=20260623-fieldwidth"></script>
+    <script src="{{ url_for('static', filename='js/data-entry.js') }}?v=20260623-fieldwidth"></script>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% if session.get('user_id') %}
+    <script src="{{ url_for('static', filename='js/ai-assistant.js') }}?v=20260622-ai"></script>
+    {% endif %}
+
+    {% block scripts %}{% endblock %}
+
+  </body>
+
+</html>

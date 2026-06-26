@@ -1,0 +1,20 @@
+<footer class="shell-status-strip" aria-label="System status">
+  <div class="status-strip-left">
+    <span class="status-item status-item--{{ status_strip.server_status }}">
+      <i class="fa-solid fa-circle status-dot" aria-hidden="true"></i>
+      Server: {{ status_strip.server_label }}
+    </span>
+    <span class="status-item status-item--{{ status_strip.database_status }}">
+      <i class="fa-solid fa-circle status-dot" aria-hidden="true"></i>
+      Database: {{ status_strip.database_label }}
+    </span>
+  </div>
+  <div class="status-strip-center">
+    <span class="status-item">{{ status_strip.user_label }}</span>
+    <span class="status-item status-item--muted">{{ status_strip.version }}</span>
+    <span class="status-item status-item--muted">Last backup: {{ status_strip.last_backup }}</span>
+  </div>
+  <div class="status-strip-right">
+    <span class="status-item status-item--muted">{{ app_timezone }}</span>
+  </div>
+</footer>

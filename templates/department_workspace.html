@@ -1,0 +1,69 @@
+{% extends 'base_maxek.html' %}
+
+{% block body_class %} dept-workspace-mode dept-workspace--{{ portal.slug }}{% endblock %}
+
+{% block title %}{{ portal.title }} — MAXEK ERP{% endblock %}
+
+{% block content %}
+<div class="dept-workspace" style="--dept-accent: {{ portal.accent|default('#e30613') }};">
+
+  <header class="dept-workspace-header">
+    <a href="{{ url_for('dashboard') }}" class="dept-workspace-back">
+      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+      <span>Back to Command Centre</span>
+    </a>
+    <div class="dept-workspace-header-main">
+      <span class="dept-workspace-icon"><i class="fa-solid {{ portal.icon }}" aria-hidden="true"></i></span>
+      <div class="dept-workspace-header-text">
+        <p class="dept-workspace-eyebrow">Department workspace</p>
+        <h1>{{ portal.title }}</h1>
+      </div>
+    </div>
+  </header>
+
+  {% if portal.summary_title %}
+  <p class="dept-workspace-summary-title">{{ portal.summary_title }}</p>
+  {% endif %}
+
+  {% if stat_cards %}
+  <div class="erp-summary-grid erp-summary-grid--stats dept-workspace-stats">
+    {% for card in stat_cards %}
+    <div class="erp-stat-card dept-stat-card">
+      <span>{{ card.label }}</span>
+      <strong{% if card.get('warn') %} class="dept-stat-warn"{% endif %}>{{ card.value }}</strong>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if portal.get('quick_tabs') %}
+  <nav class="dept-workspace-tabs" aria-label="Quick links">
+    {% for tab in portal.quick_tabs %}
+    {% set tab_href = safe_url_for(tab.endpoint) %}
+    {% if tab.get('anchor') %}{% set tab_href = tab_href ~ '#' ~ tab.anchor %}{% endif %}
+    <a href="{{ tab_href }}" class="dept-workspace-tab">{{ tab.label }}</a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  <section class="dept-workspace-main dept-workspace-main--full">
+    <section class="erp-module-section">
+      <h3 class="erp-module-section-title">Modules</h3>
+      <div class="erp-module-grid dept-module-grid">
+        {% for item in portal.menu %}
+        {% set item_href = safe_url_for(item.endpoint, **(item.get('query') or {})) %}
+        {% if item.get('anchor') %}{% set item_href = item_href ~ '#' ~ item.anchor %}{% endif %}
+        <a href="{{ item_href }}" class="erp-module-tile dept-module-tile">
+          <span class="erp-module-tile-icon"><i class="fa-solid {{ item.icon }}" aria-hidden="true"></i></span>
+          <span class="erp-module-tile-body">
+            <span class="erp-module-tile-label">{{ item.label }}</span>
+          </span>
+          <i class="fa-solid fa-chevron-right erp-module-tile-chevron" aria-hidden="true"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+  </section>
+
+</div>
+{% endblock %}

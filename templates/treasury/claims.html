@@ -1,0 +1,111 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Claims Management' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Claims Management' %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_claims_new', project_id=project.id if project else none) }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Claim</a>
+{% if project %}
+<a href="{{ url_for('treasury_claims') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> All Claims</a>
+{% endif %}
+{% endblock %}
+{% block content %}
+{% if project %}
+<p style="color:#64748b;margin-top:0;">
+  Claims for <strong>{{ project.project_name }}</strong>
+  {% if project.location %} · {{ project.location }}{% endif %}
+  {% if project.status %} · {{ project.status }}{% endif %}
+  · <a href="{{ url_for('treasury_contract_management_project', project_id=project.id) }}">Contract register</a>
+</p>
+{% else %}
+<p style="color:#64748b;margin-top:0;">
+  Track extra items, additional work, client claims, and time extension claims. Link to projects and contracts; approved amounts sync to the contract register.
+</p>
+{% endif %}
+
+{% if summary %}
+<div class="erp-summary-grid" style="margin-bottom:1.5rem;">
+  <div class="erp-stat-card"><span>Claims</span><strong>{{ summary.claim_count }}</strong></div>
+  <div class="erp-stat-card"><span>Under Review</span><strong>{{ summary.under_review_count }}</strong></div>
+  <div class="erp-stat-card"><span>Approved Total</span><strong>₹{{ '{:,.2f}'.format(summary.approved_total) }}</strong></div>
+  <div class="erp-stat-card"><span>Pending Value</span><strong>₹{{ '{:,.2f}'.format(summary.pending_total) }}</strong></div>
+</div>
+{% endif %}
+
+{% if not project %}
+<form method="get" class="erp-table-toolbar" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+  <input name="search" value="{{ search or '' }}" placeholder="Search claim / project" style="max-width:200px;">
+  <select name="claim_type" style="max-width:180px;">
+    <option value="">All types</option>
+    {% for t in claim_types %}
+    <option value="{{ t }}" {% if claim_type == t %}selected{% endif %}>{{ t }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" style="max-width:160px;">
+    <option value="">All statuses</option>
+    {% for s in claim_statuses %}
+    <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+  <a href="{{ url_for('treasury_claims') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Reset</a>
+</form>
+{% endif %}
+
+<div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Claim No.</th>
+          <th>Type</th>
+          {% if not project %}<th>Project</th>{% endif %}
+          <th>Contract</th>
+          <th>Claimed (₹)</th>
+          <th>Approved (₹)</th>
+          <th>Submitted</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in claims %}
+        <tr>
+          <td><strong>{{ row.claim_number }}</strong></td>
+          <td>{{ row.claim_type }}</td>
+          {% if not project %}
+          <td>
+            <a href="{{ url_for('treasury_claims_project', project_id=row.project_id) }}">{{ row.project_name }}</a>
+            {% if row.location %}<br><span style="font-size:0.85rem;color:#64748b;">{{ row.location }}</span>{% endif %}
+          </td>
+          {% endif %}
+          <td>{{ row.contract_number or '—' }}</td>
+          <td>₹{{ '{:,.2f}'.format(row.claimed_amount) }}</td>
+          <td>{% if row.approved_amount is not none %}₹{{ '{:,.2f}'.format(row.approved_amount) }}{% else %}—{% endif %}</td>
+          <td>{{ row.submitted_date or '—' }}</td>
+          <td>{{ row.status or '—' }}</td>
+          <td>
+            <a href="{{ url_for('treasury_claims_detail', claim_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+            <a href="{{ url_for('treasury_claims_detail', claim_id=row.id, edit=1) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ 8 if project else 9 }}">No claims registered. <a href="{{ url_for('treasury_claims_new', project_id=project.id if project else none) }}">Submit the first claim</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if contract_summary %}
+<p style="font-size:0.85rem;color:#64748b;margin-top:1rem;">
+  Contract claims total on register: ₹{{ '{:,.2f}'.format(contract_summary.claims_total) }}
+  · Revised contract: ₹{{ '{:,.2f}'.format(contract_summary.revised_total) }}
+</p>
+{% endif %}
+
+{% if audit_rows %}
+<h3 style="margin-top:1.5rem;">Recent Audit</h3>
+<div class="erp-table-panel"><div class="erp-table-scroll"><table class="erp-table"><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Details</th></tr></thead><tbody>
+{% for log in audit_rows %}<tr><td>{{ log.created_at }}</td><td>{{ log.action }}</td><td>{{ log.actor or '—' }}</td><td>{{ log.details or '—' }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+{% endblock %}

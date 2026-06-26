@@ -1,0 +1,27 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'ERP Settings' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; ERP Settings' %}
+{% block content %}
+{% include 'erp_admin/_subtoolbar.html' %}
+<div class="module-layout">
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Platform Setting</h3>
+    <form method="post" class="erp-form-grid">
+      <div class="erp-field"><input name="setting_key" placeholder=" " required><label>Setting Key</label></div>
+      <div class="erp-field span-2"><input name="setting_value" placeholder=" " required><label>Value</label></div>
+      <div class="erp-field"><input name="category" placeholder=" " value="General"><label>Category</label></div>
+      <div class="erp-field span-2"><input name="description" placeholder=" "><label>Description</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Save Setting</button></div>
+    </form>
+  </div>
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">ERP Settings</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>Key</th><th>Value</th><th>Category</th><th>Description</th><th>Modified</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.setting_key }}</td><td>{{ row.setting_value }}</td><td>{{ row.category }}</td><td>{{ row.description or '—' }}</td><td>{{ row.modified_at or '—' }}</td></tr>{% else %}<tr><td colspan="5">No settings configured.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

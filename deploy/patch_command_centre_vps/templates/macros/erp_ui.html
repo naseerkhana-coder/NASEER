@@ -1,0 +1,549 @@
+{% macro approval_badge(status) %}
+{% set raw = (status or 'Pending Checker')|string %}
+{% set normalized = raw|lower|replace(' ', '-')|replace('_', '-') %}
+<span class="approval-badge approval-{{ normalized }}">{{ raw }}</span>
+{% endmacro %}
+
+{% macro workflow_badge(role) %}
+<span class="workflow-role-badge role-{{ role|lower }}">{{ role }}</span>
+{% endmacro %}
+
+{% macro role_status_badge(status, role='maker') %}
+{% if role == 'maker' %}
+  {{ approval_badge(status or 'Pending Checker') }}
+{% elif role == 'checker' %}
+  {% if status == 'Rejected by Checker' %}
+    {{ approval_badge('Rejected') }}
+  {% elif status in ['Pending Approval', 'Approved'] %}
+    {{ approval_badge('Verified') }}
+  {% else %}
+    {{ approval_badge(status or 'Pending Checker') }}
+  {% endif %}
+{% elif role == 'approver' %}
+  {% if status == 'Rejected by Approver' %}
+    {{ approval_badge('Rejected') }}
+  {% else %}
+    {{ approval_badge(status or 'Pending Approval') }}
+  {% endif %}
+{% else %}
+  {{ approval_badge(status or 'Pending Checker') }}
+{% endif %}
+{% endmacro %}
+
+{% macro maker_row_actions(module_endpoint, delete_table, record_id, approval_status, module_id='', redirect_endpoint='', nav_only=false, edit_anchor='', can_edit=none) %}
+{% set s = approval_status or 'Pending Checker' %}
+{% set editable = can_edit if can_edit is not none else s in ['Rejected by Checker', 'Rejected by Approver', 'Pending Checker', 'Pending Approval'] %}
+{% set deletable = s in ['Rejected by Checker', 'Rejected by Approver', 'Pending Checker'] and module_id %}
+{% set redirect = redirect_endpoint or module_endpoint %}
+{% set edit_href = url_for(module_endpoint, edit=record_id) ~ edit_anchor %}
+<div class="workflow-row-actions">
+  {% if not nav_only %}
+  <a href="{{ url_for(module_endpoint, view=record_id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+  {% if editable %}
+  <a href="{{ edit_href }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+  {% elif s == 'Pending Approval' %}
+  <span class="workflow-hint">Waiting for Approval</span>
+  {% elif s == 'Approved' %}
+  <span class="workflow-hint">Approved</span>
+  {% endif %}
+  {% endif %}
+  {% if deletable %}
+  <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm js-delete-record"
+    data-record-id="{{ record_id }}"
+    data-delete-table="{{ delete_table }}"
+    data-module-id="{{ module_id }}"
+    data-redirect-to="{{ redirect }}">Delete</button>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro checker_row_actions(approval_id, module_endpoint, record_id, record_status, role='checker') %}
+{% set s = record_status or 'Pending Checker' %}
+<div class="workflow-row-actions">
+  <a href="{{ url_for(module_endpoint, view=record_id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+  {% if s == 'Pending Checker' %}
+  <a href="{{ url_for(module_endpoint, edit=record_id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+  <button type="button" class="erp-btn erp-btn-primary erp-btn-sm js-action-btn"
+    data-approval-id="{{ approval_id }}" data-role="checker" data-action="verify">Verify</button>
+  <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm js-action-btn"
+    data-approval-id="{{ approval_id }}" data-role="checker" data-action="reject">Reject</button>
+  {% else %}
+  {% if s == 'Rejected by Checker' %}
+  <span class="workflow-hint">Rejected</span>
+  {% else %}
+  <span class="workflow-hint">Verified</span>
+  {% endif %}
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro approver_row_actions(approval_id, module_endpoint, record_id, record_status) %}
+{% set s = record_status or 'Pending Approval' %}
+<div class="workflow-row-actions">
+  <a href="{{ url_for(module_endpoint, view=record_id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+  {% if s == 'Pending Approval' %}
+  <a href="{{ url_for(module_endpoint, edit=record_id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+  <button type="button" class="erp-btn erp-btn-primary erp-btn-sm js-action-btn"
+    data-approval-id="{{ approval_id }}" data-role="approver" data-action="approve">Approve</button>
+  <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm js-action-btn"
+    data-approval-id="{{ approval_id }}" data-role="approver" data-action="reject">Reject</button>
+  {% elif s == 'Approved' %}
+  <span class="workflow-hint">Approved</span>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro transaction_view_tabs(view_record, history, can_reopen=False, approval_id=None) %}
+{% if view_record %}
+<div class="transaction-tabs" data-transaction-tabs>
+  <div class="transaction-tab-bar">
+    <button type="button" class="transaction-tab active" data-tab="details">Details</button>
+    <button type="button" class="transaction-tab" data-tab="history">Approval History</button>
+  </div>
+  <div class="transaction-tab-panel active" data-panel="details">
+    {{ caller() }}
+    {% if can_reopen and approval_id %}
+    <div class="erp-form-actions" style="margin-top: 1rem;">
+      <button type="button" class="erp-btn erp-btn-ghost js-reopen-btn" data-approval-id="{{ approval_id }}">
+        <i class="fa-solid fa-rotate-left"></i> Reopen
+      </button>
+    </div>
+    {% endif %}
+  </div>
+  <div class="transaction-tab-panel" data-panel="history">
+    {{ approval_history_timeline(history) }}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro approval_history_timeline(history) %}
+{% if history and history.timeline %}
+<div class="approval-history-panel">
+  <h4 class="approval-history-title">Approval History Timeline</h4>
+  <div class="approval-timeline">
+    {% for step in history.timeline %}
+    <div class="approval-timeline-item approval-timeline-{{ step.event|lower }}">
+      <div class="approval-timeline-marker"></div>
+      <div class="approval-timeline-body">
+        <strong>{{ step.event }}</strong>
+        <div class="approval-timeline-meta">
+          <span>{{ step.user }}</span>
+          <span>{{ step.date }}{% if step.time != '—' %} · {{ step.time }}{% endif %}</span>
+        </div>
+        {% if step.remarks and step.remarks != '—' %}
+        <p class="approval-timeline-remarks">Remarks: {{ step.remarks }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro approval_history_panel(history) %}
+{{ approval_history_timeline(history) }}
+{% endmacro %}
+
+{% macro rejection_notice(history, approval_status) %}
+{% if approval_status in ['Rejected by Checker', 'Rejected by Approver'] and history and history.remarks and history.remarks != '—' %}
+<div class="erp-validation rejection-notice">
+  <strong>{{ approval_status }}</strong>
+  <p>Reason: {{ history.remarks }}</p>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro erp_sub_toolbar(items, aria_label='Module tools') %}
+<nav class="erp-sub-toolbar" aria-label="{{ aria_label }}">
+  {% for item in items %}
+  {% set item_href = url_for(item.endpoint, **(item.get('query') or {})) %}
+  {% if item.get('anchor') %}{% set item_href = item_href ~ '#' ~ item.anchor %}{% endif %}
+  <a class="erp-sub-toolbar-link{% if request.endpoint in item.get('active_endpoints', []) %} active{% endif %}" href="{{ item_href }}">
+    {% if item.get('icon') %}<i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>{% endif %}
+    <span>{{ item.label }}</span>
+  </a>
+  {% endfor %}
+</nav>
+{% endmacro %}
+
+{% macro erp_sub_toolbar_secondary(items, aria_label='Section tools') %}
+<nav class="erp-sub-toolbar erp-sub-toolbar--secondary" aria-label="{{ aria_label }}">
+  {% for item in items %}
+  {% set item_href = url_for(item.endpoint, **(item.get('query') or {})) %}
+  {% if item.get('anchor') %}{% set item_href = item_href ~ '#' ~ item.anchor %}{% endif %}
+  <a class="erp-sub-toolbar-link{% if request.endpoint in item.get('active_endpoints', []) %} active{% endif %}" href="{{ item_href }}">
+    {% if item.get('icon') %}<i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>{% endif %}
+    <span>{{ item.label }}</span>
+  </a>
+  {% endfor %}
+</nav>
+{% endmacro %}
+
+{% macro erp_module_grid(modules, section_title='Modules') %}
+<section class="erp-module-section">
+  <h3 class="erp-module-section-title">{{ section_title }}</h3>
+  <div class="erp-module-grid">
+    {% for mod in modules %}
+    <a href="{{ url_for(mod.endpoint) }}" class="erp-module-tile">
+      <span class="erp-module-tile-icon"><i class="fa-solid {{ mod.icon }}" aria-hidden="true"></i></span>
+      <span class="erp-module-tile-body">
+        <span class="erp-module-tile-label">{{ mod.label }}</span>
+        {% if mod.get('description') %}
+        <span class="erp-module-tile-desc">{{ mod.description }}</span>
+        {% endif %}
+      </span>
+      <i class="fa-solid fa-chevron-right erp-module-tile-chevron" aria-hidden="true"></i>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endmacro %}
+
+{% macro mark_nav_item_active(item, ns) %}
+{% if request.endpoint in item.active_endpoints %}
+  {% if item.get('query') %}
+    {% if item.query.get('module') and item.query.get('module') == request.args.get('module') %}
+      {% set ns.value = true %}
+    {% elif item.query.get('nav') and item.query.get('nav') == request.args.get('nav') %}
+      {% set ns.value = true %}
+    {% endif %}
+  {% elif item.get('anchor') and module_active_anchor is defined and item.anchor == module_active_anchor %}
+    {% set ns.value = true %}
+  {% elif not item.get('anchor') %}
+    {% set ns.value = true %}
+  {% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro erp_nav_link(group, item, link_class='') %}
+{% set item_href = safe_url_for(item.endpoint, **(item.get('query') or {})) %}
+{% if item.get('anchor') %}{% set item_href = item_href ~ '#' ~ item.anchor %}{% endif %}
+{% set item_active = namespace(value=false) %}
+{{ mark_nav_item_active(item, item_active) }}
+<a class="{{ link_class }}{% if item_active.value %} active{% endif %}" href="{{ item_href }}"{% if item.get('anchor') %} data-module-anchor="{{ item.anchor }}"{% endif %}>
+  {% if item.get('icon') %}<i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>{% endif %}
+  <span>{{ item.label }}</span>
+</a>
+{% endmacro %}
+
+{% macro erp_nav_group_active(group) %}
+{% set children = group.get('items') or [] %}
+{% set group_active = namespace(value=false) %}
+{% for item in children %}
+  {{ mark_nav_item_active(item, group_active) }}
+{% endfor %}
+{% if request.endpoint in group.get('active_endpoints', []) %}
+  {% set group_active.value = true %}
+{% endif %}
+{% if request.endpoint == 'department_hub' and request.view_args.get('slug') == group.slug %}
+  {% set group_active.value = true %}
+{% endif %}
+{{ group_active.value }}
+{% endmacro %}
+
+{% macro erp_top_nav(groups, layout='horizontal') %}
+<nav class="maxek-top-nav maxek-top-nav--{{ layout }}" aria-label="{% if layout == 'drawer' %}Mobile navigation{% else %}Main navigation{% endif %}">
+  <ul class="maxek-top-nav-list">
+    {% for group in groups %}
+      {% set children = group.get('items') or [] %}
+      {% set group_active = namespace(value=false) %}
+      {% for item in children %}
+        {{ mark_nav_item_active(item, group_active) }}
+      {% endfor %}
+      {% if request.endpoint in group.get('active_endpoints', []) %}
+        {% set group_active.value = true %}
+      {% endif %}
+      {% if request.endpoint == 'department_hub' and request.view_args.get('slug') == group.slug %}
+        {% set group_active.value = true %}
+      {% endif %}
+      <li class="maxek-top-nav-item{% if group_active.value %} is-active{% endif %}{% if children %} has-children{% endif %}">
+        {% if not children and group.get('endpoint') %}
+          <a class="maxek-top-nav-link{% if group_active.value %} active{% endif %}" href="{{ safe_url_for(group.endpoint) }}">
+            <i class="fa-solid {{ group.icon }}" aria-hidden="true"></i>
+            <span>{{ group.label }}</span>
+          </a>
+        {% else %}
+          <button type="button" class="maxek-top-nav-link maxek-top-nav-trigger{% if group_active.value %} active{% endif %}" aria-haspopup="true" aria-expanded="false">
+            <i class="fa-solid {{ group.icon }}" aria-hidden="true"></i>
+            <span>{{ group.label }}</span>
+            <i class="fa-solid fa-chevron-down maxek-top-nav-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="maxek-top-nav-dropdown" role="menu">
+            {% for item in children %}
+            {{ erp_nav_link(group, item, 'maxek-top-nav-dropdown-link') }}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endmacro %}
+
+{#
+  Standard MAXEK ERP data-entry screen layout
+  ┌────────────────────────────────────────────┐
+  │ Search | Add New | Export Excel | Print   │
+  ├────────────────────────────────────────────┤
+  │ Data Entry Form                            │
+  ├────────────────────────────────────────────┤
+  │ Records Table                              │
+  └────────────────────────────────────────────┘
+
+  Adoption example:
+
+    {% from 'macros/erp_ui.html' import erp_module_toolbar, erp_module_form_panel, erp_module_table_panel %}
+
+    <div class="erp-module-layout">
+      {{ erp_module_toolbar(
+        search_placeholder='Search clients...',
+        add_url='#add-client',
+        export_name='clients',
+        print_target='#client-records'
+      ) }}
+      {% call erp_module_form_panel(id='add-client', title='Client Registration') %}
+        <form>...</form>
+      {% endcall %}
+      {% call erp_module_table_panel(id='client-records', title='Client List') %}
+        <div class="erp-table-scroll"><table>...</table></div>
+        {{ erp_pagination(rows|length) }}
+      {% endcall %}
+    </div>
+
+  Params for erp_module_toolbar:
+    search_placeholder — input hint text
+    search_name — optional GET form field name (server-side search)
+    add_url — link for Add New (use #anchor for in-page forms)
+    add_onclick — inline onclick for Add button (prefer add_trigger_selector)
+    add_trigger_selector — CSS selector clicked by Add button (e.g. '[data-mat-open="new"]')
+    add_label — button label (default "Add New")
+    export_url — full URL for server Excel export
+    export_name — client-side CSV filename stem (data-table-export)
+    print_enabled — show Print button (default true)
+    print_url — open print view in new tab
+    print_target — CSS selector for table region print (#data-table)
+    extra_buttons — raw HTML for additional toolbar buttons
+#}
+{% macro erp_module_toolbar(
+  search_placeholder='Search records...',
+  search_name='',
+  add_url='',
+  add_onclick='',
+  add_trigger_selector='',
+  add_label='Add New',
+  export_url='',
+  export_name='export',
+  print_enabled=true,
+  print_url='',
+  print_target='#data-table',
+  extra_buttons=''
+) %}
+<div class="erp-module-toolbar" role="toolbar" aria-label="Module actions">
+  <div class="erp-module-toolbar-search">
+    {% if search_name %}
+    <form method="get" class="erp-module-toolbar-search-form">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="search" name="{{ search_name }}" value="{{ request.args.get(search_name, '') }}" placeholder="{{ search_placeholder }}" data-erp-module-search aria-label="Search records">
+    </form>
+    {% else %}
+    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" placeholder="{{ search_placeholder }}" data-erp-module-search data-table-search aria-label="Search records">
+    {% endif %}
+  </div>
+  <div class="erp-module-toolbar-actions">
+    {% if add_url %}
+    <a href="{{ add_url }}" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-plus" aria-hidden="true"></i> {{ add_label }}</a>
+    {% elif add_trigger_selector %}
+    <button type="button" class="erp-btn erp-btn-primary erp-btn-sm" data-erp-add-trigger="{{ add_trigger_selector }}"><i class="fa-solid fa-plus" aria-hidden="true"></i> {{ add_label }}</button>
+    {% elif add_onclick %}
+    <button type="button" class="erp-btn erp-btn-primary erp-btn-sm" onclick="{{ add_onclick }}"><i class="fa-solid fa-plus" aria-hidden="true"></i> {{ add_label }}</button>
+    {% endif %}
+    {% if export_url %}
+    <a href="{{ export_url }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Export Excel</a>
+    {% elif export_name %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-table-export="{{ export_name }}"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Export Excel</button>
+    {% endif %}
+    {% if print_enabled %}
+      {% if print_url %}
+      <a href="{{ print_url }}" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener"><i class="fa-solid fa-print" aria-hidden="true"></i> Print</a>
+      {% else %}
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-print{% if print_target %} data-erp-print-target="{{ print_target }}"{% endif %}><i class="fa-solid fa-print" aria-hidden="true"></i> Print</button>
+      {% endif %}
+    {% endif %}
+    {{ extra_buttons|safe }}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro erp_module_form_panel(id='data-entry', title='', hidden=false, extra_class='') %}
+<section class="erp-module-form-panel erp-form-card {{ extra_class }}" id="{{ id }}"{% if hidden %} hidden{% endif %}>
+  {% if title %}<h3 class="erp-form-title">{{ title }}</h3>{% endif %}
+  {{ caller() }}
+</section>
+{% endmacro %}
+
+{% macro erp_module_table_panel(id='data-table', title='', extra_class='') %}
+<section class="erp-module-table-panel erp-table-panel {{ extra_class }}" id="{{ id }}" data-erp-table>
+  {% if title %}
+  <div class="erp-table-toolbar erp-table-toolbar--compact">
+    <h3 class="erp-table-title">{{ title }}</h3>
+  </div>
+  {% endif %}
+  {{ caller() }}
+</section>
+{% endmacro %}
+
+{% macro erp_table_toolbar(title, export_name='export') %}
+<div class="erp-table-toolbar">
+  <h3 class="erp-table-title">{{ title }}</h3>
+  <div class="erp-table-controls">
+    <div class="erp-table-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search records..." data-table-search>
+    </div>
+    <button type="button" class="erp-btn erp-btn-ghost" data-table-filter><i class="fa-solid fa-filter"></i> Filter</button>
+    <button type="button" class="erp-btn erp-btn-ghost" data-table-export="{{ export_name }}"><i class="fa-solid fa-file-export"></i> Export</button>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro erp_pagination(total=0) %}
+<div class="erp-pagination" data-table-pagination>
+  <span class="erp-page-info" data-page-info>Showing {{ total }} record{{ 's' if total != 1 else '' }}</span>
+  <div class="erp-page-buttons">
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-page-prev disabled>Previous</button>
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-page-next disabled>Next</button>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro workflow_modals() %}
+<div id="action-modal" class="reject-modal" hidden>
+  <div class="reject-modal-backdrop"></div>
+  <div class="reject-modal-card">
+    <h3 id="action-modal-title">Workflow Action</h3>
+    <form method="post" action="{{ url_for('approval_action') }}" id="action-form">
+      <input type="hidden" name="approval_id" id="action-approval-id">
+      <input type="hidden" name="action" id="action-type">
+      <input type="hidden" name="role" id="action-role">
+      <div class="erp-field span-2">
+        <textarea name="comments" id="action-comment" placeholder=" "></textarea>
+        <label id="action-comment-label">Comment</label>
+      </div>
+      <div class="erp-form-actions">
+        <button type="button" class="erp-btn erp-btn-ghost" id="action-cancel">Cancel</button>
+        <button type="submit" class="erp-btn erp-btn-primary" id="action-submit">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="delete-modal" class="reject-modal" hidden>
+  <div class="reject-modal-backdrop"></div>
+  <div class="reject-modal-card">
+    <h3>Delete Record</h3>
+    <p class="workflow-hint">This cannot be undone. Only records pending verification or rejected may be deleted.</p>
+    <form method="post" action="{{ url_for('workflow_delete_record') }}" id="delete-form">
+      <input type="hidden" name="record_id" id="delete-record-id">
+      <input type="hidden" name="table" id="delete-table">
+      <input type="hidden" name="module_id" id="delete-module-id">
+      <input type="hidden" name="redirect_to" id="delete-redirect-to">
+      <div class="erp-form-actions">
+        <button type="button" class="erp-btn erp-btn-ghost" id="delete-cancel">Cancel</button>
+        <button type="submit" class="erp-btn erp-btn-primary">Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="reopen-modal" class="reject-modal" hidden>
+  <div class="reject-modal-backdrop"></div>
+  <div class="reject-modal-card">
+    <h3>Reopen Transaction — Reason Required</h3>
+    <p class="workflow-hint">Administrator only. Record returns to Pending Checker.</p>
+    <form method="post" action="{{ url_for('workflow_reopen') }}" id="reopen-form">
+      <input type="hidden" name="approval_id" id="reopen-approval-id">
+      <div class="erp-field span-2">
+        <textarea name="reason" id="reopen-reason" placeholder=" " required></textarea>
+        <label>Reopen Reason</label>
+      </div>
+      <div class="erp-form-actions">
+        <button type="button" class="erp-btn erp-btn-ghost" id="reopen-cancel">Cancel</button>
+        <button type="submit" class="erp-btn erp-btn-primary">Reopen</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro reject_modal() %}
+{{ workflow_modals() }}
+{% endmacro %}
+
+{% macro erp_command_sidebar(sidebar_items, active_slug='command-centre', user_name='Administrator', user_role='Owner', user_branch='Head Office', user_initial='A') %}
+<nav class="tool-rail command-centre-rail" aria-label="Command Centre navigation">
+  <div class="logo-container">
+    <a class="logo-link" href="{{ url_for('dashboard') }}">
+      <img
+        src="{{ url_for('static', filename='images/maxek-logo.png') }}"
+        alt=""
+        class="maxek-logo maxek-logo--sidebar"
+        width="48"
+        height="48"
+        aria-hidden="true"
+      >
+      <div class="logo-text-block">
+        <div class="logo-text-main">MAX<span>EK</span></div>
+        <div class="logo-subtext">Technologies</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="cc-sidebar-section">
+    <a class="rail-btn department-btn{% if active_slug == 'command-centre' %} active{% endif %}" href="{{ url_for('dashboard') }}">
+      <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+      <span>Command Centre</span>
+    </a>
+  </div>
+
+  <div class="cc-sidebar-section">
+    <h3 class="action-heading">Departments</h3>
+    {% for item in sidebar_items %}
+    <a
+      class="rail-btn department-btn{% if active_slug == item.slug %} active{% endif %}"
+      href="{{ url_for('department_portal', slug=item.slug) }}"
+    >
+      <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
+      <span>{{ item.label }}</span>
+      {% if item.get('badge') %}
+      <span class="cc-sidebar-badge">{{ item.badge }}</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="cc-sidebar-footer">
+    <a class="rail-btn cc-sidebar-muted" href="#" title="Settings">
+      <i class="fa-solid fa-gear" aria-hidden="true"></i>
+      <span>Settings</span>
+    </a>
+    <a class="rail-btn cc-sidebar-muted" href="#" title="Help &amp; Support">
+      <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+      <span>Help &amp; Support</span>
+    </a>
+    <div class="cc-sidebar-user">
+      <div class="admin-avatar">{{ user_initial }}</div>
+      <div class="cc-sidebar-user-meta">
+        <strong>{{ user_name }}</strong>
+        <span>{{ user_branch }} · {{ user_role }}</span>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" class="rail-close cc-rail-close" data-sidebar-close aria-label="Close navigation">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+</nav>
+{% endmacro %}

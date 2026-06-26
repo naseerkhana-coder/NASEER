@@ -1,0 +1,61 @@
+MAXEK ERP — WinSCP Upload (LATEST)
+===================================
+Upload TO:  /var/www/maxek-erp-flask/
+Upload FROM: C:\Users\rajee\Documents\New project\MAXEK_ERP\
+
+DO NOT UPLOAD: database/maxek.db, .env, venv/, backups/, __pycache__/
+
+OPTION 1 — QUICK PATCH (minimum files for latest corrections)
+-------------------------------------------------------------
+app.py
+payroll_service.py
+workflow_service.py
+wsgi.py
+templates/payroll.html
+templates/payroll_run_print.html
+static/js/payroll-forms.js
+templates/accounts_book.html
+templates/staff.html
+templates/workers.html
+static/js/app.js
+deploy/migrate_production.py
+deploy/vps_backup.sh
+deploy/vps_pull_from_github.sh
+
+OPTION 2 — FULL UPDATE (recommended if VPS is old)
+--------------------------------------------------
+app.py
+workflow_service.py
+wsgi.py
+requirements.txt
+templates/          (entire folder)
+static/             (entire folder)
+deploy/             (entire folder, except deploy/dist/*.zip)
+tests/              (optional)
+
+ZIP PACKAGE (built on PC)
+-------------------------
+Run:  deploy\build_vps_patch.ps1        (small patch zip)
+Run:  deploy\build_deploy_package.ps1   (full deploy zip)
+
+Extract ZIP contents into /var/www/maxek-erp-flask/ in WinSCP.
+
+WINSCP STEPS
+------------
+1. Connect to VPS
+2. Right panel: open /var/www/maxek-erp-flask/
+3. Left panel: open C:\Users\rajee\Documents\New project\MAXEK_ERP\
+4. Select files from OPTION 1 or 2
+5. Drag to right → Overwrite when asked
+6. SSH: run commands in VPS_PATCH_maxek-erp-flask.txt
+
+POST-UPLOAD (SSH)
+-----------------
+cd /var/www/maxek-erp-flask
+bash deploy/vps_backup.sh /var/www/maxek-erp-flask
+source venv/bin/activate
+export MAXEK_SKIP_DEMO_SEED=1
+python deploy/migrate_production.py
+sudo mkdir -p static/uploads/staff static/uploads/workers
+sudo chown -R www-data:www-data static/uploads database
+sudo systemctl restart maxek-erp

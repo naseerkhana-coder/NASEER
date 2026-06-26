@@ -1,0 +1,90 @@
+{% macro vendor_select_with_create(vendors, selected_id=None, select_id='vendor_id', required=False, label='Vendor', placeholder='Select Vendor') %}
+<div class="erp-field erp-field-with-action">
+  <select name="vendor_id" id="{{ select_id }}" {% if required %}required{% endif %} data-vendor-select class="{% if selected_id %}has-value{% endif %}">
+    <option value="">{{ placeholder }}</option>
+    {% for v in vendors %}
+    <option value="{{ v.id }}" {% if selected_id and selected_id == v.id %}selected{% endif %}>{{ v.code }} — {{ v.name }}</option>
+    {% endfor %}
+  </select>
+  <label>{{ label }}{% if required %} *{% endif %}</label>
+  <button type="button" class="erp-inline-action" data-open-inline-modal="new-vendor-modal"><i class="fa-solid fa-plus"></i> New Vendor</button>
+</div>
+{% endmacro %}
+
+{% macro new_vendor_modal(form_action, form_hash='', subtitle='Add a vendor, then continue the form.', next_vendor_code='', vendor_types=None) %}
+<div class="erp-modal" id="new-vendor-modal" data-inline-create-modal hidden aria-hidden="true">
+  <div class="erp-modal-backdrop" data-modal-close></div>
+  <div class="erp-modal-card" role="dialog" aria-modal="true" aria-labelledby="new-vendor-title">
+    <div class="erp-modal-header">
+      <div>
+        <h3 id="new-vendor-title">New Vendor</h3>
+        <p>{{ subtitle }}</p>
+      </div>
+      <button type="button" class="erp-modal-close" data-modal-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="post" class="erp-form-grid" action="{{ form_action }}{{ form_hash }}">
+      <input type="hidden" name="form_action" value="add_vendor">
+      <input type="hidden" name="vendor_types[]" value="Supplier">
+      <div class="erp-field"><input placeholder=" " readonly class="has-value" value="{{ next_vendor_code }}"><label>Code (Auto)</label></div>
+      <div class="erp-field"><input name="name" placeholder=" " required><label>Name *</label></div>
+      <div class="erp-field"><input name="gstin" placeholder=" "><label>GSTIN</label></div>
+      <div class="erp-field"><input name="pan" placeholder=" "><label>PAN</label></div>
+      <div class="erp-field"><input name="contact_person" placeholder=" "><label>Contact Person</label></div>
+      <div class="erp-field"><input name="phone" placeholder=" "><label>Phone</label></div>
+      <div class="erp-field span-2"><input name="email" type="email" placeholder=" "><label>Email</label></div>
+      <div class="erp-form-actions">
+        <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Cancel</button>
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Vendor</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro chart_head_create_button(modal_id='new-chart-head-modal') %}
+<button type="button" class="erp-inline-action" data-open-inline-modal="{{ modal_id }}"><i class="fa-solid fa-plus"></i> New Head</button>
+{% endmacro %}
+
+{% macro new_chart_head_modal(form_action, form_hash='', account_types=None, default_account_type='Expense', subtitle='Add an account head, then continue the form.') %}
+<div class="erp-modal" id="new-chart-head-modal" data-inline-create-modal hidden aria-hidden="true">
+  <div class="erp-modal-backdrop" data-modal-close></div>
+  <div class="erp-modal-card" role="dialog" aria-modal="true" aria-labelledby="new-chart-head-title">
+    <div class="erp-modal-header">
+      <div>
+        <h3 id="new-chart-head-title">New Account Head</h3>
+        <p>{{ subtitle }}</p>
+      </div>
+      <button type="button" class="erp-modal-close" data-modal-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="post" class="erp-form-grid" action="{{ form_action }}{{ form_hash }}">
+      <input type="hidden" name="form_action" value="add_chart_head">
+      <div class="erp-field"><input name="code" placeholder=" " required><label>Code *</label></div>
+      <div class="erp-field"><input name="name" placeholder=" " required><label>Name *</label></div>
+      <div class="erp-field">
+        {% if account_types %}
+        <select name="account_type" required>
+          {% for t in account_types %}
+          <option value="{{ t }}" {% if t == default_account_type %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input type="hidden" name="account_type" value="{{ default_account_type }}">
+        <input value="{{ default_account_type }}" placeholder=" " readonly class="has-value">
+        {% endif %}
+        <label>Account Type *</label>
+      </div>
+      <div class="erp-field"><input name="category" placeholder=" "><label>Category</label></div>
+      <div class="coa-options-row span-2">
+        <label class="coa-check"><input type="checkbox" name="requires_project" value="1"> Requires Project</label>
+        <label class="coa-check"><input type="checkbox" name="requires_vendor" value="1"> Requires Vendor</label>
+        <label class="coa-check"><input type="checkbox" name="default_gst_applicable" value="1"> Default GST</label>
+        <label class="coa-check"><input type="checkbox" name="is_active" value="1" checked> Active</label>
+      </div>
+      <div class="erp-form-actions">
+        <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Cancel</button>
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Head</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endmacro %}

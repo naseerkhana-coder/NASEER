@@ -1,0 +1,84 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>GST Invoice {{ bill.gst_bill_number }} — MAXEK</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx) }}
+  <style>
+    .num { text-align: right; }
+    .inv-box { border: 1px solid var(--maxek-secondary); padding: 0.35rem; font-size: 0.72rem; margin-bottom: 0.35rem; }
+    .inv-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.35rem; }
+    table { width: 100%; border-collapse: collapse; margin: 0.35rem 0; font-size: 0.72rem; }
+    th, td { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; }
+    th { background: #f0f0f0; }
+    .totals { width: 50%; margin-left: auto; }
+  </style>
+  {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='TAX INVOICE', extra_meta=[
+      ('Invoice No', bill.gst_bill_number),
+      ('RA Bill', bill.bill_number),
+      ('Tax Type', bill.tax_type),
+      ('Place of Supply', bill.place_of_supply),
+    ]) }}
+
+    <div class="inv-panels">
+      <div class="inv-box">
+        <strong>Company GSTIN:</strong> {{ bill.company_gstin or '—' }}<br>
+        <strong>Project:</strong> {{ bill.project_name }}<br>
+        <strong>RA Period:</strong> {{ bill.period_from }} → {{ bill.period_to }}
+      </div>
+      <div class="inv-box">
+        <strong>Bill To:</strong> {{ bill.client_display or '—' }}<br>
+        <strong>GSTIN:</strong> {{ bill.client_gstin or bill.client_gst_on_file or '—' }}<br>
+        {{ bill.client_address or '' }}
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>#</th><th>Description</th><th>HSN/SAC</th><th>Unit</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr>
+      </thead>
+      <tbody>
+        {% for line in bill.lines %}
+        <tr>
+          <td>{{ line.line_no or loop.index }}</td>
+          <td>{{ line.description }}</td>
+          <td>{{ line.hsn_sac or '9954' }}</td>
+          <td>{{ line.unit or '—' }}</td>
+          <td class="num">{{ '%.3f'|format(line.quantity or 0) }}</td>
+          <td class="num">{{ '%.2f'|format(line.rate or 0) }}</td>
+          <td class="num">{{ '%.2f'|format(line.amount or 0) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <table class="totals">
+      <tr><td>Subtotal</td><td class="num">₹{{ '%.2f'|format(bill.subtotal or 0) }}</td></tr>
+      <tr><td>Deductions</td><td class="num">₹{{ '%.2f'|format(bill.deduction_amount or 0) }}</td></tr>
+      <tr><td>Taxable Value</td><td class="num">₹{{ '%.2f'|format(bill.taxable_amount or 0) }}</td></tr>
+      {% if bill.tax_type == 'IGST' %}
+      <tr><td>IGST @ {{ bill.igst_percent or bill.gst_percent }}%</td><td class="num">₹{{ '%.2f'|format(bill.igst_amount or 0) }}</td></tr>
+      {% else %}
+      <tr><td>CGST @ {{ bill.cgst_percent or 0 }}%</td><td class="num">₹{{ '%.2f'|format(bill.cgst_amount or 0) }}</td></tr>
+      <tr><td>SGST @ {{ bill.sgst_percent or 0 }}%</td><td class="num">₹{{ '%.2f'|format(bill.sgst_amount or 0) }}</td></tr>
+      {% endif %}
+      <tr><td><strong>Grand Total</strong></td><td class="num"><strong>₹{{ '%.2f'|format(bill.grand_total or 0) }}</strong></td></tr>
+    </table>
+
+    <div class="inv-box" style="margin-top:0.5rem;">
+      <strong>Bank Details:</strong> {{ bank.account_name }} · A/c {{ bank.account_no }} · IFSC {{ bank.ifsc }} · {{ bank.bank_branch }}
+    </div>
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

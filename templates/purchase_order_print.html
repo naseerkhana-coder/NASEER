@@ -1,0 +1,66 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PO {{ po.po_number }} — MAXEK</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx) }}
+  <style>
+    .num { text-align: right; }
+    .po-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-size: 0.72rem; margin-bottom: 0.5rem; }
+    .po-meta div { border: 1px solid var(--maxek-secondary); padding: 0.35rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.35rem; }
+    th, td { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; font-size: 0.72rem; }
+    th { background: #f0f0f0; }
+    tfoot td { font-weight: bold; background: #f9fafb; }
+  </style>
+  {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='PURCHASE ORDER', extra_meta=[
+      ('Vendor', po.vendor_name),
+      ('GSTIN', po.vendor_gstin),
+      ('Delivery Date', po.delivery_date),
+      ('Status', po.approval_status),
+    ]) }}
+
+    <div class="po-meta">
+      <div><strong>Order Date:</strong> {{ po.order_date or '—' }}</div>
+      <div><strong>Project:</strong> {{ po.project_name or '—' }}</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>#</th><th>Description</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">GST%</th><th class="num">Total</th></tr>
+      </thead>
+      <tbody>
+        {% for line in po.lines %}
+        <tr>
+          <td>{{ line.line_no or loop.index }}</td>
+          <td>{{ line.description }}{% if line.material_code %} ({{ line.material_code }}){% endif %}</td>
+          <td class="num">{{ line.quantity or 0 }}</td>
+          <td>{{ line.unit or '—' }}</td>
+          <td class="num">{{ '%.2f'|format(line.rate or 0) }}</td>
+          <td class="num">{{ line.gst_percent or 0 }}</td>
+          <td class="num">{{ '%.2f'|format(line.line_total or 0) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="6" class="num">Subtotal</td><td class="num">{{ '%.2f'|format(po.subtotal or 0) }}</td></tr>
+        <tr><td colspan="6" class="num">CGST + SGST + IGST</td><td class="num">{{ '%.2f'|format((po.total_cgst or 0) + (po.total_sgst or 0) + (po.total_igst or 0)) }}</td></tr>
+        <tr><td colspan="6" class="num">Grand Total</td><td class="num">{{ '%.2f'|format(po.grand_total or 0) }}</td></tr>
+      </tfoot>
+    </table>
+    {% if po.terms %}<p style="font-size:0.72rem;"><strong>Terms:</strong> {{ po.terms }}</p>{% endif %}
+    {% if po.remarks %}<p style="font-size:0.72rem;"><strong>Remarks:</strong> {{ po.remarks }}</p>{% endif %}
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

@@ -1,0 +1,120 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Labour Productivity' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Labour Productivity' %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_labour_productivity_new') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Entry</a>
+<a href="{{ url_for('treasury_equipment_costing') }}" class="erp-btn erp-btn-ghost">Equipment Costing</a>
+{% endblock %}
+{% block content %}
+<p style="color:#64748b;margin-top:0;">
+  Track planned vs actual output and labour hours by project and trade. Productivity rate = actual quantity ÷ labour hours.
+</p>
+
+{% if summary %}
+<div class="erp-summary-grid" style="margin-bottom:1.5rem;">
+  <div class="erp-stat-card"><span>Entries</span><strong>{{ summary.entry_count }}</strong></div>
+  <div class="erp-stat-card"><span>Trades</span><strong>{{ summary.trade_count }}</strong></div>
+  <div class="erp-stat-card"><span>Planned Qty</span><strong>{{ '%.2f'|format(summary.planned_quantity) }}</strong></div>
+  <div class="erp-stat-card"><span>Actual Qty</span><strong>{{ '%.2f'|format(summary.actual_quantity) }}</strong></div>
+  <div class="erp-stat-card"><span>Variance</span><strong>{{ '%.2f'|format(summary.variance) }}</strong></div>
+  <div class="erp-stat-card"><span>Labour Hours</span><strong>{{ '%.1f'|format(summary.labour_hours) }}</strong></div>
+  <div class="erp-stat-card"><span>Avg Productivity</span><strong>{% if summary.productivity_rate is not none %}{{ '%.4f'|format(summary.productivity_rate) }}{% else %}—{% endif %}</strong></div>
+</div>
+{% endif %}
+
+{% if trade_summary %}
+<h3 style="margin-bottom:0.75rem;">Trade Summary</h3>
+<div class="erp-table-panel" style="margin-bottom:1.5rem;">
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Trade</th>
+          <th>Unit</th>
+          <th>Planned</th>
+          <th>Actual</th>
+          <th>Variance</th>
+          <th>Hours</th>
+          <th>Productivity</th>
+          <th>Entries</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in trade_summary %}
+        <tr>
+          <td><strong>{{ t.trade }}</strong></td>
+          <td>{{ t.unit or '—' }}</td>
+          <td>{{ '%.2f'|format(t.planned_quantity) }}</td>
+          <td>{{ '%.2f'|format(t.actual_quantity) }}</td>
+          <td>{{ '%.2f'|format(t.variance) }}</td>
+          <td>{{ '%.1f'|format(t.labour_hours) }}</td>
+          <td>{% if t.productivity_rate is not none %}{{ '%.4f'|format(t.productivity_rate) }}{% else %}—{% endif %}</td>
+          <td>{{ t.entry_count }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No trade data for current filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<form method="get" class="erp-table-toolbar" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+  <select name="project_id" style="max-width:220px;">
+    <option value="">All projects</option>
+    {% for p in projects %}
+    <option value="{{ p.id }}" {% if project_id == p.id %}selected{% endif %}>{{ p.project_name }}</option>
+    {% endfor %}
+  </select>
+  <select name="trade" style="max-width:180px;">
+    <option value="">All trades</option>
+    {% for t in trades %}
+    <option value="{{ t }}" {% if trade == t %}selected{% endif %}>{{ t }}</option>
+    {% endfor %}
+  </select>
+  <input name="period_month" type="month" value="{{ period_month or '' }}" style="max-width:160px;">
+  <input name="search" value="{{ search or '' }}" placeholder="Search notes / trade" style="max-width:180px;">
+  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+  <a href="{{ url_for('treasury_labour_productivity') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Reset</a>
+</form>
+
+<div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Date / Period</th>
+          <th>Project</th>
+          <th>Trade</th>
+          <th>Planned</th>
+          <th>Actual</th>
+          <th>Variance</th>
+          <th>Hours</th>
+          <th>Productivity</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in entries %}
+        <tr>
+          <td>{% if row.work_date %}{{ row.work_date }}{% elif row.period_month %}{{ row.period_month }}{% else %}—{% endif %}</td>
+          <td><a href="{{ url_for('treasury_labour_productivity_project', project_id=row.project_id) }}">{{ row.project_name }}</a></td>
+          <td><strong>{{ row.trade }}</strong></td>
+          <td>{{ '%.2f'|format(row.planned_quantity) }} {{ row.unit }}</td>
+          <td>{{ '%.2f'|format(row.actual_quantity) }} {{ row.unit }}</td>
+          <td>{{ '%.2f'|format(row.variance) }}</td>
+          <td>{{ '%.1f'|format(row.labour_hours) }}</td>
+          <td>{% if row.productivity_rate is not none %}{{ '%.4f'|format(row.productivity_rate) }}{% else %}—{% endif %}</td>
+          <td>
+            <a href="{{ url_for('treasury_labour_productivity_detail', entry_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">No labour productivity entries. <a href="{{ url_for('treasury_labour_productivity_new') }}">Add the first entry</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

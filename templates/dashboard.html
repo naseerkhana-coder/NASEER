@@ -1,0 +1,110 @@
+{% extends 'base_maxek.html' %}
+
+{% block body_class %} dashboard-mode command-centre-mode{% endblock %}
+
+{% block title %}Command Centre — MAXEK ERP{% endblock %}
+
+{% block content %}
+<div class="dash-page command-centre-page">
+
+  <header class="cc-page-header">
+    <div class="cc-page-header-main">
+      <h1 class="cc-page-title">Command Centre</h1>
+      <p class="cc-page-subtitle">
+        Select a department to open its workspace · {{ command_centre_branch }} · {{ command_centre_month }}
+      </p>
+    </div>
+    <div class="cc-page-actions">
+      <a href="{{ url_for('settings') }}#dashboard-preferences" class="erp-btn erp-btn-ghost erp-btn-sm" title="Customize your dashboard">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i> Customize
+      </a>
+      <a href="{{ url_for('dashboard') }}" class="erp-btn erp-btn-ghost erp-btn-sm">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Refresh
+      </a>
+      <a href="{{ url_for('petty_cash') }}" class="erp-btn erp-btn-primary erp-btn-sm">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i> New Entry
+      </a>
+    </div>
+  </header>
+
+  <section class="cc-kpi-row" aria-label="Key performance indicators">
+    {% for kpi in command_centre_kpis %}
+    <div class="cc-kpi-card">
+      <p class="cc-kpi-label">{{ kpi.label }}</p>
+      <strong class="cc-kpi-value">{{ kpi.value }}</strong>
+      <span class="cc-kpi-hint cc-kpi-hint--{{ kpi.hint_tone }}">{{ kpi.hint }}</span>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="cc-dept-grid" aria-label="Department workspaces">
+    {% for card in command_centre_cards %}
+    <a
+      href="{{ url_for('department_portal', slug=card.slug) }}"
+      class="cc-dept-card"
+      style="--cc-accent: {{ card.accent }};"
+    >
+      <span class="cc-dept-card-tag">{{ card.category }}</span>
+      <span class="cc-dept-card-icon"><i class="fa-solid {{ card.icon }}" aria-hidden="true"></i></span>
+      <span class="cc-dept-card-title">{{ card.card_label }}</span>
+      <span class="cc-dept-card-desc">{{ card.description }}</span>
+      <span class="cc-dept-card-stats">
+        {% for pill in card.stat_pills %}
+        <span class="cc-dept-stat-pill{% if pill.get('tone') %} cc-dept-stat-pill--{{ pill.tone }}{% endif %}">
+          <strong>{{ pill.value }}</strong> {{ pill.label }}
+        </span>
+        {% endfor %}
+      </span>
+    </a>
+    {% endfor %}
+
+    <div class="cc-dept-card cc-dept-card--more" aria-label="More modules">
+      <span class="cc-dept-card-icon cc-dept-card-icon--muted"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+      <span class="cc-dept-card-title">More modules</span>
+      <span class="cc-dept-card-desc">QC, Tender, Procurement, Reports and other hubs</span>
+      <span class="cc-dept-card-stats cc-dept-card-stats--links">
+        <a href="{{ url_for('department_portal', slug='qc') }}" class="cc-dept-more-link">QC</a>
+        <a href="{{ url_for('department_portal', slug='tender') }}" class="cc-dept-more-link">Tender</a>
+        <a href="{{ url_for('department_portal', slug='procurement') }}" class="cc-dept-more-link">Procurement</a>
+        <a href="{{ url_for('department_portal', slug='reports') }}" class="cc-dept-more-link">Reports</a>
+      </span>
+    </div>
+  </section>
+
+  <section class="cc-bottom-row">
+    <div class="cc-panel cc-activity-panel">
+      <div class="cc-panel-head">
+        <h2>Recent activity</h2>
+        <a href="{{ url_for('approvals') }}" class="cc-panel-link">View all</a>
+      </div>
+      <ul class="cc-activity-list">
+        {% for item in command_centre_activity %}
+        <li class="cc-activity-item">
+          <span class="cc-activity-dot cc-activity-dot--{{ item.tone }}"></span>
+          <div class="cc-activity-body">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.detail }}</span>
+          </div>
+          <time class="cc-activity-time">{{ item.time }}</time>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="cc-panel cc-quick-panel">
+      <div class="cc-panel-head">
+        <h2>Quick actions</h2>
+      </div>
+      <div class="cc-quick-actions">
+        {% for action in command_centre_quick_actions %}
+        <a href="{{ url_for(action.endpoint) }}" class="cc-quick-action">
+          <i class="fa-solid {{ action.icon }}" aria-hidden="true"></i>
+          <span>{{ action.label }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

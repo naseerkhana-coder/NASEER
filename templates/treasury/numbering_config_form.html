@@ -1,0 +1,44 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Configure ' ~ (sequence.label if sequence else doc_type) %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_document_numbering', fiscal_year=fiscal_year) ~ '">Document Numbering</a> &gt; Configure' %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_document_numbering', fiscal_year=fiscal_year) }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+{% endblock %}
+{% block content %}
+<div class="erp-form-card" style="max-width:640px;">
+  <h3 class="erp-form-title">{{ sequence.label }} — FY {{ fiscal_year }}</h3>
+  <p style="color:#64748b;font-size:0.9rem;margin-top:0;">
+    Current sequence: <strong>{{ sequence.current_sequence }}</strong>
+    · Last: {{ sequence.last_number if sequence.current_sequence else '—' }}
+    · Next preview: <strong>{{ sequence.next_preview }}</strong>
+  </p>
+
+  <form method="post" action="{{ url_for('treasury_document_numbering_edit', doc_type=doc_type) }}">
+    <input type="hidden" name="fiscal_year" value="{{ fiscal_year }}">
+    <div class="erp-form-grid">
+      <div class="erp-field">
+        <input name="prefix" required placeholder=" " value="{{ sequence.prefix }}" maxlength="12">
+        <label>Prefix *</label>
+      </div>
+      <div class="erp-field span-2">
+        <input name="format_pattern" required placeholder=" " value="{{ sequence.format_pattern }}">
+        <label>Format Pattern *</label>
+      </div>
+    </div>
+    <p style="font-size:0.85rem;color:#64748b;margin:0.75rem 0 1rem;">
+      Placeholders: <code>{prefix}</code>, <code>{fy}</code> (short FY, e.g. 2526), <code>{fiscal_year}</code>, <code>{seq:04d}</code> (zero-padded sequence).
+      Example: <code>{prefix}/{fy}/{seq:04d}</code> → BG/2526/0001
+    </p>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+      <button type="submit" class="erp-btn erp-btn-primary">Save Configuration</button>
+      <button type="submit" formaction="{{ url_for('treasury_document_numbering_preview', doc_type=doc_type) }}" formmethod="post" class="erp-btn erp-btn-ghost">Preview Next Number</button>
+    </div>
+  </form>
+
+  {% if preview_number %}
+  <div class="erp-alert" style="margin-top:1.25rem;padding:0.75rem 1rem;background:#eff6ff;border:1px solid #3b82f6;border-radius:0.5rem;">
+    <strong>Preview (not consumed):</strong> {{ preview_number }}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

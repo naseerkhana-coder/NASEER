@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+.venv/
+.venv_codex/
+venv/
+env/
+
+# Secrets & local config
+.env
+.env.local
+*.pem
+
+# Database (production data stays on VPS)
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
+
+# User uploads & media (server-only)
+static/uploads/
+uploads/
+static/photos/
+
+# Backups (VPS-local)
+backups/
+
+# IDE / tooling
+.cursor/
+.vscode/
+*.swp
+.DS_Store
+
+# Build / deploy artifacts
+deploy/dist/
+*.zip
+
+#Ignore cursor AI rules
+.cursor\rules\codacy.mdc
+
+# Local tooling / caches (do not publish)
+.aicb/
+.codacy/
+.codacy-cli-v2/
+.claude/
+.comate/
+.pytest_cache/
+.tmp_commit_patches/
+.tmp-browser-artifacts/
+_browser_probe_out/
+patches/
+git_status_out.txt
+pytest_out.txt
+_test_out.txt
+.tmp_split.py
+_build_vps_deploy_zip.py
+*.patch
+
+# Nested deploy packages (Windows path length)
+deploy/package_*/

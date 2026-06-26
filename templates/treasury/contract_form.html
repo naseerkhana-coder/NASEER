@@ -1,0 +1,84 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = (contract and 'Edit Contract' or 'New Contract') %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_contract_management') ~ '">Contract Management</a> &gt; ' ~ page_title %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_contract_management') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+{% endblock %}
+{% block content %}
+<form method="post" class="erp-form-card"{% if contract %} action="{{ url_for('treasury_contract_management_detail', contract_id=contract.id) }}"{% endif %}>
+  <div class="erp-form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+    <div class="erp-field">
+      <select name="project_id" required>
+        <option value="">— Select project —</option>
+        {% for p in projects %}
+        <option value="{{ p.id }}" {% if (contract and contract.project_id == p.id) or (preset_project_id and preset_project_id == p.id) %}selected{% endif %}>{{ p.project_name }}</option>
+        {% endfor %}
+      </select>
+      <label>Project *</label>
+    </div>
+    <div class="erp-field">
+      <input type="text" name="contract_number" value="{{ contract.contract_number if contract else '' }}" required placeholder="e.g. MH-AGR-2026-001">
+      <label>Contract Number *</label>
+    </div>
+    <div class="erp-field">
+      <select name="contract_type" required>
+        {% for t in contract_types %}
+        <option value="{{ t }}" {% if contract and contract.contract_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+      <label>Contract Type *</label>
+    </div>
+    <div class="erp-field">
+      <select name="status">
+        {% for s in contract_statuses %}
+        <option value="{{ s }}" {% if (contract and contract.status == s) or (not contract and s == 'Active') %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <label>Status</label>
+    </div>
+    <div class="erp-field">
+      <input type="date" name="effective_date" value="{{ contract.effective_date if contract else '' }}">
+      <label>Effective Date</label>
+    </div>
+    <div class="erp-field">
+      <input type="text" name="document_ref" value="{{ contract.document_ref if contract else '' }}" placeholder="File / vault reference">
+      <label>Document Reference</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="original_value" value="{{ contract.original_value if contract else '' }}">
+      <label>Original Value (₹)</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="revised_value" value="{{ contract.revised_value if contract else '' }}">
+      <label>Revised Value (₹)</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="extra_items_value" value="{{ contract.extra_items_value if contract else '' }}">
+      <label>Extra Items Value (₹)</label>
+    </div>
+    <div class="erp-field">
+      <input type="number" step="0.01" min="0" name="claims_value" value="{{ contract.claims_value if contract else '' }}">
+      <label>Claims Value (₹)</label>
+    </div>
+  </div>
+
+  <div class="erp-field" style="margin-top:1rem;">
+    <textarea name="description" rows="3" placeholder="Scope, remarks, linked VO details">{{ contract.description if contract else '' }}</textarea>
+    <label>Description</label>
+  </div>
+
+  <p style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;">
+    Saving updates the project's approved contract value when a Main Agreement or variations exist.
+    Attach scanned agreements via <a href="{{ url_for('treasury_document_vault') }}">Document Vault</a> (entity type: Contract).
+  </p>
+
+  <div style="margin-top:1.25rem;display:flex;gap:0.5rem;">
+    <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-save"></i> Save Contract</button>
+    {% if contract %}
+    <a href="{{ url_for('treasury_contract_management_detail', contract_id=contract.id) }}" class="erp-btn erp-btn-ghost">Cancel</a>
+    {% else %}
+    <a href="{{ url_for('treasury_contract_management') }}" class="erp-btn erp-btn-ghost">Cancel</a>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

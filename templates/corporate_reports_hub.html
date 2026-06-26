@@ -1,0 +1,70 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Corporate Reports Registry' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Reports &gt; Corporate Reports' %}
+{% block content %}
+<div class="module-layout">
+  <div class="erp-form-card">
+    <h3 class="erp-form-title"><i class="fa-solid fa-file-lines"></i> MAXEK Standardized Reports</h3>
+    <p class="erp-form-hint">
+      All reports use the active corporate template from
+      <a href="{{ url_for('corporate_template_master') }}">Settings → Corporate Template Master</a>.
+      Wired reports open existing module print views; stub reports show the standard template placeholder.
+    </p>
+    <div class="erp-form-actions">
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('corporate_template_master') }}"><i class="fa-solid fa-palette"></i> Template Master</a>
+    </div>
+    <div class="dash-display-toggles" style="margin-top:0.75rem;">
+      <span class="approval-badge approval-approved">Wired: {{ status_counts.wired }}</span>
+      <span class="approval-badge approval-pending-checker">Stub: {{ status_counts.stub }}</span>
+      <span class="workflow-hint">Screen-only: {{ status_counts.screen }}</span>
+    </div>
+  </div>
+
+  {% for category in categories %}
+  <div class="erp-table-panel" data-erp-table>
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title"><i class="fa-solid {{ category.icon }}"></i> {{ category.label }}</h3>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead>
+          <tr>
+            <th>Report</th>
+            <th>Status</th>
+            <th>Document Numbering</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for report in category.reports %}
+          <tr>
+            <td>{{ report.label }}</td>
+            <td>
+              {% if report.status == 'wired' %}
+              <span class="approval-badge approval-approved">Wired</span>
+              {% elif report.status == 'screen' %}
+              <span class="workflow-hint">Screen</span>
+              {% else %}
+              <span class="approval-badge approval-pending-checker">Stub</span>
+              {% endif %}
+            </td>
+            <td>{{ report.doc_type_key or '—' }}</td>
+            <td>
+              {% if report.status == 'wired' %}
+              <span class="workflow-hint">Open from module record → Print</span>
+              {% elif report.status == 'screen' %}
+              <a href="{{ url_for(report.screen_endpoint) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Open Module</a>
+              {% else %}
+              <a href="{{ url_for('corporate_report_stub_print', slug=report.slug) }}" target="_blank" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-print"></i> Preview</a>
+              <a href="{{ url_for('corporate_report_export', slug=report.slug) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

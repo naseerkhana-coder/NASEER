@@ -1,0 +1,32 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ ctx.document_type or report_label }} — MAXEK</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx) }}
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title=report_label) }}
+
+    <div class="corp-report-content">
+      {% if stub %}
+      <div class="corp-stub-notice">
+        <p><strong>Standard Report Template — Content Placeholder</strong></p>
+        <p>This report uses the MAXEK corporate template. Module-specific data tables and calculations will be implemented in a future phase.</p>
+        <p>Report slug: <code>{{ ctx.report_slug }}</code></p>
+      </div>
+      {% else %}
+      {% block report_body %}{% endblock %}
+      {% endif %}
+    </div>
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

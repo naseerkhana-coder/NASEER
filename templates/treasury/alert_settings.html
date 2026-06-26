@@ -1,0 +1,47 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Alert Notification Settings' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_alert_engine') ~ '">Alert Engine</a> &gt; Settings' %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_alert_engine') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to Inbox</a>
+{% endblock %}
+{% block content %}
+<div class="erp-form-card" style="max-width:640px;">
+  <p style="color:#64748b;margin-top:0;">
+    Configure notification channels. Email and WhatsApp delivery are <strong>stubs</strong> — alerts are logged only until external APIs are wired in Phase 2+.
+  </p>
+  <form method="post">
+    <fieldset style="border:none;padding:0;margin:0 0 1.25rem;">
+      <legend style="font-weight:600;margin-bottom:0.75rem;">Channels</legend>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+        <input type="checkbox" name="email_enabled"{% if prefs.email_enabled %} checked{% endif %}>
+        Enable email alerts (stub)
+      </label>
+      <label style="display:block;margin-bottom:0.75rem;">
+        Email address
+        <input type="email" name="email_address" value="{{ prefs.email_address or '' }}" placeholder="alerts@company.com" style="width:100%;margin-top:0.25rem;">
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+        <input type="checkbox" name="whatsapp_enabled"{% if prefs.whatsapp_enabled %} checked{% endif %}>
+        Enable WhatsApp alerts (stub)
+      </label>
+      <label style="display:block;margin-bottom:0.75rem;">
+        WhatsApp number
+        <input type="text" name="whatsapp_number" value="{{ prefs.whatsapp_number or '' }}" placeholder="+91XXXXXXXXXX" style="width:100%;margin-top:0.25rem;">
+      </label>
+    </fieldset>
+    <fieldset style="border:none;padding:0;margin:0 0 1.25rem;">
+      <legend style="font-weight:600;margin-bottom:0.75rem;">Severity filters</legend>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">
+        <input type="checkbox" name="notify_critical"{% if prefs.notify_critical %} checked{% endif %}> Critical
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">
+        <input type="checkbox" name="notify_warning"{% if prefs.notify_warning %} checked{% endif %}> Warning
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">
+        <input type="checkbox" name="notify_info"{% if prefs.notify_info %} checked{% endif %}> Info
+      </label>
+    </fieldset>
+    <button type="submit" class="erp-btn erp-btn-primary">Save Preferences</button>
+  </form>
+</div>
+{% endblock %}

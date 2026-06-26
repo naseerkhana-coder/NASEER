@@ -1,0 +1,68 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Backup Settings' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_backup_system') ~ '">Backup System</a> &gt; Settings' %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_backup_system') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to Backups</a>
+{% endblock %}
+{% block content %}
+<div class="erp-form-card" style="max-width:720px;">
+  <p style="color:#64748b;margin-top:0;">
+    Configure automatic backup schedules and retention. Server backups are stored under
+    <code>database/backups/</code>. OneDrive and external paths are <strong>stubs</strong> — no remote copy yet.
+  </p>
+  <form method="post">
+    <fieldset style="border:none;padding:0;margin:0 0 1.25rem;">
+      <legend style="font-weight:600;margin-bottom:0.75rem;">Automatic schedules</legend>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+        <input type="checkbox" name="daily_enabled"{% if prefs.daily_enabled %} checked{% endif %}>
+        Daily backup (once per calendar day)
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+        <input type="checkbox" name="weekly_enabled"{% if prefs.weekly_enabled %} checked{% endif %}>
+        Weekly backup (every 7 days)
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+        <input type="checkbox" name="monthly_enabled"{% if prefs.monthly_enabled %} checked{% endif %}>
+        Monthly backup (once per calendar month)
+      </label>
+    </fieldset>
+
+    <fieldset style="border:none;padding:0;margin:0 0 1.25rem;">
+      <legend style="font-weight:600;margin-bottom:0.75rem;">Retention (keep newest)</legend>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;">
+        <label>Daily backups
+          <input type="number" name="retention_daily" min="1" max="365" value="{{ prefs.retention_daily }}" style="width:100%;margin-top:0.25rem;">
+        </label>
+        <label>Weekly backups
+          <input type="number" name="retention_weekly" min="1" max="52" value="{{ prefs.retention_weekly }}" style="width:100%;margin-top:0.25rem;">
+        </label>
+        <label>Monthly backups
+          <input type="number" name="retention_monthly" min="1" max="120" value="{{ prefs.retention_monthly }}" style="width:100%;margin-top:0.25rem;">
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset style="border:none;padding:0;margin:0 0 1.25rem;">
+      <legend style="font-weight:600;margin-bottom:0.75rem;">External storage (stubs)</legend>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+        <input type="checkbox" name="onedrive_enabled"{% if prefs.onedrive_enabled %} checked{% endif %}>
+        Enable OneDrive sync stub
+      </label>
+      <label style="display:block;margin-bottom:0.75rem;">
+        OneDrive folder path (stub)
+        <input type="text" name="onedrive_path" value="{{ prefs.onedrive_path or '' }}" placeholder="OneDrive/MAXEK/backups" style="width:100%;margin-top:0.25rem;">
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+        <input type="checkbox" name="external_enabled"{% if prefs.external_enabled %} checked{% endif %}>
+        Enable external backup stub
+      </label>
+      <label style="display:block;margin-bottom:0.75rem;">
+        External backup path (stub)
+        <input type="text" name="external_path" value="{{ prefs.external_path or '' }}" placeholder="\\nas\maxek\backups" style="width:100%;margin-top:0.25rem;">
+      </label>
+    </fieldset>
+
+    <button type="submit" class="erp-btn erp-btn-primary">Save Settings</button>
+  </form>
+</div>
+{% endblock %}

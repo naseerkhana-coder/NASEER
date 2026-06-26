@@ -1,0 +1,46 @@
+<aside class="shell-action-panel" id="shell-action-panel" aria-label="Action panel">
+  <div class="shell-panel-head">
+    <h2 class="shell-panel-title">
+      <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+      Actions
+    </h2>
+    <button type="button" class="shell-panel-toggle" data-action-panel-toggle aria-label="Collapse action panel" aria-expanded="true">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="shell-action-section">
+    <a class="shell-action-item" href="{{ safe_url_for('approvals') }}?role=checker">
+      <span class="shell-action-label">Pending Checker</span>
+      {% if approval_widgets.checker %}
+      <span class="shell-action-badge">{{ approval_widgets.checker }}</span>
+      {% endif %}
+    </a>
+    <a class="shell-action-item" href="{{ safe_url_for('approvals') }}?role=approver">
+      <span class="shell-action-label">Pending Approval</span>
+      {% if approval_widgets.approver %}
+      <span class="shell-action-badge">{{ approval_widgets.approver }}</span>
+      {% endif %}
+    </a>
+    <a class="shell-action-item" href="{{ safe_url_for('notifications') }}">
+      <span class="shell-action-label">Notifications</span>
+      {% if notification_count %}
+      <span class="shell-action-badge">{{ notification_count }}</span>
+      {% endif %}
+    </a>
+    <a class="shell-action-item" href="{{ safe_url_for('treasury_alert_engine') }}">
+      <span class="shell-action-label">Alerts</span>
+      {% if system_alert_counts is defined and system_alert_counts.total %}
+      <span class="shell-action-badge shell-action-badge--warn">{{ system_alert_counts.total }}</span>
+      {% endif %}
+    </a>
+    <a class="shell-action-item" href="{{ safe_url_for('fleet_vehicle_documents') }}">
+      <span class="shell-action-label">Expiry Alerts</span>
+      <span class="shell-action-badge shell-action-badge--warn" id="expiry-alert-count" hidden>0</span>
+    </a>
+  </div>
+</aside>
+<button type="button" class="shell-action-reopen" id="shell-action-reopen" data-action-panel-reopen hidden aria-label="Show action panel">
+  <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+  {% if approval_total %}<span class="shell-action-reopen-badge">{{ approval_total }}</span>{% endif %}
+</button>

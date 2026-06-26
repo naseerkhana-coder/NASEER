@@ -1,0 +1,33 @@
+# WinSCP deploy — Cost Planning module
+
+Remote base: `/var/www/maxek-erp-flask/`
+
+## Required files
+
+| # | Local path | Remote path |
+|---|------------|-------------|
+| 1 | `app.py` | `/var/www/maxek-erp-flask/app.py` |
+| 2 | `cost_planning_service.py` | `/var/www/maxek-erp-flask/cost_planning_service.py` |
+| 3 | `templates/cost_planning.html` | `/var/www/maxek-erp-flask/templates/cost_planning.html` |
+| 4 | `templates/cost_planning_print.html` | `/var/www/maxek-erp-flask/templates/cost_planning_print.html` |
+| 5 | `templates/cost_planning_reports.html` | `/var/www/maxek-erp-flask/templates/cost_planning_reports.html` |
+| 6 | `templates/boq.html` | `/var/www/maxek-erp-flask/templates/boq.html` |
+| 7 | `templates/projects.html` | `/var/www/maxek-erp-flask/templates/projects.html` |
+| 8 | `static/js/cost-planning.js` | `/var/www/maxek-erp-flask/static/js/cost-planning.js` |
+
+## Optional
+
+| # | Local path | Remote path |
+|---|------------|-------------|
+| 9 | `docs/COST-PLANNING-GAP-ANALYSIS.md` | `/var/www/maxek-erp-flask/docs/COST-PLANNING-GAP-ANALYSIS.md` |
+
+## Post-upload (SSH)
+
+```bash
+cd /var/www/maxek-erp-flask
+sudo systemctl restart maxek-erp
+```
+
+Schema tables are auto-created on first visit to **Projects → Cost Planning**.
+
+Verify: open `/cost-planning`, select a project with BOQ items, create a cost plan, check WBS and monitoring sections.

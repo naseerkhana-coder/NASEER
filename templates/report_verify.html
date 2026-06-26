@@ -1,0 +1,20 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Report Verification' %}
+{% block content %}
+<div class="erp-form-card" style="max-width:32rem;margin:2rem auto;text-align:center;">
+  <h3 class="erp-form-title"><i class="fa-solid fa-qrcode"></i> Document Verification</h3>
+  {% if verified %}
+  <p class="approval-badge approval-approved" style="display:inline-block;padding:0.5rem 1rem;">Verified</p>
+  <p>This MAXEK document matches our registry.</p>
+  <dl style="text-align:left;margin-top:1rem;">
+    <dt>Report</dt><dd>{{ report_label }}</dd>
+    <dt>Document No</dt><dd>{{ doc_number or '—' }}</dd>
+    <dt>Verification Code</dt><dd><code>{{ code }}</code></dd>
+  </dl>
+  {% else %}
+  <p class="approval-badge approval-rejected" style="display:inline-block;padding:0.5rem 1rem;">Not Verified</p>
+  <p>The verification code does not match. Contact MAXEK administration if you believe this is an error.</p>
+  {% endif %}
+  <a href="{{ url_for('corporate_reports_hub') }}" class="erp-btn erp-btn-ghost">Back to Reports</a>
+</div>
+{% endblock %}

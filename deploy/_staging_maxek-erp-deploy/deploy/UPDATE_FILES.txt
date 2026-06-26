@@ -1,0 +1,103 @@
+MAXEK ERP — VPS UPDATE FILE LIST (WinSCP)
+============================================
+Upload ONLY these files/folders to /var/www/maxek-erp-flask/
+Local PC base: C:\Users\rajee\Documents\New project\MAXEK_ERP\
+
+DO NOT upload: database/maxek.db, .env, venv/, backups/, __pycache__/
+
+CORE (overwrite)
+----------------
+app.py
+workflow_service.py
+wsgi.py
+requirements.txt
+
+TEMPLATES (overwrite folder contents)
+-------------------------------------
+templates/base_maxek.html
+templates/department_hub.html          [NEW — navigation hub landing]
+templates/login.html
+templates/forgot_password.html
+templates/dashboard.html
+templates/dashboard_choice_b.html
+templates/settings.html
+templates/users.html
+templates/approvals.html
+templates/notifications.html
+templates/petty_cash.html
+templates/module_request.html
+templates/attendance.html
+templates/salary.html
+templates/timesheet.html
+templates/reports.html
+templates/staff.html
+templates/workers.html
+templates/subcontractors.html
+templates/projects.html
+templates/clients.html
+templates/boq.html
+templates/workflow_settings.html
+templates/workflow_audit_report.html
+templates/macros/erp_ui.html
+
+STATIC (overwrite)
+------------------
+static/css/maxek-dashboard.css
+static/css/maxek-login.css
+static/js/workflow.js
+static/js/maxek-ui.js
+static/js/app.js
+static/js/attendance-form.js           [NEW — attendance form UX]
+static/js/subcontractors.js            [NEW — subcontractor phase 1]
+static/js/workers-form.js              [NEW — subcontractor workers tab]
+static/js/boq-forms.js
+static/js/master-forms.js
+
+DEPLOY SCRIPTS (overwrite)
+--------------------------
+deploy/vps_backup.sh
+deploy/vps_backup_to_github.sh
+deploy/vps_pull_from_github.sh
+deploy/github_backup.env.example
+deploy/BACKUP_TO_GITHUB.md
+deploy/vps_update.sh
+deploy/post_deploy_test.sh
+deploy/migrate_db.py
+deploy/migrate_production.py
+deploy/vps_fix_schema.sh
+deploy/maxek-erp.service
+deploy/.env.example
+deploy/DEPLOYMENT.md
+deploy/VPS_UPDATE_RUNBOOK.md
+deploy/WINSCP_UPLOAD_MANIFEST.txt
+deploy/WINSCP_maxek-erp-flask.txt
+deploy/VPS_PATCH_maxek-erp-flask.txt
+deploy/UPDATE_FILES.txt
+deploy/clean_project.bat
+deploy/clean_project.sh
+
+TESTS (optional but recommended)
+--------------------------------
+tests/test_workflow_phase.py
+tests/test_login_auth.py
+
+PRESERVE ON VPS (DO NOT UPLOAD)
+-------------------------------
+database/maxek.db          ← production data
+.env                       ← production secrets
+venv/                      ← rebuilt on server
+backups/                   ← server backups
+reports/*                  ← generated files
+static/uploads/*           ← uploaded documents/photos on server
+
+POST-UPLOAD (SSH)
+-----------------
+cd /var/www/maxek-erp-flask
+bash deploy/vps_backup.sh /var/www/maxek-erp-flask
+source venv/bin/activate
+export MAXEK_SKIP_DEMO_SEED=1
+python deploy/migrate_production.py
+sudo mkdir -p static/uploads/staff static/uploads/workers static/uploads/subcontractors
+sudo chown -R www-data:www-data database static/uploads
+sudo systemctl restart maxek-erp
+sudo systemctl status maxek-erp

@@ -1,0 +1,131 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Corporate Template Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Corporate Template Master' %}
+{% block content %}
+<div class="module-layout settings-module-layout">
+  <div class="erp-form-card">
+    <h3 class="erp-form-title"><i class="fa-solid fa-palette"></i> Corporate Template Master</h3>
+    <p class="erp-form-hint">Configure company branding, letterhead, watermark, colors, and footer. All standardized reports use the active default template.</p>
+    <div class="erp-form-actions">
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('settings') }}"><i class="fa-solid fa-arrow-left"></i> Settings</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('corporate_reports_hub') }}"><i class="fa-solid fa-file-lines"></i> Report Registry</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('corporate_template_master', new=1) }}"><i class="fa-solid fa-plus"></i> New Template</a>
+    </div>
+  </div>
+
+  <div class="erp-table-panel" data-erp-table>
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Templates</h3>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Default</th>
+            <th>Active</th>
+            <th>Primary</th>
+            <th>Orientation</th>
+            <th>Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tpl in templates %}
+          <tr>
+            <td>{{ tpl.template_name }}</td>
+            <td>{% if tpl.is_default %}<span class="approval-badge approval-approved">Default</span>{% else %}—{% endif %}</td>
+            <td>{% if tpl.is_active %}Active{% else %}Inactive{% endif %}</td>
+            <td><span style="display:inline-block;width:1rem;height:1rem;background:{{ tpl.primary_color }};border:1px solid #ccc;vertical-align:middle;"></span> {{ tpl.primary_color }}</td>
+            <td>{{ tpl.pdf_orientation|title }}</td>
+            <td>{{ tpl.updated_at or tpl.created_at or '—' }}</td>
+            <td>
+              <a href="{{ url_for('corporate_template_master', template_id=tpl.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% if not tpl.is_default %}
+              <form method="post" style="display:inline;" onsubmit="return confirm('Set as default template?');">
+                <input type="hidden" name="form_action" value="set_default">
+                <input type="hidden" name="template_id" value="{{ tpl.id }}">
+                <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Set Default</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7">No templates configured.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if show_form %}
+  <div class="erp-form-card" id="template-form">
+    <h3 class="erp-form-title">{% if selected_template %}Edit{% else %}New{% endif %} Template</h3>
+    <form method="post" enctype="multipart/form-data" class="erp-form-grid">
+      <input type="hidden" name="form_action" value="save">
+      {% if selected_template %}<input type="hidden" name="template_id" value="{{ selected_template.id }}">{% endif %}
+
+      <div class="erp-field span-2"><input name="template_name" placeholder=" " required value="{{ selected_template.template_name if selected_template else '' }}"><label>Template Name</label></div>
+      <div class="erp-field"><label><input type="checkbox" name="is_active" value="1"{% if not selected_template or selected_template.is_active %} checked{% endif %}> Active</label></div>
+      <div class="erp-field"><label><input type="checkbox" name="is_default" value="1"{% if selected_template and selected_template.is_default %} checked{% endif %}> Default Template</label></div>
+
+      <div class="erp-field span-2"><input name="header_title_line1" placeholder=" " value="{{ selected_template.header_title_line1 if selected_template else 'MAXEK PRIVATE LIMITED' }}"><label>Header Title Line 1</label></div>
+      <div class="erp-field span-2"><input name="header_title_line2" placeholder=" " value="{{ selected_template.header_title_line2 if selected_template else 'MAXEK CONSTRUCTION SYSTEM' }}"><label>Header Title Line 2</label></div>
+
+      <div class="erp-field"><input name="primary_color" type="color" value="{{ selected_template.primary_color if selected_template else '#E30613' }}"><label>Primary Color (MAXEK Red)</label></div>
+      <div class="erp-field"><input name="secondary_color" type="color" value="{{ selected_template.secondary_color if selected_template else '#232323' }}"><label>Secondary Color (Black)</label></div>
+      <div class="erp-field"><input name="background_color" type="color" value="{{ selected_template.background_color if selected_template else '#FFFFFF' }}"><label>Background</label></div>
+      <div class="erp-field">
+        <select name="font_family" class="has-value">
+          {% for font in font_options %}
+          <option value="{{ font }}"{% if selected_template and selected_template.font_family == font %} selected{% elif not selected_template and font == font_options[0] %} selected{% endif %}>{{ font.split(',')[0] }}</option>
+          {% endfor %}
+        </select>
+        <label>Font Style</label>
+      </div>
+      <div class="erp-field">
+        <select name="pdf_orientation" class="has-value">
+          {% for o in pdf_orientations %}
+          <option value="{{ o }}"{% if selected_template and selected_template.pdf_orientation == o %} selected{% elif not selected_template and o == 'portrait' %} selected{% endif %}>{{ o|title }}</option>
+          {% endfor %}
+        </select>
+        <label>PDF Layout / Orientation</label>
+      </div>
+
+      <div class="erp-field span-2"><input name="footer_address" placeholder=" " value="{{ selected_template.footer_address if selected_template else '' }}"><label>Footer Address</label></div>
+      <div class="erp-field"><input name="footer_phone" placeholder=" " value="{{ selected_template.footer_phone if selected_template else '' }}"><label>Footer Phone</label></div>
+      <div class="erp-field"><input name="footer_email" placeholder=" " value="{{ selected_template.footer_email if selected_template else '' }}"><label>Footer Email</label></div>
+      <div class="erp-field span-2"><input name="footer_website" placeholder=" " value="{{ selected_template.footer_website if selected_template else '' }}"><label>Footer Website</label></div>
+
+      <div class="erp-field span-2">
+        <input type="file" name="company_logo" accept="image/*">
+        <label>Company Logo (Top Left){% if selected_template and selected_template.company_logo_path %} — current: {{ selected_template.company_logo_path }}{% endif %}</label>
+      </div>
+      <div class="erp-field span-2">
+        <input type="file" name="watermark_logo" accept="image/*">
+        <label>Watermark Logo (Light Grey){% if selected_template and selected_template.watermark_logo_path %} — current: {{ selected_template.watermark_logo_path }}{% endif %}</label>
+      </div>
+      <div class="erp-field span-2">
+        <input type="file" name="company_seal" accept="image/*">
+        <label>Company Seal{% if selected_template and selected_template.company_seal_path %} — current: {{ selected_template.company_seal_path }}{% endif %}</label>
+      </div>
+      <div class="erp-field span-2">
+        <input type="file" name="signatory_image" accept="image/*">
+        <label>Authorized Signatory Image{% if selected_template and selected_template.signatory_image_path %} — current: {{ selected_template.signatory_image_path }}{% endif %}</label>
+      </div>
+
+      <div class="erp-field span-2"><textarea name="letterhead_html" placeholder=" " rows="3">{{ selected_template.letterhead_html if selected_template else '' }}</textarea><label>Letterhead Template (HTML override)</label></div>
+      <div class="erp-field span-2"><textarea name="footer_html" placeholder=" " rows="2">{{ selected_template.footer_html if selected_template else '' }}</textarea><label>Footer Template (HTML override)</label></div>
+
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Template</button>
+        {% if selected_template and not selected_template.is_default %}
+        <button class="erp-btn erp-btn-ghost" type="submit" name="form_action" value="delete" formaction="{{ url_for('corporate_template_master') }}" formmethod="post" onclick="return confirm('Delete this template?');"><i class="fa-solid fa-trash"></i> Delete</button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import approval_badge, erp_pagination %}
+{% set page_title = 'License Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; License Master' %}
+{% block content %}
+{% include 'erp_admin/_subtoolbar.html' %}
+<div class="module-layout">
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">License Registration</h3>
+    <form method="post" class="erp-form-grid">
+      <div class="erp-field"><input name="license_no" placeholder=" " required value="LIC-2026-"><label>License No</label></div>
+      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes"><label>Customer Code</label></div>
+      <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="erp-field"><select name="product">{% for p in products %}<option>{{ p }}</option>{% endfor %}</select><label>Product</label></div>
+      <div class="erp-field"><select name="plan">{% for p in plans %}<option>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
+      <div class="erp-field"><input type="date" name="start_date" placeholder=" "><label>Start Date</label></div>
+      <div class="erp-field"><input type="date" name="expiry_date" placeholder=" "><label>Expiry Date</label></div>
+      <div class="erp-field"><select name="status">{% for s in statuses %}<option>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save License</button></div>
+    </form>
+  </div>
+  <div class="erp-table-panel" data-erp-table>
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">License Register</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>License No</th><th>Customer</th><th>Company</th><th>Product</th><th>Plan</th><th>Start</th><th>Expiry</th><th>Status</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.license_no }}</td><td>{{ row.customer_code }}</td><td>{{ row.company_name }}</td><td>{{ row.product }}</td><td>{{ row.plan }}</td><td>{{ row.start_date or '—' }}</td><td>{{ row.expiry_date or '—' }}</td><td>{{ approval_badge(row.status) }}</td></tr>{% else %}<tr><td colspan="8">No licenses yet.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

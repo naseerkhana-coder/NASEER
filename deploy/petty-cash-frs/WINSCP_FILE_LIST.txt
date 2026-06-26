@@ -1,0 +1,13 @@
+# WinSCP deploy — Petty Cash FRS (Phase B)
+# Upload paths relative to MAXEK_ERP application root on server
+
+app.py
+workflow_service.py
+templates/petty_cash.html
+static/js/petty-cash-form.js
+docs/PETTY-CASH-FRS-GAP-ANALYSIS.md
+
+# Server: ensure upload directory exists (created automatically on first upload)
+# static/uploads/petty_cash/
+
+# After deploy: restart Flask/gunicorn service

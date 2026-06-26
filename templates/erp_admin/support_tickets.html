@@ -1,0 +1,31 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import approval_badge %}
+{% set page_title = 'Support Tickets' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Support Tickets' %}
+{% block content %}
+{% if sub_toolbar %}{% include 'erp_admin/_subtoolbar.html' %}{% endif %}
+<div class="module-layout">
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Log Support Ticket</h3>
+    <form method="post" enctype="multipart/form-data" class="erp-form-grid">
+      <div class="erp-field"><input name="ticket_no" placeholder=" " value="Auto"><label>Ticket No</label></div>
+      {% if is_super_admin %}<div class="erp-field"><input name="customer_code" placeholder=" " list="customer-codes"><label>Customer Code</label></div>{% endif %}
+      <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="erp-field span-2"><textarea name="problem" placeholder=" " required></textarea><label>Problem</label></div>
+      <div class="erp-field"><input type="file" name="screenshot" accept=".png,.jpg,.jpeg,.pdf"><label>Screenshot</label></div>
+      <div class="erp-field"><select name="priority">{% for p in priorities %}<option>{{ p }}</option>{% endfor %}</select><label>Priority</label></div>
+      <div class="erp-field"><select name="status">{% for s in statuses %}<option>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Submit Ticket</button></div>
+    </form>
+  </div>
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Support Ticket Register</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>Ticket No</th><th>Customer</th><th>Problem</th><th>Screenshot</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.ticket_no }}</td><td>{{ row.company_name or row.customer_code or '—' }}</td><td>{{ row.problem }}</td><td>{% if row.screenshot_path %}<a href="{{ url_for('static', filename='uploads/support/' ~ row.screenshot_path) }}" target="_blank">View</a>{% else %}—{% endif %}</td><td>{{ row.priority }}</td><td>{{ approval_badge(row.status) }}</td><td>{{ row.created_at or '—' }}</td></tr>{% else %}<tr><td colspan="7">No tickets yet.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

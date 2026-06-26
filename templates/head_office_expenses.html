@@ -1,0 +1,132 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/inline_create.html' import chart_head_create_button, new_chart_head_modal %}
+{% set page_title = 'Daily Expenses' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; Daily Expenses' %}
+{% block content %}
+<div class="erp-validation" style="margin-bottom: 1rem;">
+  <strong>Flow:</strong> Select Head of Account → enter expense details → Maker [Save] → Checker → Approver
+</div>
+
+{% if view_record %}
+<div class="erp-form-card" style="margin-bottom: 1rem;">
+  <div class="erp-form-actions" style="margin-bottom: 0.75rem;">
+    {% if edit_role %}
+    <a href="{{ url_for('head_office_expenses', edit=view_record.id) }}#head-office-expenses-form" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+    {% endif %}
+    <a href="{{ url_for('head_office_expenses') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Back to list</a>
+  </div>
+  {% call transaction_view_tabs(view_record, history, can_reopen, approval_id) %}
+  <h3 class="erp-form-title">Daily Expense #{{ view_record.id }}</h3>
+  <p><strong>Date:</strong> {{ view_record.expense_date or '—' }}</p>
+  <p><strong>Account Head:</strong> {{ view_record.account_code }} — {{ view_record.account_name }}</p>
+  <p><strong>Category:</strong> {{ view_record.expense_category or '—' }}</p>
+  <p><strong>Amount:</strong> ₹{{ '%.2f'|format(view_record.amount or 0) }}</p>
+  <p><strong>Department:</strong> {{ view_record.department or '—' }}</p>
+  <p><strong>Description:</strong> {{ view_record.description or '—' }}</p>
+  <p><strong>Status:</strong> {{ role_status_badge(view_record.approval_status, 'maker') }}</p>
+  {{ rejection_notice(history, view_record.approval_status) }}
+  {% endcall %}
+</div>
+{% endif %}
+
+<div class="module-layout">
+  {% if not view_record %}
+  <div class="erp-form-card" id="head-office-expenses-form">
+    <h3 class="erp-form-title">
+      {% if edit_record %}Edit Daily Expense #{{ edit_record.id }}{% if edit_role %} ({{ edit_role|title }}){% endif %}{% else %}New Daily Expense{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid">
+      {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
+      <div class="erp-field erp-field-with-action span-2">
+        <select name="chart_account_id" id="ho_exp_chart_account_id" required data-head-select class="{% if edit_record and edit_record.chart_account_id or select_chart_head %}has-value{% endif %}">
+          <option value="">Select Head of Account</option>
+          {% for h in chart_heads %}
+          <option value="{{ h.id }}"
+            {% if edit_record and edit_record.chart_account_id == h.id %}selected{% endif %}
+            {% if select_chart_head == h.id %}selected{% endif %}>{{ h.code }} — {{ h.name }}</option>
+          {% endfor %}
+        </select>
+        <label>Head of Account *</label>
+        {{ chart_head_create_button() }}
+        {% if not chart_heads %}
+        <p class="erp-hint" style="margin-top:0.35rem;">
+          No active heads found. Open <a href="{{ url_for('accounts_chart_of_accounts') }}">Chart of Accounts</a> to add heads.
+        </p>
+        {% endif %}
+      </div>
+      <div class="erp-field">
+        <input type="date" name="expense_date" required value="{{ edit_record.expense_date if edit_record else default_date }}">
+        <label>Expense Date *</label>
+      </div>
+      <div class="erp-field">
+        <input name="expense_category" placeholder=" " value="{{ edit_record.expense_category if edit_record else '' }}">
+        <label>Category / Tag</label>
+      </div>
+      <div class="erp-field">
+        <input name="amount" type="number" step="0.01" min="0" required placeholder=" " value="{{ edit_record.amount if edit_record else '' }}">
+        <label>Amount *</label>
+      </div>
+      <div class="erp-field">
+        <select name="department" required class="{% if edit_record and edit_record.department %}has-value{% endif %}">
+          <option value="">Select department</option>
+          {% for dept in departments %}
+          <option value="{{ dept }}"{% if edit_record and edit_record.department == dept %} selected{% endif %}>{{ dept }}</option>
+          {% endfor %}
+        </select>
+        <label>Department *</label>
+      </div>
+      <div class="erp-field span-2">
+        <textarea name="description" placeholder=" ">{{ edit_record.description if edit_record else '' }}</textarea>
+        <label>Description</label>
+      </div>
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+        {% if edit_record %}<a href="{{ url_for('head_office_expenses') }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="erp-table-panel" data-erp-table>
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Daily Expense Register</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead>
+          <tr><th>#</th><th>Date</th><th>Account Head</th><th>Category</th><th>Amount</th><th>Department</th><th>By</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ row.id }}</td>
+            <td>{{ row.expense_date or '—' }}</td>
+            <td>{{ row.account_code or '—' }}{% if row.account_name %} — {{ row.account_name }}{% endif %}</td>
+            <td>{{ row.expense_category or '—' }}</td>
+            <td>₹{{ '%.2f'|format(row.amount or 0) }}</td>
+            <td>{{ row.department or '—' }}</td>
+            <td>{{ row.created_by or '—' }}</td>
+            <td>{{ role_status_badge(row.approval_status, 'maker') }}</td>
+            <td>
+              <a href="{{ url_for('head_office_expenses', view=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if row.approval_status in ['Pending Checker', 'Rejected by Checker', 'Rejected by Approver'] %}
+              <a href="{{ url_for('head_office_expenses', edit=row.id) }}#head-office-expenses-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+              {{ maker_row_actions('head_office_expenses', 'head_office_expenses', row.id, row.approval_status, 'head_office_expenses', nav_only=true) }}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No daily expense entries yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{ workflow_modals() }}
+{{ new_chart_head_modal(url_for('head_office_expenses'), '#head-office-expenses-form', account_types, 'Expense', 'Add an account head, then continue the daily expense entry.') }}
+{% endblock %}
+{% block scripts %}
+<script type="application/json" id="chart-heads-json">{{ chart_heads_json|safe }}</script>
+<script src="{{ url_for('static', filename='js/accounts-chart-heads.js') }}"></script>
+<script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
+{% endblock %}

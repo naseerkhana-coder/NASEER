@@ -1,0 +1,24 @@
+<aside class="shell-quick-panel" id="shell-quick-panel" aria-label="Quick links">
+  <div class="shell-panel-head">
+    <h2 class="shell-panel-title">
+      <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+      Quick Links
+    </h2>
+    <button type="button" class="shell-panel-toggle" data-quick-panel-toggle aria-label="Collapse quick panel" aria-expanded="true">
+      <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+    </button>
+  </div>
+  <nav class="shell-quick-links">
+    {% for link in quick_panel_links %}
+    <a class="shell-quick-link" href="{{ safe_url_for(link.endpoint, **(link.get('query') or {})) }}">
+      <i class="fa-solid {{ link.icon }}" aria-hidden="true"></i>
+      <span>{{ link.label }}</span>
+    </a>
+    {% else %}
+    <p class="shell-panel-empty">No quick links for this section.</p>
+    {% endfor %}
+  </nav>
+</aside>
+<button type="button" class="shell-quick-reopen" id="shell-quick-reopen" data-quick-panel-reopen hidden aria-label="Show quick links">
+  <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+</button>

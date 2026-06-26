@@ -1,0 +1,57 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Salary Slip — {{ line.employee_name }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx) }}
+  <style>
+    .slip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-size: 0.72rem; margin-bottom: 0.35rem; }
+    .slip-grid div { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.35rem; font-size: 0.72rem; }
+    th, td { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; }
+    th { background: #f0f0f0; width: 55%; }
+  </style>
+  {% if print_mode %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='SALARY SLIP', extra_meta=[
+      ('Employee', line.employee_name),
+      ('Code', line.employee_code),
+      ('Period', (line.period_start or '') ~ ' to ' ~ (line.period_end or '')),
+      ('Run Ref', line.run_ref),
+    ]) }}
+
+    <div class="slip-grid">
+      <div><strong>Type:</strong> {{ line.employee_type }}</div>
+      <div><strong>Department:</strong> {{ line.department or '—' }}</div>
+      <div><strong>Bank A/C:</strong> {{ bank.bank_account or '—' }}</div>
+      <div><strong>IFSC:</strong> {{ bank.ifsc_code or '—' }}</div>
+    </div>
+
+    <table>
+      <tbody>
+        <tr><th>Base / Daily Rate</th><td>₹ {{ '%.2f'|format(line.base_salary or 0) }}</td></tr>
+        <tr><th>Present Days</th><td>{{ line.present_days or 0 }} / {{ line.working_days or 0 }}</td></tr>
+        <tr><th>OT ({{ line.ot_hours or 0 }} hrs)</th><td>₹ {{ '%.2f'|format(line.ot_amount or 0) }}</td></tr>
+        <tr><th>Holiday Pay</th><td>₹ {{ '%.2f'|format(line.holiday_pay or 0) }}</td></tr>
+        <tr><th><strong>Gross Salary</strong></th><td><strong>₹ {{ '%.2f'|format(line.gross_salary or 0) }}</strong></td></tr>
+        <tr><th>Deductions</th><td>₹ {{ '%.2f'|format(line.deductions or 0) }}</td></tr>
+        <tr><th>Advance Deduction</th><td>₹ {{ '%.2f'|format(line.advance_deduction or 0) }}</td></tr>
+        <tr><th><strong>Net Salary</strong></th><td><strong>₹ {{ '%.2f'|format(line.net_salary or 0) }}</strong></td></tr>
+      </tbody>
+    </table>
+    {% if payment %}
+    <p style="font-size:0.72rem;margin-top:0.5rem;"><strong>Paid:</strong> {{ payment.payment_date }} via {{ payment.payment_mode }}
+      {% if payment.utr_ref %}| UTR: {{ payment.utr_ref }}{% endif %}</p>
+    {% endif %}
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

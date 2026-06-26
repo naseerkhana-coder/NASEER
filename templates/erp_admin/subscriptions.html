@@ -1,0 +1,33 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import approval_badge %}
+{% set page_title = 'Subscription Management' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Subscriptions' %}
+{% block content %}
+{% include 'erp_admin/_subtoolbar.html' %}
+<div class="module-layout">
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Add Subscription</h3>
+    <form method="post" class="erp-form-grid">
+      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes"><label>Customer Code</label></div>
+      <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="erp-field"><select name="plan">{% for p in plans %}<option>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
+      <div class="erp-field"><select name="billing_cycle"><option>Annual</option><option>Quarterly</option><option>Monthly</option></select><label>Billing Cycle</label></div>
+      <div class="erp-field"><input type="number" step="0.01" name="amount" placeholder=" " value="0"><label>Amount</label></div>
+      <div class="erp-field"><input type="date" name="start_date"><label>Start Date</label></div>
+      <div class="erp-field"><input type="date" name="renewal_date"><label>Renewal Date</label></div>
+      <div class="erp-field"><select name="status">{% for s in statuses %}<option>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+      <div class="erp-field span-2"><textarea name="notes" placeholder=" "></textarea><label>Notes</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Save</button></div>
+    </form>
+  </div>
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Active Subscriptions</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>Customer</th><th>Company</th><th>Plan</th><th>Cycle</th><th>Amount</th><th>Start</th><th>Renewal</th><th>Status</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.customer_code }}</td><td>{{ row.company_name }}</td><td>{{ row.plan }}</td><td>{{ row.billing_cycle }}</td><td>{{ row.amount }}</td><td>{{ row.start_date or '—' }}</td><td>{{ row.renewal_date or '—' }}</td><td>{{ approval_badge(row.status) }}</td></tr>{% else %}<tr><td colspan="8">No subscriptions yet.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

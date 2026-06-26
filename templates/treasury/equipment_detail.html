@@ -1,0 +1,84 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = equipment.name ~ ' (' ~ (equipment.equipment_code or equipment.registration_no) ~ ')' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_equipment_costing') ~ '">Equipment Costing</a> &gt; ' ~ equipment.name %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_equipment_costing_cost_new', equipment_id=equipment.id) }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> Add Monthly Cost</a>
+<a href="{{ url_for('treasury_equipment_costing_detail', equipment_id=equipment.id, edit=1) }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-pen"></i> Edit Machine</a>
+<a href="{{ url_for('treasury_equipment_costing') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> All Machines</a>
+{% endblock %}
+{% block content %}
+<div class="erp-summary-grid" style="margin-bottom:1.5rem;">
+  <div class="erp-stat-card"><span>Total Cost</span><strong>₹{{ '{:,.2f}'.format(equipment.total_cost) }}</strong></div>
+  <div class="erp-stat-card"><span>Cost / Hour</span><strong>{% if equipment.cost_per_hour is not none %}₹{{ '{:,.2f}'.format(equipment.cost_per_hour) }}{% else %}—{% endif %}</strong></div>
+  <div class="erp-stat-card"><span>Cost / KM</span><strong>{% if equipment.cost_per_km is not none %}₹{{ '{:,.2f}'.format(equipment.cost_per_km) }}{% else %}—{% endif %}</strong></div>
+  <div class="erp-stat-card"><span>Cost / Day</span><strong>{% if equipment.cost_per_day is not none %}₹{{ '{:,.2f}'.format(equipment.cost_per_day) }}{% else %}—{% endif %}</strong></div>
+</div>
+
+<div class="erp-form-card" style="margin-bottom:1.5rem;">
+  <dl style="display:grid;grid-template-columns:160px 1fr;gap:0.5rem 1rem;margin:0;">
+    <dt style="color:#64748b;">Code</dt><dd><strong>{{ equipment.equipment_code or '—' }}</strong></dd>
+    <dt style="color:#64748b;">Registration</dt><dd>{{ equipment.registration_no or '—' }}</dd>
+    <dt style="color:#64748b;">Type</dt><dd>{{ equipment.type or '—' }}</dd>
+    <dt style="color:#64748b;">Project</dt><dd>{{ equipment.project_name or '—' }}{% if equipment.location %} — {{ equipment.location }}{% endif %}</dd>
+    <dt style="color:#64748b;">Ownership</dt><dd>{{ equipment.owner_type or '—' }}</dd>
+    <dt style="color:#64748b;">Status</dt><dd>{{ equipment.status or '—' }}</dd>
+    <dt style="color:#64748b;">Operating Totals</dt>
+    <dd>{{ equipment.operating_hours }} hrs · {{ equipment.operating_km }} km · {{ equipment.operating_days }} days ({{ equipment.entry_count }} entries)</dd>
+    <dt style="color:#64748b;">DPR Rates</dt>
+    <dd>₹{{ '{:,.2f}'.format(equipment.hourly_rate or 0) }}/hr · ₹{{ '{:,.2f}'.format(equipment.km_rate or 0) }}/km · ₹{{ '{:,.2f}'.format(equipment.trip_rate or 0) }}/trip</dd>
+  </dl>
+</div>
+
+<h3>Monthly Cost History</h3>
+<div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Project</th>
+          <th>Fuel</th>
+          <th>Operator</th>
+          <th>Maintenance</th>
+          <th>Tyre</th>
+          <th>Spares</th>
+          <th>Total</th>
+          <th>₹/Hr</th>
+          <th>₹/KM</th>
+          <th>₹/Day</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cost_entries %}
+        <tr>
+          <td><strong>{{ c.period_month }}</strong></td>
+          <td>{{ c.project_name or '—' }}</td>
+          <td>₹{{ '{:,.0f}'.format(c.fuel_cost) }}</td>
+          <td>₹{{ '{:,.0f}'.format(c.operator_cost) }}</td>
+          <td>₹{{ '{:,.0f}'.format(c.maintenance_cost) }}</td>
+          <td>₹{{ '{:,.0f}'.format(c.tyre_cost) }}</td>
+          <td>₹{{ '{:,.0f}'.format(c.spare_parts_cost) }}</td>
+          <td>₹{{ '{:,.2f}'.format(c.total_cost) }}</td>
+          <td>{% if c.cost_per_hour is not none %}₹{{ '{:,.2f}'.format(c.cost_per_hour) }}{% else %}—{% endif %}</td>
+          <td>{% if c.cost_per_km is not none %}₹{{ '{:,.2f}'.format(c.cost_per_km) }}{% else %}—{% endif %}</td>
+          <td>{% if c.cost_per_day is not none %}₹{{ '{:,.2f}'.format(c.cost_per_day) }}{% else %}—{% endif %}</td>
+          <td>
+            <a href="{{ url_for('treasury_equipment_costing_cost_edit', equipment_id=equipment.id, cost_id=c.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="12">No cost entries yet. <a href="{{ url_for('treasury_equipment_costing_cost_new', equipment_id=equipment.id) }}">Add monthly costs</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if audit_rows %}
+<h3 style="margin-top:1.5rem;">Recent Audit</h3>
+<div class="erp-table-panel"><div class="erp-table-scroll"><table class="erp-table"><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Details</th></tr></thead><tbody>
+{% for log in audit_rows %}<tr><td>{{ log.created_at }}</td><td>{{ log.action }}</td><td>{{ log.actor or '—' }}</td><td>{{ log.details or '—' }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+{% endblock %}

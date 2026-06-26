@@ -1,0 +1,17 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Audit Logs' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Audit Logs' %}
+{% block content %}
+{% include 'erp_admin/_subtoolbar.html' %}
+<div class="module-layout">
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Platform Audit Trail</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>Time</th><th>Customer</th><th>User</th><th>Action</th><th>Module</th><th>Details</th><th>IP</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.event_time }}</td><td>{{ row.customer_code or '—' }}</td><td>{{ row.username or '—' }}</td><td>{{ row.action }}</td><td>{{ row.module }}</td><td>{{ row.details }}</td><td>{{ row.ip_address or '—' }}</td></tr>{% else %}<tr><td colspan="7">No audit events logged yet.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

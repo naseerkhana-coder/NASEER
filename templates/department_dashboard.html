@@ -1,0 +1,15 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_grid %}
+{% set page_title = hub_title %}
+{% set breadcrumbs = breadcrumbs_html %}
+{% block content %}
+<div class="erp-summary-grid erp-summary-grid--stats" style="margin-bottom: 1rem;">
+  {% for card in stat_cards %}
+  <div class="erp-stat-card">
+    <span>{{ card.label }}</span>
+    <strong{% if card.get('warn') %} style="color:#b45309"{% endif %}>{{ card.value }}</strong>
+  </div>
+  {% endfor %}
+</div>
+{{ erp_module_grid(modules, module_section_title) }}
+{% endblock %}

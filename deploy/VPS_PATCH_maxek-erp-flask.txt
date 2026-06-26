@@ -1,0 +1,115 @@
+MAXEK ERP — VPS PATCH (WinSCP)
+
+================================
+
+VPS app folder: /var/www/maxek-erp-flask/
+
+Local PC folder: C:\Users\rajee\Documents\New project\MAXEK_ERP\
+
+
+
+RECOMMENDED: upload deploy/dist/vps-patch-latest.zip and extract on VPS (merge folders).
+
+Rebuild locally: python deploy/build_vps_patch_latest.py
+
+
+
+DO NOT upload database/maxek.db or .env
+
+
+
+REQUIRED — app.py dependencies (all must match app.py or Gunicorn will 502)
+
+---------------------------------------------------------------------------
+
+app.py                              -> /var/www/maxek-erp-flask/app.py
+
+super_admin_service.py              -> /var/www/maxek-erp-flask/super_admin_service.py
+
+store_service.py                    -> /var/www/maxek-erp-flask/store_service.py
+
+erp_admin_routes.py                 -> /var/www/maxek-erp-flask/erp_admin_routes.py
+
+api_routes.py                       -> /var/www/maxek-erp-flask/api_routes.py
+
+tenant_isolation.py                 -> /var/www/maxek-erp-flask/tenant_isolation.py
+
+auth_jwt.py                         -> /var/www/maxek-erp-flask/auth_jwt.py
+
+workflow_service.py                 -> /var/www/maxek-erp-flask/workflow_service.py
+
+seed_super_admin.py                 -> /var/www/maxek-erp-flask/seed_super_admin.py
+
+wsgi.py                             -> /var/www/maxek-erp-flask/wsgi.py
+
+
+
+MR/PR view + edit (Material Request / Purchase Request)
+
+-------------------------------------------------------
+
+templates/material_request.html     -> /var/www/maxek-erp-flask/templates/material_request.html
+
+templates/module_request.html       -> /var/www/maxek-erp-flask/templates/module_request.html
+
+templates/macros/erp_ui.html        -> /var/www/maxek-erp-flask/templates/macros/erp_ui.html
+
+templates/base_maxek.html           -> /var/www/maxek-erp-flask/templates/base_maxek.html
+templates/dashboard.html            -> /var/www/maxek-erp-flask/templates/dashboard.html
+
+
+
+Store / vendor / masters UI
+
+---------------------------
+
+templates/store_materials.html      -> /var/www/maxek-erp-flask/templates/store_materials.html
+
+templates/purchase_vendors.html     -> /var/www/maxek-erp-flask/templates/purchase_vendors.html
+
+templates/subcontractors.html       -> /var/www/maxek-erp-flask/templates/subcontractors.html
+
+static/js/subcontractors.js         -> /var/www/maxek-erp-flask/static/js/subcontractors.js
+
+static/js/master-forms.js           -> /var/www/maxek-erp-flask/static/js/master-forms.js
+
+static/css/maxek-dashboard.css      -> /var/www/maxek-erp-flask/static/css/maxek-dashboard.css
+
+
+
+AFTER UPLOAD (SSH on VPS)
+
+-------------------------
+
+cd /var/www/maxek-erp-flask
+
+bash deploy/vps_backup.sh /var/www/maxek-erp-flask
+
+source venv/bin/activate
+
+export MAXEK_SKIP_DEMO_SEED=1
+
+python deploy/migrate_production.py
+
+python seed_super_admin.py
+
+sudo chown -R www-data:www-data database static/uploads
+
+sudo systemctl restart maxek-erp
+
+sudo systemctl status maxek-erp
+
+
+
+VERIFY
+
+------
+
+1. App loads (no 502) — confirms app.py + all service imports match
+
+2. Store > Material Request: View record shows fields; Edit appears for maker on Pending Checker
+
+3. Purchase > Purchase Request: same view/edit behaviour
+
+4. Store > Vendors: subcontract-eligible vendor types work
+

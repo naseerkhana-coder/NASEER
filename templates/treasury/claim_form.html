@@ -1,0 +1,218 @@
+{% extends 'base_maxek.html' %}
+
+{% set page_title = (claim and 'Edit Claim' or 'New Claim') %}
+
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_claims') ~ '">Claims Management</a> &gt; ' ~ page_title %}
+
+{% block page_actions %}
+
+<a href="{{ url_for('treasury_claims') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+
+{% endblock %}
+
+{% block content %}
+
+<form method="post" class="erp-form-card" id="claim-form"{% if claim %} action="{{ url_for('treasury_claims_detail', claim_id=claim.id) }}"{% endif %}>
+
+  <div class="erp-form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+
+    <div class="erp-field">
+
+      <select name="project_id" id="project_id" required>
+
+        <option value="">— Select project —</option>
+
+        {% for p in projects %}
+
+        <option value="{{ p.id }}" {% if (claim and claim.project_id == p.id) or (preset_project_id and preset_project_id == p.id) %}selected{% endif %}>{{ p.project_name }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      <label>Project *</label>
+
+    </div>
+
+    <div class="erp-field">
+
+      <select name="contract_id" id="contract_id">
+
+        <option value="">— Optional contract —</option>
+
+        {% for c in contracts %}
+
+        <option value="{{ c.id }}" {% if claim and claim.contract_id == c.id %}selected{% endif %}>{{ c.contract_number }} ({{ c.contract_type }})</option>
+
+        {% endfor %}
+
+      </select>
+
+      <label>Linked Contract</label>
+
+    </div>
+
+    <div class="erp-field">
+
+      <input type="text" name="claim_number" value="{{ claim.claim_number if claim else (next_claim_number or '') }}" {% if not claim %}placeholder="Auto-generated if blank"{% endif %} {% if claim %}required{% endif %}>
+
+      <label>Claim Number{% if not claim %} <span style="font-weight:normal;color:#64748b;">(auto if blank)</span>{% else %} *{% endif %}</label>
+
+    </div>
+
+    <div class="erp-field">
+
+      <select name="claim_type" required>
+
+        {% for t in claim_types %}
+
+        <option value="{{ t }}" {% if claim and claim.claim_type == t %}selected{% endif %}>{{ t }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      <label>Claim Type *</label>
+
+    </div>
+
+    <div class="erp-field">
+
+      <select name="status">
+
+        {% for s in claim_statuses %}
+
+        <option value="{{ s }}" {% if (claim and claim.status == s) or (not claim and s == 'Submitted') %}selected{% endif %}>{{ s }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      <label>Status</label>
+
+    </div>
+
+    <div class="erp-field">
+
+      <input type="date" name="submitted_date" value="{{ claim.submitted_date if claim else '' }}">
+
+      <label>Submitted Date</label>
+
+    </div>
+
+    <div class="erp-field">
+
+      <input type="number" step="0.01" min="0" name="claimed_amount" value="{{ claim.claimed_amount if claim else '' }}" required>
+
+      <label>Claimed Amount (₹) *</label>
+
+    </div>
+
+    <div class="erp-field">
+
+      <input type="number" step="0.01" min="0" name="approved_amount" value="{{ claim.approved_amount if claim and claim.approved_amount is not none else '' }}">
+
+      <label>Approved Amount (₹)</label>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="erp-field" style="margin-top:1rem;">
+
+    <textarea name="description" rows="3" placeholder="Scope, justification, BOQ reference">{{ claim.description if claim else '' }}</textarea>
+
+    <label>Description</label>
+
+  </div>
+
+
+
+  <div class="erp-field" style="margin-top:0.75rem;">
+
+    <textarea name="remarks" rows="2" placeholder="Internal remarks">{{ claim.remarks if claim else '' }}</textarea>
+
+    <label>Remarks</label>
+
+  </div>
+
+
+
+  <p style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;">
+
+    Approved claims update <a href="{{ url_for('treasury_contract_management') }}">Contract Management</a> claims value for the linked contract (or main agreement).
+
+  </p>
+
+
+
+  <div style="margin-top:1.25rem;display:flex;gap:0.5rem;">
+
+    <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-save"></i> Save Claim</button>
+
+    {% if claim %}
+
+    <a href="{{ url_for('treasury_claims_detail', claim_id=claim.id) }}" class="erp-btn erp-btn-ghost">Cancel</a>
+
+    {% else %}
+
+    <a href="{{ url_for('treasury_claims') }}" class="erp-btn erp-btn-ghost">Cancel</a>
+
+    {% endif %}
+
+  </div>
+
+</form>
+
+{% if projects %}
+
+<script>
+
+(function () {
+
+  var projectSelect = document.getElementById('project_id');
+
+  var contractSelect = document.getElementById('contract_id');
+
+  if (!projectSelect || !contractSelect) return;
+
+  var contractsByProject = {{ contracts_by_project | tojson }};
+
+  var selectedContract = {{ (claim.contract_id if claim and claim.contract_id else none) | tojson }};
+
+  function refreshContracts() {
+
+    var pid = projectSelect.value;
+
+    contractSelect.innerHTML = '<option value="">— Optional contract —</option>';
+
+    (contractsByProject[pid] || []).forEach(function (c) {
+
+      var opt = document.createElement('option');
+
+      opt.value = c.id;
+
+      opt.textContent = c.contract_number + ' (' + c.contract_type + ')';
+
+      if (String(c.id) === String(selectedContract)) opt.selected = true;
+
+      contractSelect.appendChild(opt);
+
+    });
+
+  }
+
+  projectSelect.addEventListener('change', function () { selectedContract = null; refreshContracts(); });
+
+  refreshContracts();
+
+})();
+
+</script>
+
+{% endif %}
+
+{% endblock %}
+

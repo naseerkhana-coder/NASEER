@@ -1,0 +1,641 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import approval_badge, role_status_badge, rejection_notice, workflow_modals, transaction_view_tabs, checker_row_actions, approver_row_actions, maker_row_actions, erp_pagination, erp_module_toolbar, erp_module_table_panel %}
+{% set page_title = 'Project Creation' if show_project_form|default(false) else 'Projects' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Projects' %}
+{% block page_actions %}
+<button type="button" class="erp-btn erp-btn-ghost" data-ai-open data-ai-mode="assistant"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Assistant</button>
+<a href="{{ url_for('cost_planning') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-coins"></i> Cost Planning</a>
+{% endblock %}
+{% block content %}
+{% set form_project = editing_project %}
+<div class="erp-validation" style="margin-bottom: 1rem;">
+  <strong>Flow:</strong> Maker [Save] → Checker [Verify / Edit / Reject] → Approver [Approve / Edit / Reject]
+</div>
+
+{% if view_project %}
+<div class="erp-form-card" style="margin-bottom: 1rem;">
+  {% call transaction_view_tabs(view_project, history, can_reopen, approval_id) %}
+  <h3 class="erp-form-title">Project — {{ view_project.project_name }}</h3>
+  <div class="erp-form-grid">
+    <p><strong>Project No.:</strong> {{ view_project.project_code or view_project.id }}</p>
+    <p><strong>Type:</strong> {{ view_project.project_type or 'Private' }}</p>
+    <p><strong>Client / Dept:</strong> {% if view_project.project_type == 'Government' %}{{ view_project.gov_department or '—' }}{% else %}{{ view_project.private_client_name or view_project.company_name or view_project.client_name or '—' }}{% endif %}</p>
+    <p><strong>Location:</strong> {{ view_project.location or '—' }}</p>
+    <p><strong>Approved Total:</strong> {{ view_project.approved_total_amount or view_project.budget or '—' }}</p>
+    <p><strong>Status:</strong> {{ view_project.status or 'Active' }}</p>
+    <p><strong>Workflow:</strong> {{ role_status_badge(view_project.approval_status, 'maker') }}</p>
+    <p><strong>Created By:</strong> {{ view_project.created_by or '—' }}</p>
+    <p><strong>Created At:</strong> {{ view_project.created_at or '—' }}</p>
+  </div>
+  {{ rejection_notice(history, view_project.approval_status) }}
+  <div class="erp-form-actions" style="margin-top: 1rem; flex-wrap: wrap;">
+    {% if edit_role == 'checker' and approval_id and view_project.approval_status == 'Pending Checker' %}
+    {{ checker_row_actions(approval_id, 'projects', view_project.id, view_project.approval_status) }}
+    {% elif edit_role == 'approver' and approval_id and view_project.approval_status == 'Pending Approval' %}
+    {{ approver_row_actions(approval_id, 'projects', view_project.id, view_project.approval_status) }}
+    {% elif edit_role == 'maker' and view_project.approval_status in ['Pending Checker', 'Rejected by Checker', 'Rejected by Approver'] %}
+    <a href="{{ url_for('projects', edit=view_project.id) }}#add-project" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-pen-to-square"></i> Edit Project</a>
+    {% endif %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-modal-open="project-hub-{{ view_project.id }}"><i class="fa-solid fa-circle-nodes"></i> Project 360</button>
+    <a href="{{ url_for('projects') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Back to List</a>
+  </div>
+  {% endcall %}
+</div>
+{% endif %}
+
+<div class="erp-module-layout">
+{% if not view_project %}
+  {{ erp_module_toolbar(
+    search_placeholder='Search projects...',
+    add_url='#add-project',
+    export_name='projects',
+    print_target='#project-list'
+  ) }}
+{% endif %}
+
+<div class="module-layout module-layout--entry-wide{% if not show_project_form|default(false) %} module-layout--list-only{% endif %}">
+  {% if not view_project %}
+  <div class="erp-module-form-panel erp-form-card" id="add-project"{% if not show_project_form|default(false) %} hidden{% endif %}>
+    <h3 class="erp-form-title">{% if form_project %}Edit Project{% if edit_role %} ({{ edit_role|title }}){% endif %}{% else %}Project Creation{% endif %}</h3>
+    <form method="post" enctype="multipart/form-data" class="erp-form-grid" data-master-form="project">
+      {% if form_project %}<input type="hidden" name="project_id" value="{{ form_project.id }}">{% endif %}
+      <div class="erp-field span-2">
+        <select name="project_type" required class="has-value">
+          <option value="Government"{% if form_project and form_project.project_type == 'Government' %} selected{% endif %}>Government Project</option>
+          <option value="Private"{% if not form_project or form_project.project_type != 'Government' %} selected{% endif %}>Private Project</option>
+        </select>
+        <label>Project Type</label>
+      </div>
+      <div class="erp-field erp-field-auto-number">
+        <label>Project Number</label>
+        <span class="erp-auto-number" id="project_code_display" data-project-code-preview>{{ form_project.project_code if form_project else next_project_code }}</span>
+        <span class="erp-form-hint erp-auto-number-hint">Auto-generated from project name</span>
+      </div>
+      <div class="erp-field span-2"><input name="project_name" value="{{ form_project.project_name if form_project else '' }}" placeholder=" " required class="{% if form_project and form_project.project_name %}has-value{% endif %}"><label>Project Name</label></div>
+
+      {% set g_ns = namespace(bg_rows=[], treasury=none) %}
+      {% for grow in project_guarantees or [] %}
+        {% if grow.guarantee_type == 'Treasury Deposit' %}
+          {% if not g_ns.treasury %}{% set g_ns.treasury = grow %}{% endif %}
+        {% elif grow.guarantee_type in ['Bank Guarantee', 'Performance Guarantee'] %}
+          {% set _ = g_ns.bg_rows.append(grow) %}
+        {% endif %}
+      {% endfor %}
+      {% if not g_ns.bg_rows %}
+        {% set _ = g_ns.bg_rows.append({'guarantee_type': 'Bank Guarantee'}) %}
+        {% set _ = g_ns.bg_rows.append({'guarantee_type': 'Bank Guarantee'}) %}
+      {% elif g_ns.bg_rows|length == 1 %}
+        {% set _ = g_ns.bg_rows.append({'guarantee_type': 'Bank Guarantee'}) %}
+      {% endif %}
+      {% if not g_ns.treasury %}
+        {% set g_ns.treasury = {'guarantee_type': 'Treasury Deposit'} %}
+      {% endif %}
+
+      <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Department</div>
+      <div class="erp-field span-2" data-project-section="government" hidden>
+        <select name="gov_department" class="{% if form_project and form_project.gov_department %}has-value{% endif %}">
+          <option value="">Select department</option>
+          {% for dept in gov_departments %}
+          <option value="{{ dept }}"{% if form_project and form_project.gov_department == dept %} selected{% endif %}>{{ dept }}</option>
+          {% endfor %}
+        </select>
+        <label>Government Department</label>
+      </div>
+
+      <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Bank Guarantee (BG)</div>
+      <p class="erp-form-hint span-2" data-project-section="government" hidden>Enter each bank guarantee separately. Two BG rows are shown by default — use Add BG for additional guarantees.</p>
+      <div class="span-2" data-project-section="government" hidden data-guarantee-rows data-pending-bills='{{ pending_bill_options|tojson }}'>
+        <div data-bg-rows-container>
+          {% for grow in g_ns.bg_rows %}
+          <div class="erp-guarantee-row erp-form-grid" data-guarantee-row data-bg-row>
+            {% if grow.id %}<input type="hidden" name="guarantee_row_id[]" value="{{ grow.id }}">{% else %}<input type="hidden" name="guarantee_row_id[]" value="">{% endif %}
+            <input type="hidden" name="guarantee_row_existing_doc[]" value="{{ grow.document_filename or '' }}">
+            <input type="hidden" name="guarantee_row_type[]" value="Bank Guarantee">
+            <input type="hidden" name="guarantee_row_treasury_number[]" value="">
+            <input type="hidden" name="guarantee_row_treasury_issued[]" value="">
+            <input type="hidden" name="guarantee_row_treasury_maturity[]" value="">
+            <div class="erp-field erp-field-row-label span-2"><span class="erp-row-badge">BG {{ loop.index }}</span></div>
+            <div class="erp-field"><input name="guarantee_row_amount[]" type="number" step="0.01" value="{{ grow.amount if grow.amount else '' }}" placeholder=" " class="{% if grow.amount %}has-value{% endif %}"><label>Amount</label></div>
+            <div class="erp-field"><input name="guarantee_row_bg_issued[]" type="date" value="{{ grow.bank_guarantee_issued_date or '' }}" placeholder=" " class="{% if grow.bank_guarantee_issued_date %}has-value{% endif %}"><label>Issue Date</label></div>
+            <div class="erp-field"><input name="guarantee_row_bg_expiry[]" type="date" value="{{ grow.bank_guarantee_expiry_date or '' }}" placeholder=" " class="{% if grow.bank_guarantee_expiry_date %}has-value{% endif %}"><label>Expiry Date</label></div>
+            <div class="erp-field"><input name="guarantee_row_bg_number[]" value="{{ grow.bank_guarantee_number or '' }}" placeholder=" " class="{% if grow.bank_guarantee_number %}has-value{% endif %}"><label>BG Number</label></div>
+            <div class="erp-field span-2">
+              <input type="file" data-guarantee-file accept=".pdf,.jpg,.jpeg,.png">
+              <label>{% if grow.document_filename %}Replace BG document{% else %}Attach BG document{% endif %}</label>
+              {% if grow.document_filename %}<a href="{{ url_for('static', filename='uploads/projects/' ~ grow.document_filename) }}" target="_blank" rel="noopener" class="erp-form-hint">Current file</a>{% endif %}
+            </div>
+            <div class="erp-field">
+              <select name="guarantee_row_bill_pledging[]" data-bill-pledging-select class="has-value">
+                <option value="0"{% if not grow.bill_pledging %} selected{% endif %}>No</option>
+                <option value="1"{% if grow.bill_pledging %} selected{% endif %}>Yes — pledge bill</option>
+              </select>
+              <label>Bill Pledging</label>
+            </div>
+            <div class="erp-field span-2" data-bill-pledging-detail hidden>
+              <select name="guarantee_row_pending_ref[]" data-pending-bill-select class="{% if grow.pending_bill_ref %}has-value{% endif %}">
+                <option value="">Select pending bill</option>
+                {% for bill in pending_bill_options %}
+                <option value="{{ bill.ref }}" data-amount="{{ bill.amount }}"{% if grow.pending_bill_ref == bill.ref %} selected{% endif %}>{{ bill.label }}</option>
+                {% endfor %}
+              </select>
+              <label>Pending Bill</label>
+            </div>
+            <div class="erp-field" data-bill-pledging-detail hidden><input name="guarantee_row_pledged_amount[]" type="number" step="0.01" value="{{ grow.pledged_amount or grow.amount or '' }}" placeholder=" " class="{% if grow.pledged_amount or grow.amount %}has-value{% endif %}"><label>Pledged Amount</label></div>
+            <p class="erp-form-hint span-2">Use bill pledging when delayed bill permission requires pledging a bill against this BG.</p>
+            <div class="erp-form-actions span-2">
+              <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-bg-remove><i class="fa-solid fa-trash"></i> Remove BG</button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <template data-bg-row-template>
+          <div class="erp-guarantee-row erp-form-grid" data-guarantee-row data-bg-row>
+            <input type="hidden" name="guarantee_row_id[]" value="">
+            <input type="hidden" name="guarantee_row_existing_doc[]" value="">
+            <input type="hidden" name="guarantee_row_type[]" value="Bank Guarantee">
+            <input type="hidden" name="guarantee_row_treasury_number[]" value="">
+            <input type="hidden" name="guarantee_row_treasury_issued[]" value="">
+            <input type="hidden" name="guarantee_row_treasury_maturity[]" value="">
+            <div class="erp-field erp-field-row-label span-2"><span class="erp-row-badge" data-bg-label>BG</span></div>
+            <div class="erp-field"><input name="guarantee_row_amount[]" type="number" step="0.01" placeholder=" "><label>Amount</label></div>
+            <div class="erp-field"><input name="guarantee_row_bg_issued[]" type="date" placeholder=" "><label>Issue Date</label></div>
+            <div class="erp-field"><input name="guarantee_row_bg_expiry[]" type="date" placeholder=" "><label>Expiry Date</label></div>
+            <div class="erp-field"><input name="guarantee_row_bg_number[]" placeholder=" "><label>BG Number</label></div>
+            <div class="erp-field span-2">
+              <input type="file" data-guarantee-file accept=".pdf,.jpg,.jpeg,.png">
+              <label>Attach BG document</label>
+            </div>
+            <div class="erp-field">
+              <select name="guarantee_row_bill_pledging[]" data-bill-pledging-select class="has-value">
+                <option value="0" selected>No</option>
+                <option value="1">Yes — pledge bill</option>
+              </select>
+              <label>Bill Pledging</label>
+            </div>
+            <div class="erp-field span-2" data-bill-pledging-detail hidden>
+              <select name="guarantee_row_pending_ref[]" data-pending-bill-select>
+                <option value="">Select pending bill</option>
+              </select>
+              <label>Pending Bill</label>
+            </div>
+            <div class="erp-field" data-bill-pledging-detail hidden><input name="guarantee_row_pledged_amount[]" type="number" step="0.01" placeholder=" "><label>Pledged Amount</label></div>
+            <p class="erp-form-hint span-2">Use bill pledging when delayed bill permission requires pledging a bill against this BG.</p>
+            <div class="erp-form-actions span-2">
+              <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-bg-remove><i class="fa-solid fa-trash"></i> Remove BG</button>
+            </div>
+          </div>
+        </template>
+        <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-bg-add style="margin-top:0.5rem;"><i class="fa-solid fa-plus"></i> Add BG</button>
+
+        <div class="erp-form-subtitle span-2" style="margin-top:1rem;">Treasury Deposit</div>
+        <p class="erp-form-hint span-2">Treasury deposit details are tracked separately from bank guarantees.</p>
+        <div class="erp-guarantee-row erp-form-grid erp-treasury-section" data-guarantee-row data-treasury-row>
+          {% set grow = g_ns.treasury %}
+          {% if grow.id %}<input type="hidden" name="guarantee_row_id[]" value="{{ grow.id }}">{% else %}<input type="hidden" name="guarantee_row_id[]" value="">{% endif %}
+          <input type="hidden" name="guarantee_row_existing_doc[]" value="{{ grow.document_filename or '' }}">
+          <input type="hidden" name="guarantee_row_type[]" value="Treasury Deposit">
+          <input type="hidden" name="guarantee_row_bg_number[]" value="">
+          <input type="hidden" name="guarantee_row_bg_issued[]" value="">
+          <input type="hidden" name="guarantee_row_bg_expiry[]" value="">
+          <input type="hidden" name="guarantee_row_bill_pledging[]" value="0">
+          <input type="hidden" name="guarantee_row_pending_ref[]" value="">
+          <input type="hidden" name="guarantee_row_pledged_amount[]" value="">
+          <div class="erp-field"><input name="guarantee_row_amount[]" type="number" step="0.01" value="{{ grow.amount if grow.amount else '' }}" placeholder=" " class="{% if grow.amount %}has-value{% endif %}"><label>Amount</label></div>
+          <div class="erp-field"><input name="guarantee_row_treasury_number[]" value="{{ grow.treasury_deposit_number or '' }}" placeholder=" " class="{% if grow.treasury_deposit_number %}has-value{% endif %}"><label>Treasury Deposit No.</label></div>
+          <div class="erp-field"><input name="guarantee_row_treasury_issued[]" type="date" value="{{ grow.issued_date or '' }}" placeholder=" " class="{% if grow.issued_date %}has-value{% endif %}"><label>Issue Date</label></div>
+          <div class="erp-field"><input name="guarantee_row_treasury_maturity[]" type="date" value="{{ grow.maturity_date or '' }}" placeholder=" " class="{% if grow.maturity_date %}has-value{% endif %}"><label>Expiry Date</label></div>
+          <div class="erp-field span-2">
+            <input type="file" data-guarantee-file accept=".pdf,.jpg,.jpeg,.png">
+            <label>{% if grow.document_filename %}Replace treasury document{% else %}Attach treasury document{% endif %}</label>
+            {% if grow.document_filename %}<a href="{{ url_for('static', filename='uploads/projects/' ~ grow.document_filename) }}" target="_blank" rel="noopener" class="erp-form-hint">Current file</a>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Project Completion</div>
+      <div class="erp-field span-2 erp-field-radio-group" data-project-section="government" hidden>
+        <div class="erp-radio-row">
+          <label><input type="radio" name="completion_mode" value="months"{% if not form_project or form_project.completion_mode != 'date' %} checked{% endif %}> Completion (months)</label>
+          <label><input type="radio" name="completion_mode" value="date"{% if form_project and form_project.completion_mode == 'date' %} checked{% endif %}> Completion date</label>
+        </div>
+        <label>How to specify completion</label>
+      </div>
+      <div class="erp-field" data-gov-completion="months" data-project-section="government" hidden>
+        <input name="completion_months" type="number" step="1" min="1" value="{{ form_project.completion_months if form_project and form_project.completion_months else (form_project.completion_time if form_project and form_project.completion_time else '') }}" placeholder=" " class="{% if form_project and (form_project.completion_months or form_project.completion_time) %}has-value{% endif %}">
+        <label>Completion (months)</label>
+      </div>
+      <div class="erp-field" data-gov-completion="date" data-project-section="government" hidden>
+        <input name="gov_completion_date" type="date" value="{{ form_project.end_date if form_project and form_project.completion_mode == 'date' else '' }}" placeholder=" " class="{% if form_project and form_project.completion_mode == 'date' and form_project.end_date %}has-value{% endif %}">
+        <label>Completion date</label>
+      </div>
+      <p class="erp-form-hint span-2" data-project-section="government" hidden>For government projects, completion date is stored as the project end date.</p>
+
+      <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Security Deposit</div>
+      <div class="erp-field" data-project-section="government" hidden><input name="quoted_amount" id="project_quoted_amount" type="number" step="0.01" value="{{ form_project.quoted_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.quoted_amount %}has-value{% endif %}"><label>Quoted Amount</label></div>
+      <div class="erp-field" data-project-section="government" hidden><input name="security_deposit_pct" id="project_security_pct" type="number" step="0.01" value="{{ form_project.security_deposit_pct if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.security_deposit_pct %}has-value{% endif %}"><label>Security Deposit %</label></div>
+      <div class="erp-field" data-project-section="government" hidden>
+        <input name="security_deposit_amount" id="project_security_amount" type="number" step="0.01" value="{{ form_project.security_deposit_amount if form_project else '' }}" placeholder=" " data-security-amount class="{% if form_project and form_project.security_deposit_amount %}has-value{% endif %}">
+        <label>Security Deposit Amount</label>
+      </div>
+      <p class="erp-form-hint span-2" data-project-section="government" hidden>Security amount is calculated from quoted amount × % — you may edit it manually. Security deposit and bank guarantee may both apply before bills are cleared.</p>
+
+      <div class="erp-field span-2 erp-field-with-action" data-project-section="private" hidden>
+        <select name="client_id" id="project_client_id" class="{% if selected_client_id or (form_project and form_project.client_id) %}has-value{% endif %}">
+          <option value="">Select client (optional)</option>
+          {% for item in clients %}
+          <option value="{{ item.id }}"{% if selected_client_id == item.id or (form_project and form_project.client_id == item.id) %} selected{% endif %}>{{ item.company_name or item.client_name }}{% if item.contact_person %} — {{ item.contact_person }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <label>Client Name</label>
+        <button type="button" class="erp-inline-action" id="open-new-client-modal"><i class="fa-solid fa-building-circle-arrow-right"></i> New Client</button>
+      </div>
+      <div class="erp-field" data-project-section="private" hidden><input name="work_order_number" value="{{ form_project.work_order_number if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.work_order_number %}has-value{% endif %}"><label>Work Order Number</label></div>
+      <div class="erp-field" data-project-section="private" hidden><input name="work_order_date" type="date" value="{{ form_project.work_order_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.work_order_date %}has-value{% endif %}"><label>Work Order Date</label></div>
+      <div class="erp-field" data-project-section="private" hidden><input name="work_order_amount" type="number" step="0.01" value="{{ form_project.work_order_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.work_order_amount %}has-value{% endif %}"><label>Work Order Amount</label></div>
+      <div class="erp-field span-2" data-project-section="private" hidden><input name="project_contact_person" value="{{ form_project.project_contact_person if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.project_contact_person %}has-value{% endif %}"><label>Contact Person for Project</label></div>
+      <div class="erp-field span-2" data-project-section="private" hidden>
+        <input type="file" name="work_order_document" accept=".pdf,.jpg,.jpeg,.png">
+        <label>{{ 'Replace Work Order Document' if form_project and form_project.work_order_document else 'Attach Work Order Document' }}</label>
+      </div>
+
+      <div class="erp-field"><input name="location" value="{{ form_project.location if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.location %}has-value{% endif %}"><label>Location</label></div>
+      <div class="erp-field"><input name="start_date" type="date" value="{{ form_project.start_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.start_date %}has-value{% endif %}"><label>Start Date</label></div>
+      <div class="erp-field" data-project-section="private" hidden><input name="end_date" type="date" value="{{ form_project.end_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.end_date %}has-value{% endif %}"><label>End Date</label></div>
+      <div class="erp-field"><input name="approved_total_amount" type="number" step="0.01" value="{{ form_project.approved_total_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.approved_total_amount %}has-value{% endif %}"><label>Approved Total Amount</label></div>
+      <div class="erp-field"><select name="status" class="has-value"><option{% if not form_project or form_project.status == 'Active' %} selected{% endif %}>Active</option><option{% if form_project and form_project.status == 'Completed' %} selected{% endif %}>Completed</option><option{% if form_project and form_project.status == 'On Hold' %} selected{% endif %}>On Hold</option></select><label>Status</label></div>
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> {{ 'Update Project' if form_project else 'Save Project' }}</button>
+        {% if form_project %}<a class="erp-btn erp-btn-ghost" href="{{ url_for('projects') }}">Cancel Edit</a>{% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="erp-form-card" id="client-bill-pending" hidden>
+    <h3 class="erp-form-title">Client Bill Pending Details</h3>
+    <p class="erp-form-hint" style="margin-bottom:1rem;">Track client bill submissions and approval status for government projects.</p>
+    <form method="post" class="erp-form-grid" data-bill-pending-form>
+      <input type="hidden" name="form_action" value="save_bill_submissions">
+      <div class="erp-field span-2">
+        <select name="bill_project_id" id="bill_project_id" required class="{% if bill_project_id %}has-value{% endif %}" data-bill-project-select>
+          <option value="">Select government project</option>
+          {% for gp in gov_projects or [] %}
+          <option value="{{ gp.id }}"{% if bill_project_id == gp.id %} selected{% endif %}>{{ gp.project_code or gp.id }} — {{ gp.project_name }}{% if gp.gov_department %} ({{ gp.gov_department }}){% endif %}</option>
+          {% endfor %}
+        </select>
+        <label>Government Project</label>
+      </div>
+      {% if bill_project_id %}
+      <div class="span-2 erp-bill-submission-panel" data-bill-submission-rows>
+        <div class="erp-pending-bill-summary" data-bill-submission-summary>
+          <div><span>Total Submitted</span><strong data-summary-submitted>{{ bill_submission_summary.total_submitted|default(0) }}</strong></div>
+          <div><span>Total Approved</span><strong data-summary-approved>{{ bill_submission_summary.total_approved|default(0) }}</strong></div>
+          <div><span>Pending Amount</span><strong data-summary-pending>{{ bill_submission_summary.pending_amount|default(0) }}</strong></div>
+        </div>
+        {% set bill_rows = project_bill_submissions if project_bill_submissions else [] %}
+        {% if not bill_rows %}
+        {% set bill_rows = [{}] %}
+        {% endif %}
+        {% for brow in bill_rows %}
+        <div class="erp-bill-submission-row erp-form-grid" data-bill-submission-row>
+          {% if brow.id %}<input type="hidden" name="bill_submission_id[]" value="{{ brow.id }}">{% else %}<input type="hidden" name="bill_submission_id[]" value="">{% endif %}
+          <div class="erp-field"><input name="bill_submission_date[]" type="date" value="{{ brow.submitted_date or '' }}" placeholder=" " class="{% if brow.submitted_date %}has-value{% endif %}"><label>Submitted Date</label></div>
+          <div class="erp-field"><input name="bill_submission_submitted_amount[]" type="number" step="0.01" value="{{ brow.submitted_amount if brow.submitted_amount else '' }}" placeholder=" " data-bill-submitted class="{% if brow.submitted_amount %}has-value{% endif %}"><label>Submitted Amount</label></div>
+          <div class="erp-field"><input name="bill_submission_approved_amount[]" type="number" step="0.01" value="{{ brow.approved_amount if brow.approved_amount else '' }}" placeholder=" " data-bill-approved class="{% if brow.approved_amount %}has-value{% endif %}"><label>Approved Amount</label></div>
+          <div class="erp-field span-2"><input name="bill_submission_follow_up[]" value="{{ brow.follow_up_notes or '' }}" placeholder=" " class="{% if brow.follow_up_notes %}has-value{% endif %}"><label>Delay / Follow-up Notes</label></div>
+          <div class="erp-form-actions span-2">
+            <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-bill-submission-remove><i class="fa-solid fa-trash"></i> Remove</button>
+          </div>
+        </div>
+        {% endfor %}
+        <template data-bill-submission-row-template>
+          <div class="erp-bill-submission-row erp-form-grid" data-bill-submission-row>
+            <input type="hidden" name="bill_submission_id[]" value="">
+            <div class="erp-field"><input name="bill_submission_date[]" type="date" placeholder=" "><label>Submitted Date</label></div>
+            <div class="erp-field"><input name="bill_submission_submitted_amount[]" type="number" step="0.01" placeholder=" " data-bill-submitted><label>Submitted Amount</label></div>
+            <div class="erp-field"><input name="bill_submission_approved_amount[]" type="number" step="0.01" placeholder=" " data-bill-approved><label>Approved Amount</label></div>
+            <div class="erp-field span-2"><input name="bill_submission_follow_up[]" placeholder=" "><label>Delay / Follow-up Notes</label></div>
+            <div class="erp-form-actions span-2">
+              <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-bill-submission-remove><i class="fa-solid fa-trash"></i> Remove</button>
+            </div>
+          </div>
+        </template>
+        <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-bill-submission-add style="margin-top:0.5rem;"><i class="fa-solid fa-plus"></i> Add Bill Submission</button>
+      </div>
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit"{% if not bill_project_id %} disabled{% endif %}><i class="fa-solid fa-floppy-disk"></i> Save Bill Submissions</button>
+      </div>
+      {% elif not gov_projects %}
+      <p class="erp-form-hint span-2">No government projects found. Create a government project first.</p>
+      {% else %}
+      <p class="erp-form-hint span-2">Select a government project above to view and edit bill submission details.</p>
+      {% endif %}
+    </form>
+  </div>
+  {% endif %}
+
+  {% call erp_module_table_panel(id='project-list', title='Project List') %}
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>Project No.</th><th>Name</th><th>Type</th><th>Client / Dept</th><th>Approved Total</th><th>Status</th><th>Workflow</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ row.project_code or row.id }}</td>
+            <td>
+              <button type="button" class="erp-link-btn" data-modal-open="project-hub-{{ row.id }}" title="Open Project 360">
+                {{ row.project_name }}
+              </button>
+            </td>
+            <td>{{ row.project_type or 'Private' }}</td>
+            <td>{% if row.project_type == 'Government' %}{{ row.gov_department or '—' }}{% else %}{{ row.private_client_name or row.company_name or row.client_name or '—' }}{% endif %}</td>
+            <td>{{ row.approved_total_amount or row.budget or '—' }}</td>
+            <td>{{ row.status or 'Active' }}</td>
+            <td>{{ role_status_badge(row.approval_status or 'Approved', 'maker') }}</td>
+            <td>
+              <div class="workflow-row-actions">
+                <a href="{{ url_for('projects', view=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+                {% if row.approval_status in ['Pending Checker', 'Rejected by Checker', 'Rejected by Approver'] %}
+                <a href="{{ url_for('projects', edit=row.id) }}#add-project" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+                {% elif row.approval_status == 'Pending Approval' %}
+                <span class="workflow-hint">Waiting for Approval</span>
+                {% elif row.approval_status == 'Approved' %}
+                <button type="button" class="erp-btn erp-btn-primary erp-btn-sm" data-modal-open="project-hub-{{ row.id }}"><i class="fa-solid fa-circle-nodes"></i> Hub</button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8">No project records yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ erp_pagination(rows|length) }}
+  {% endcall %}
+</div>
+</div>
+
+{% for row in rows %}
+{% set hub = hub_index.get(row.id, {}) %}
+{% set boq_list = hub.get('boqs', []) %}
+{% set sec_list = hub.get('securities', []) %}
+{% set cp_list = hub.get('cost_plans', []) %}
+<div id="project-hub-{{ row.id }}" class="erp-modal project-hub-modal" hidden>
+  <div class="erp-modal-backdrop" data-modal-close></div>
+  <div class="erp-modal-card project-hub-card">
+    <div class="erp-modal-header">
+      <div>
+        <h3><i class="fa-solid fa-circle-nodes"></i> Project 360 — {{ row.project_name }}</h3>
+        <p>{{ row.project_code or row.id }} · {{ row.project_type or 'Private' }} · {{ row.status or 'Active' }}</p>
+      </div>
+      <button type="button" class="erp-modal-close" data-modal-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="project-hub-summary">
+      <div class="project-hub-stat">
+        <span>BOQ Records</span>
+        <strong>{{ boq_list|length }}</strong>
+      </div>
+      <div class="project-hub-stat">
+        <span>Securities</span>
+        <strong>{{ sec_list|length }}</strong>
+      </div>
+      <div class="project-hub-stat">
+        <span>Cost Plans</span>
+        <strong>{{ cp_list|length }}</strong>
+      </div>
+      <div class="project-hub-stat">
+        <span>Approved Total</span>
+        <strong>{{ row.approved_total_amount or row.budget or '—' }}</strong>
+      </div>
+    </div>
+
+    <section class="project-hub-section">
+      <div class="project-hub-section-head">
+        <h4><i class="fa-solid fa-diagram-project"></i> Project Master</h4>
+        <a href="{{ url_for('projects', edit=row.id) }}#add-project" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-pen-to-square"></i> Edit Project</a>
+      </div>
+      <div class="employee-detail-grid">
+        <div><span>Client / Department</span><strong>{% if row.project_type == 'Government' %}{{ row.gov_department or '—' }}{% else %}{{ row.private_client_name or row.company_name or row.client_name or '—' }}{% endif %}</strong></div>
+        <div><span>Location</span><strong>{{ row.location or '—' }}</strong></div>
+        <div><span>Start Date</span><strong>{{ row.start_date or '—' }}</strong></div>
+        <div><span>End Date</span><strong>{{ row.end_date or '—' }}</strong></div>
+        {% if row.project_type == 'Government' %}
+        <div><span>Agreement No.</span><strong>{{ row.agreement_number or '—' }}</strong></div>
+        <div><span>Quoted Amount</span><strong>{{ row.quoted_amount or '—' }}</strong></div>
+        <div><span>Security Deposit %</span><strong>{{ row.security_deposit_pct or '—' }}</strong></div>
+        <div><span>Guarantee Type</span><strong>{{ row.guarantee_type or '—' }}</strong></div>
+        {% else %}
+        <div><span>Work Order No.</span><strong>{{ row.work_order_number or '—' }}</strong></div>
+        <div><span>Work Order Amount</span><strong>{{ row.work_order_amount or '—' }}</strong></div>
+        <div><span>Contact Person</span><strong>{{ row.project_contact_person or '—' }}</strong></div>
+        {% endif %}
+      </div>
+      <div class="employee-document-links">
+        {% if row.agreement_document %}<a href="{{ url_for('static', filename='uploads/projects/' ~ row.agreement_document) }}" target="_blank" rel="noopener"><i class="fa-solid fa-file-contract"></i> Agreement</a>{% endif %}
+        {% if row.work_order_document %}<a href="{{ url_for('static', filename='uploads/projects/' ~ row.work_order_document) }}" target="_blank" rel="noopener"><i class="fa-solid fa-file-lines"></i> Work Order</a>{% endif %}
+        {% if row.bank_guarantee_document %}<a href="{{ url_for('static', filename='uploads/projects/' ~ row.bank_guarantee_document) }}" target="_blank" rel="noopener"><i class="fa-solid fa-building-columns"></i> Bank Guarantee</a>{% endif %}
+        {% if row.security_deposit_document %}<a href="{{ url_for('static', filename='uploads/projects/' ~ row.security_deposit_document) }}" target="_blank" rel="noopener"><i class="fa-solid fa-vault"></i> Security Deposit</a>{% endif %}
+        {% if not row.agreement_document and not row.work_order_document and not row.bank_guarantee_document and not row.security_deposit_document %}<span class="project-hub-muted">No documents uploaded on project master.</span>{% endif %}
+      </div>
+    </section>
+
+    <section class="project-hub-section">
+      <div class="project-hub-section-head">
+        <h4><i class="fa-solid fa-list-check"></i> BOQ</h4>
+        <a href="{{ url_for('boq_management', project_id=row.id) }}#boq-form" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-plus"></i> New BOQ</a>
+      </div>
+      <div class="erp-table-scroll project-hub-table-scroll">
+        <table class="erp-table erp-table-module erp-table-compact">
+          <thead><tr><th>BOQ No.</th><th>Lines</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for boq in boq_list %}
+            <tr>
+              <td>{{ boq.boq_number or boq.id }}</td>
+              <td>{{ boq.line_count or 0 }}</td>
+              <td>{{ '%.2f'|format(boq.total_amount or 0) }}</td>
+              <td>{{ approval_badge(boq.approval_status) }}</td>
+              <td>
+                <div class="workflow-row-actions">
+                  <a href="{{ url_for('boq_management', view=boq.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-regular fa-eye"></i> View</a>
+                  <a href="{{ url_for('boq_management', edit=boq.id) }}#boq-form" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="project-hub-empty">No BOQ records for this project yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="project-hub-section">
+      <div class="project-hub-section-head">
+        <h4><i class="fa-solid fa-shield-halved"></i> Securities &amp; Guarantees</h4>
+        <div class="project-hub-section-actions">
+          <a href="{{ url_for('securities_guarantees', project_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-table-list"></i> Full Register</a>
+          <a href="{{ url_for('securities_guarantees', new=1, project_id=row.id, security_type='Performance Bank Guarantee') }}#new-record" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-building-columns"></i> Add BG</a>
+          <a href="{{ url_for('securities_guarantees', new=1, project_id=row.id, security_type='EMD') }}#new-record" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-file-invoice-dollar"></i> Add EMD</a>
+        </div>
+      </div>
+      <div class="erp-table-scroll project-hub-table-scroll">
+        <table class="erp-table erp-table-module erp-table-compact">
+          <thead><tr><th>Register No.</th><th>Type</th><th>Amount</th><th>Status</th><th>Expiry</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for sec in sec_list %}
+            <tr>
+              <td>{{ sec.register_number or sec.id }}</td>
+              <td>{{ sec.security_type or '—' }}</td>
+              <td>{{ '%.2f'|format(sec.deposit_amount or 0) }}</td>
+              <td>{{ approval_badge(sec.status) }}</td>
+              <td>{{ sec.expiry_date or sec.maturity_date or '—' }}</td>
+              <td>
+                <div class="workflow-row-actions">
+                  <a href="{{ url_for('securities_guarantees', view=sec.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-regular fa-eye"></i> View</a>
+                  <a href="{{ url_for('securities_guarantees', edit=sec.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="project-hub-empty">No security / guarantee records for this project yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="project-hub-section">
+      <div class="project-hub-section-head">
+        <h4><i class="fa-solid fa-coins"></i> Cost Planning</h4>
+        <a href="{{ url_for('cost_planning', project_id=row.id) }}#cost-plan-form" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-plus"></i> Open Cost Planning</a>
+      </div>
+      <div class="erp-table-scroll project-hub-table-scroll">
+        <table class="erp-table erp-table-module erp-table-compact">
+          <thead><tr><th>BOQ</th><th>Item</th><th>Description</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for plan in cp_list %}
+            <tr>
+              <td>{{ plan.boq_number or '—' }}</td>
+              <td>{{ plan.item_code or '—' }}</td>
+              <td>{{ plan.item_description or '—' }}</td>
+              <td>
+                <div class="workflow-row-actions">
+                  <a href="{{ url_for('cost_planning', view=plan.id, project_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-regular fa-eye"></i> View</a>
+                  <a href="{{ url_for('cost_planning', edit=plan.id, project_id=row.id) }}#cost-plan-form" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="project-hub-empty">No cost plans for this project yet. Create BOQ items first.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="employee-detail-actions project-hub-footer">
+      <a href="{{ url_for('projects', edit=row.id) }}#add-project" class="erp-btn erp-btn-primary"><i class="fa-solid fa-pen-to-square"></i> Edit Project</a>
+      <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Close</button>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<div class="erp-modal" id="new-client-modal" hidden aria-hidden="true">
+  <div class="erp-modal-backdrop" data-modal-close></div>
+  <div class="erp-modal-card" role="dialog" aria-modal="true" aria-labelledby="new-client-title">
+    <div class="erp-modal-header">
+      <div>
+        <h3 id="new-client-title">New Client Registration</h3>
+        <p>Add the client here, then continue creating the project.</p>
+      </div>
+      <button type="button" class="erp-modal-close" data-modal-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="post" class="erp-form-grid" id="new-client-form" action="{{ url_for('projects') }}#add-project">
+      <input type="hidden" name="form_action" value="create_client">
+      <div class="erp-field span-2"><input name="company_name" placeholder=" " required><label>Company Name</label></div>
+      <div class="erp-field span-2"><input name="contact_person" placeholder=" " required><label>Contact Person Name</label></div>
+      <div class="erp-field"><input name="mobile" placeholder=" " required><label>Mobile Number</label></div>
+      <div class="erp-field"><input name="gst_number" placeholder=" "><label>GST Number</label></div>
+      <div class="erp-field"><input name="pan_number" placeholder=" "><label>PAN Number</label></div>
+      <div class="erp-field"><input name="email" type="email" placeholder=" "><label>Email ID</label></div>
+      <div class="erp-field span-2"><textarea name="address" placeholder=" "></textarea><label>Address</label></div>
+      <div class="erp-field"><select name="status"><option selected>Active</option><option>Inactive</option></select><label>Status</label></div>
+      <div class="erp-form-actions">
+        <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Cancel</button>
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Client</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ workflow_modals() }}
+<script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
+<script src="{{ url_for('static', filename='js/master-forms.js') }}"></script>
+{% if view_project_id %}
+<script>
+(function () {
+  var modal = document.getElementById('project-hub-{{ view_project_id }}');
+  if (modal) {
+    modal.hidden = false;
+    if (history.replaceState) {
+      history.replaceState(null, '', '{{ url_for("projects") }}');
+    }
+  }
+})();
+</script>
+{% endif %}
+<script>
+(function () {
+  var layout = document.querySelector('.module-layout');
+  var form = document.getElementById('add-project');
+  var billPanel = document.getElementById('client-bill-pending');
+  var list = document.getElementById('project-list');
+  if (!layout) return;
+  var serverShowForm = {{ 'true' if show_project_form|default(false) else 'false' }};
+
+  function syncProjectView() {
+    var hash = (window.location.hash || '').replace('#', '');
+    if (!hash && serverShowForm) {
+      hash = 'add-project';
+    } else if (!hash) {
+      hash = 'project-list';
+    }
+    var showForm = hash === 'add-project' || (serverShowForm && hash !== 'project-list' && hash !== 'client-bill-pending');
+    var showBill = hash === 'client-bill-pending';
+    if (form) form.hidden = !showForm;
+    if (billPanel) billPanel.hidden = !showBill;
+    if (list) list.hidden = showForm || showBill;
+    layout.classList.toggle('module-layout--list-only', !showForm && !showBill);
+    document.querySelectorAll('[data-module-anchor="add-project"], [data-module-anchor="project-list"], [data-module-anchor="client-bill-pending"]').forEach(function (link) {
+      var anchor = link.getAttribute('data-module-anchor');
+      var active = (showForm && anchor === 'add-project')
+        || (showBill && anchor === 'client-bill-pending')
+        || (!showForm && !showBill && anchor === 'project-list');
+      link.classList.toggle('active', active);
+    });
+  }
+
+  document.querySelectorAll('[data-module-anchor="add-project"], [data-module-anchor="project-list"], [data-module-anchor="client-bill-pending"]').forEach(function (link) {
+    link.addEventListener('click', function () {
+      window.setTimeout(syncProjectView, 0);
+    });
+  });
+
+  var billProjectSelect = document.getElementById('bill_project_id');
+  if (billProjectSelect) {
+    billProjectSelect.addEventListener('change', function () {
+      var id = billProjectSelect.value;
+      if (id) {
+        window.location.href = '{{ url_for("projects") }}?bill_project=' + encodeURIComponent(id) + '#client-bill-pending';
+      }
+    });
+  }
+
+  syncProjectView();
+  window.addEventListener('hashchange', syncProjectView);
+})();
+</script>
+{% endblock %}

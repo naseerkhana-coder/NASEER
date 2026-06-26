@@ -1,0 +1,52 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ vehicle.registration_number }} — Vehicle Log</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx) }}
+  <style>
+    .veh-info { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-size: 0.72rem; margin-bottom: 0.5rem; }
+    .veh-info div { border: 1px solid var(--maxek-secondary); padding: 0.35rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.35rem; }
+    th, td { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; font-size: 0.72rem; }
+    th { background: #f0f0f0; }
+  </style>
+  {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='VEHICLE LOG BOOK', extra_meta=[
+      ('Registration', vehicle.registration_number),
+      ('Type', vehicle.vehicle_type),
+      ('Make/Model', (vehicle.make or '') ~ ' ' ~ (vehicle.model or '')),
+      ('Driver', vehicle.assigned_driver),
+    ]) }}
+
+    <div class="veh-info">
+      <div><strong>Status:</strong> {{ vehicle.current_status or '—' }}</div>
+      <div><strong>Fuel Type:</strong> {{ vehicle.fuel_type or '—' }}</div>
+      <div><strong>Odometer:</strong> {{ '%.0f'|format(vehicle.odometer_km or 0) }} km</div>
+      <div><strong>Department:</strong> {{ vehicle.department or '—' }}</div>
+    </div>
+
+    {% if documents %}
+    <h3 style="font-size:0.82rem;margin:0.75rem 0 0.35rem;">Vehicle Documents</h3>
+    <table>
+      <thead><tr><th>Type</th><th>Number</th><th>Issue</th><th>Expiry</th></tr></thead>
+      <tbody>
+        {% for doc in documents %}
+        <tr><td>{{ doc.doc_type }}</td><td>{{ doc.doc_number or '—' }}</td><td>{{ doc.issue_date or '—' }}</td><td>{{ doc.expiry_date or '—' }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

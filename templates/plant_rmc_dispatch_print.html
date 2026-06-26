@@ -1,0 +1,40 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ record.dispatch_number }} — RMC Dispatch</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx) }}
+  <style>
+    .detail-table { width: 100%; max-width: 640px; border-collapse: collapse; margin-top: 0.35rem; }
+    .detail-table th, .detail-table td { border: 1px solid var(--maxek-secondary); padding: 0.35rem 0.5rem; font-size: 0.72rem; }
+    .detail-table th { width: 35%; background: #f0f0f0; text-align: left; }
+  </style>
+  {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='CONCRETE PLANT DISPATCH CHALLAN', extra_meta=[
+      ('Plant', record.plant_name ~ ' (' ~ record.plant_code ~ ')'),
+      ('Vehicle', record.vehicle_number),
+      ('Grade', record.grade),
+    ]) }}
+
+    <table class="detail-table">
+      <tr><th>Dispatch Date</th><td>{{ record.dispatch_date or '—' }}</td></tr>
+      <tr><th>Project</th><td>{{ record.project_name or '—' }}</td></tr>
+      <tr><th>Quantity</th><td>{{ '%.2f'|format(record.qty_m3 or 0) }} m³</td></tr>
+      <tr><th>Loading Time</th><td>{{ record.loading_time or '—' }}</td></tr>
+      <tr><th>Dispatch Time</th><td>{{ record.dispatch_time or '—' }}</td></tr>
+      <tr><th>Delivery Time</th><td>{{ record.delivery_time or '—' }}</td></tr>
+      <tr><th>Remarks</th><td>{{ record.remarks or '—' }}</td></tr>
+    </table>
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

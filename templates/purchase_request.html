@@ -1,0 +1,130 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs, erp_module_toolbar, erp_module_table_panel %}
+{% set page_title = module_title %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('store') ~ '">Store</a> &gt; ' ~ module_title %}
+{% block content %}
+<div class="erp-validation" style="margin-bottom: 1rem;">
+  <strong>Flow:</strong> Approved Material Request only → PR → PO → GRN. Manual item entry is not allowed.
+</div>
+
+{% if view_record %}
+<div class="erp-form-card" style="margin-bottom: 1rem;">
+  <div class="erp-form-actions" style="margin-bottom: 0.75rem;">
+    {% if edit_role %}
+    <a href="{{ url_for(module_endpoint, edit=view_record.id) }}#pr-form" class="erp-btn erp-btn-primary erp-btn-sm"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+    {% endif %}
+    <a href="{{ url_for(module_endpoint) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Back to list</a>
+  </div>
+  {% call transaction_view_tabs(view_record, history, can_reopen, approval_id) %}
+  <h3 class="erp-form-title">PR {{ view_record.pr_number or ('#' ~ view_record.id) }}</h3>
+  <p><strong>MR#:</strong> {{ view_record.material_request_id or '—' }}</p>
+  <p><strong>Project:</strong> {{ view_record.project_name or '—' }}</p>
+  <p><strong>Material:</strong> {{ view_record.item_description or '—' }} ({{ view_record.quantity }} {{ view_record.unit or '' }})</p>
+  <p><strong>Estimated Cost:</strong> ₹{{ '%.2f'|format(view_record.estimated_cost or 0) }}</p>
+  <p><strong>Status:</strong> {{ role_status_badge(view_record.approval_status, 'maker') }}</p>
+  {{ rejection_notice(history, view_record.approval_status) }}
+  {% if view_record.approval_status == 'Approved' %}
+  <p style="margin-top:0.75rem;">
+    <a href="{{ url_for('purchase_orders', new=1, purchase_request_id=view_record.id) }}#po-form" class="erp-btn erp-btn-primary erp-btn-sm">Create PO from this PR</a>
+  </p>
+  {% endif %}
+  {% endcall %}
+</div>
+{% endif %}
+
+<div class="erp-module-layout">
+{% if not view_record %}
+  {{ erp_module_toolbar(search_placeholder='Search purchase requests...', add_url='#pr-form', export_name='purchase_requests', print_target='#pr-records') }}
+{% endif %}
+
+<div class="module-layout module-layout--list-only">
+  {% if not view_record %}
+  <div class="erp-form-card" id="pr-form">
+    <h3 class="erp-form-title">{% if edit_record %}Edit PR {{ edit_record.pr_number }}{% else %}New Purchase Request{% endif %}</h3>
+    {% if not approved_mrs and not edit_record %}
+    <p class="erp-hint">No approved Material Requests available. Approve an MR first.</p>
+    {% endif %}
+    <form method="post" class="erp-form-grid">
+      {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
+      {% if edit_record and edit_record.material_request_id %}
+      <input type="hidden" name="material_request_id" value="{{ edit_record.material_request_id }}">
+      {% endif %}
+      <input type="hidden" name="material_id" value="{{ edit_record.material_id if edit_record else '' }}">
+      <div class="erp-field span-2">
+        <select name="material_request_id" id="pr_material_request_id" required {% if edit_record %}disabled{% endif %}>
+          <option value="">Select approved Material Request</option>
+          {% for mr in approved_mrs %}
+          <option value="{{ mr.id }}" {% if edit_record and edit_record.material_request_id == mr.id %}selected{% endif %}>
+            MR#{{ mr.id }} — {{ mr.project_name }} — {{ mr.item_name }} ({{ mr.quantity }} {{ mr.unit or '' }})
+          </option>
+          {% endfor %}
+        </select>
+        <label>Material Request (Approved) *</label>
+      </div>
+      <div class="erp-field erp-field--date">
+        <input name="request_date" type="date" required class="erp-input--date" value="{{ edit_record.request_date if edit_record else default_date }}">
+        <label>Request Date</label>
+      </div>
+      <div class="erp-field span-2">
+        <input name="item_description" readonly placeholder=" " value="{{ edit_record.item_description if edit_record else '' }}">
+        <label>Material (from MR)</label>
+      </div>
+      <div class="erp-field erp-field--qty">
+        <input name="quantity" type="number" step="0.01" required inputmode="decimal" maxlength="10" class="erp-input--qty" data-format-qty value="{{ edit_record.quantity if edit_record else '' }}">
+        <label>Quantity</label>
+      </div>
+      <div class="erp-field erp-field--unit">
+        <input name="unit" readonly class="erp-input--unit" value="{{ edit_record.unit if edit_record else '' }}">
+        <label>Unit</label>
+      </div>
+      <div class="erp-field erp-field--amount">
+        <input name="estimated_cost" type="number" step="0.01" inputmode="decimal" maxlength="14" class="erp-input--amount" data-format-amount value="{{ edit_record.estimated_cost if edit_record else '' }}">
+        <label>Estimated Cost</label>
+      </div>
+      <div class="erp-field span-2 erp-field--desc">
+        <textarea name="remarks" placeholder=" ">{{ edit_record.remarks if edit_record else '' }}</textarea>
+        <label>Remarks</label>
+      </div>
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit" {% if not approved_mrs and not edit_record %}disabled{% endif %}><i class="fa-solid fa-floppy-disk"></i> Save</button>
+        {% if edit_record %}<a href="{{ url_for(module_endpoint) }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  {% call erp_module_table_panel(id='pr-records', title='Records') %}
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>#</th>{% for col in table_columns %}<th>{{ col }}</th>{% endfor %}<th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ row.id }}</td>
+            {% for key in row_keys %}
+            <td>{{ row[key] if row[key] is not none else '—' }}</td>
+            {% endfor %}
+            <td>{{ role_status_badge(row.approval_status, 'maker') }}</td>
+            <td>
+              <a href="{{ url_for(module_endpoint, view=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if row.approval_status == 'Approved' %}
+              <a href="{{ url_for('purchase_orders', new=1, purchase_request_id=row.id) }}#po-form" class="erp-btn erp-btn-ghost erp-btn-sm">PO</a>
+              {% endif %}
+              {{ maker_row_actions(module_endpoint, delete_table, row.id, row.approval_status, 'purchase_request', nav_only=true) }}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ table_columns|length + 3 }}">No purchase requests yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endcall %}
+</div>
+</div>
+{{ workflow_modals() }}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
+<script src="{{ url_for('static', filename='js/procurement-flow.js') }}"></script>
+{% endblock %}

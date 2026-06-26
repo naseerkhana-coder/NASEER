@@ -1,0 +1,32 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import approval_badge %}
+{% set page_title = 'Change Request Register' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Change Requests' %}
+{% block content %}
+{% include 'erp_admin/_subtoolbar.html' %}
+<div class="module-layout">
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">New Change Request</h3>
+    <form method="post" class="erp-form-grid">
+      <div class="erp-field"><input name="request_no" placeholder=" " required value="CR-"><label>Request No</label></div>
+      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes"><label>Customer</label></div>
+      <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="erp-field"><input type="date" name="request_date"><label>Date</label></div>
+      <div class="erp-field"><input name="module" placeholder=" " required><label>Module</label></div>
+      <div class="erp-field span-2"><textarea name="issue" placeholder=" " required></textarea><label>Issue</label></div>
+      <div class="erp-field"><select name="priority">{% for p in priorities %}<option>{{ p }}</option>{% endfor %}</select><label>Priority</label></div>
+      <div class="erp-field"><select name="status">{% for s in statuses %}<option>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Save Request</button></div>
+    </form>
+  </div>
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Change Requests</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr><th>Request No</th><th>Customer</th><th>Date</th><th>Module</th><th>Issue</th><th>Priority</th><th>Status</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.request_no }}</td><td>{{ row.company_name or row.customer_code }}</td><td>{{ row.request_date }}</td><td>{{ row.module }}</td><td>{{ row.issue }}</td><td>{{ row.priority }}</td><td>{{ approval_badge(row.status) }}</td></tr>{% else %}<tr><td colspan="7">No change requests.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

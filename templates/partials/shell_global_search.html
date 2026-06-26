@@ -1,0 +1,87 @@
+<div class="global-search-modal" id="global-search-modal" hidden role="dialog" aria-modal="true" aria-label="Global search">
+  <div class="global-search-backdrop" data-global-search-close></div>
+  <div class="global-search-panel">
+    <div class="global-search-head">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input
+        type="search"
+        id="global-search-input"
+        class="global-search-input"
+        placeholder="Search projects, BOQ, DPR, materials, employees, vendors..."
+        autocomplete="off"
+        aria-label="Global search"
+      >
+      <button type="button" class="erp-btn erp-btn--standard erp-btn-primary erp-btn-sm" id="global-search-submit" title="Search">
+        <i class="fa-solid fa-magnifying-glass"></i> Search
+      </button>
+      <kbd class="global-search-kbd" title="Close">Esc</kbd>
+    </div>
+    <div class="global-search-categories" role="group" aria-label="Search categories">
+      {% for cat in global_search_categories %}
+      <button type="button" class="global-search-cat{% if loop.first %} is-active{% endif %}" data-search-category="{{ cat.key }}">
+        <i class="fa-solid {{ cat.icon }}" aria-hidden="true"></i>
+        {{ cat.label }}
+      </button>
+      {% endfor %}
+    </div>
+    <div class="global-search-advanced" aria-label="Advanced search filters">
+      <div>
+        <label for="gs-filter-project">Project</label>
+        <select id="gs-filter-project" data-global-search-filter="project">
+          <option value="">Any project</option>
+        </select>
+      </div>
+      <div>
+        <label for="gs-filter-boq">BOQ</label>
+        <select id="gs-filter-boq" data-global-search-filter="boq">
+          <option value="">Any BOQ</option>
+        </select>
+      </div>
+      <div>
+        <label for="gs-filter-dpr">DPR</label>
+        <select id="gs-filter-dpr" data-global-search-filter="dpr">
+          <option value="">Any DPR</option>
+        </select>
+      </div>
+      <div>
+        <label for="gs-filter-employee">Employee</label>
+        <select id="gs-filter-employee" data-global-search-filter="employee">
+          <option value="">Any employee</option>
+        </select>
+      </div>
+      <div>
+        <label for="gs-filter-material">Material</label>
+        <select id="gs-filter-material" data-global-search-filter="material">
+          <option value="">Any material</option>
+        </select>
+      </div>
+      <div>
+        <label for="gs-filter-vendor">Vendor</label>
+        <select id="gs-filter-vendor" data-global-search-filter="vendor">
+          <option value="">Any vendor</option>
+        </select>
+      </div>
+      <div>
+        <label for="gs-filter-vehicle">Vehicle</label>
+        <select id="gs-filter-vehicle" data-global-search-filter="vehicle">
+          <option value="">Any vehicle</option>
+        </select>
+      </div>
+      <div>
+        <label for="gs-filter-invoice">Invoice</label>
+        <select id="gs-filter-invoice" data-global-search-filter="invoice">
+          <option value="">Any invoice</option>
+        </select>
+      </div>
+      <div>
+        <label for="gs-filter-po">Purchase Order</label>
+        <select id="gs-filter-po" data-global-search-filter="purchase_order">
+          <option value="">Any PO</option>
+        </select>
+      </div>
+    </div>
+    <div class="global-search-results" id="global-search-results" hidden>
+      <p class="global-search-hint">Type a keyword and press Search, Enter, or <kbd>Ctrl+K</kbd> to open this panel.</p>
+    </div>
+  </div>
+</div>

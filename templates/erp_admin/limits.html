@@ -1,0 +1,52 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = limit_title %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; ' ~ limit_title %}
+{% block content %}
+{% include 'erp_admin/_subtoolbar.html' %}
+<div class="module-layout">
+  {% if limit_type == 'user' %}
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Update User Limit</h3>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_action" value="update_user">
+      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes"><label>Customer Code</label></div>
+      <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="erp-field"><select name="plan">{% for p in plans %}<option>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
+      <div class="erp-field"><input type="number" name="users_allowed" min="1" placeholder=" " value="25"><label>Users Allowed</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Update</button></div>
+    </form>
+  </div>
+  {% elif limit_type == 'branch' %}
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Update Branch Limit</h3>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_action" value="update_branch">
+      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes"><label>Customer Code</label></div>
+      <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="erp-field"><input type="number" name="branches_allowed" min="1" placeholder=" " value="5"><label>Branches Allowed</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Update</button></div>
+    </form>
+  </div>
+  {% elif limit_type == 'storage' %}
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Update Storage Limit</h3>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_action" value="update_storage">
+      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes"><label>Customer Code</label></div>
+      <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="erp-field"><input type="number" name="storage_allowed_mb" min="64" placeholder=" " value="1024"><label>Storage Allowed (MB)</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Update</button></div>
+    </form>
+  </div>
+  {% endif %}
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">{{ limit_title }}</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead><tr>{% for col in table_headers %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in rows %}<tr>{% for val in row['values'] %}<td>{{ val }}</td>{% endfor %}</tr>{% else %}<tr><td colspan="{{ table_headers|length }}">No records.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

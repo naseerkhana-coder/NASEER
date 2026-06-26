@@ -1,0 +1,7 @@
+"""WSGI entry for gunicorn/uwsgi on VPS — runs schema migration at worker startup."""
+from app import app, init_db
+
+with app.app_context():
+    init_db()
+
+application = app

@@ -1,0 +1,31 @@
+<nav class="shell-help-center" aria-label="Help center">
+  <button type="button" class="shell-help-trigger" data-help-drawer-toggle aria-expanded="false" aria-controls="shell-help-drawer">
+    <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+    <span>Help</span>
+  </button>
+  <div class="shell-help-drawer" id="shell-help-drawer" hidden>
+    <div class="shell-help-drawer-head">
+      <strong>Help Center</strong>
+      <button type="button" class="shell-help-close" data-help-drawer-close aria-label="Close help">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+    <ul class="shell-help-links">
+      {% for item in help_center_items %}
+      <li>
+        {% if item.get('external') %}
+        <a href="{{ item.href }}" target="_blank" rel="noopener noreferrer">
+          <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
+          {{ item.label }}
+        </a>
+        {% else %}
+        <a href="{{ safe_url_for(item.endpoint, **(item.get('query') or {})) }}">
+          <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
+          {{ item.label }}
+        </a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</nav>

@@ -1,0 +1,132 @@
+{% extends 'base_maxek.html' %}
+
+{% set page_title = 'Claim — ' ~ claim.claim_number %}
+
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_claims') ~ '">Claims Management</a> &gt; ' ~ claim.claim_number %}
+
+{% block page_actions %}
+
+<a href="{{ url_for('treasury_claims_detail', claim_id=claim.id, edit=1) }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-pen"></i> Edit</a>
+
+<a href="{{ url_for('treasury_claims_project', project_id=claim.project_id) }}" class="erp-btn erp-btn-ghost">Project Claims</a>
+
+<a href="{{ url_for('treasury_claims') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> All Claims</a>
+
+{% endblock %}
+
+{% block content %}
+
+<div class="erp-summary-grid" style="margin-bottom:1.5rem;">
+
+  <div class="erp-stat-card"><span>Claimed Amount</span><strong>₹{{ '{:,.2f}'.format(claim.claimed_amount) }}</strong></div>
+
+  <div class="erp-stat-card"><span>Approved Amount</span><strong>{% if claim.approved_amount is not none %}₹{{ '{:,.2f}'.format(claim.approved_amount) }}{% else %}—{% endif %}</strong></div>
+
+  <div class="erp-stat-card"><span>Status</span><strong>{{ claim.status }}</strong></div>
+
+  <div class="erp-stat-card"><span>Type</span><strong>{{ claim.claim_type }}</strong></div>
+
+</div>
+
+
+
+<div class="erp-form-card" style="margin-bottom:1.5rem;">
+
+  <dl style="display:grid;grid-template-columns:160px 1fr;gap:0.5rem 1rem;margin:0;">
+
+    <dt style="color:#64748b;">Claim Number</dt><dd><strong>{{ claim.claim_number }}</strong></dd>
+
+    <dt style="color:#64748b;">Type</dt><dd>{{ claim.claim_type }}</dd>
+
+    <dt style="color:#64748b;">Project</dt>
+
+    <dd><a href="{{ url_for('treasury_claims_project', project_id=claim.project_id) }}">{{ claim.project_name }}</a>{% if claim.location %} — {{ claim.location }}{% endif %}</dd>
+
+    <dt style="color:#64748b;">Contract</dt>
+
+    <dd>{% if claim.contract_id %}<a href="{{ url_for('treasury_contract_management_detail', contract_id=claim.contract_id) }}">{{ claim.contract_number }}</a> ({{ claim.contract_type }}){% else %}—{% endif %}</dd>
+
+    <dt style="color:#64748b;">Submitted</dt><dd>{{ claim.submitted_date or '—' }}</dd>
+
+    <dt style="color:#64748b;">Created By</dt><dd>{{ claim.created_by or '—' }}</dd>
+
+    <dt style="color:#64748b;">Updated</dt><dd>{{ claim.updated_at or '—' }}</dd>
+
+    <dt style="color:#64748b;">Description</dt><dd>{{ claim.description or '—' }}</dd>
+
+    <dt style="color:#64748b;">Remarks</dt><dd>{{ claim.remarks or '—' }}</dd>
+
+  </dl>
+
+</div>
+
+
+
+{% if status_transitions %}
+
+<h3>Update Status</h3>
+
+<div class="erp-form-card" style="margin-bottom:1.5rem;">
+
+  <form method="post" action="{{ url_for('treasury_claims_status', claim_id=claim.id) }}" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;">
+
+    <div class="erp-field" style="min-width:160px;">
+
+      <select name="status" required>
+
+        <option value="">— New status —</option>
+
+        {% for s in status_transitions %}
+
+        <option value="{{ s }}">{{ s }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      <label>Transition</label>
+
+    </div>
+
+    <div class="erp-field" style="min-width:140px;">
+
+      <input type="number" step="0.01" min="0" name="approved_amount" placeholder="{{ claim.claimed_amount }}" value="">
+
+      <label>Approved Amount (if Approved)</label>
+
+    </div>
+
+    <div class="erp-field" style="flex:1;min-width:200px;">
+
+      <input type="text" name="remarks" placeholder="Status change remarks">
+
+      <label>Remarks</label>
+
+    </div>
+
+    <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-check"></i> Apply</button>
+
+  </form>
+
+  <p style="font-size:0.85rem;color:#64748b;margin:0.75rem 0 0;">Current: <strong>{{ claim.status }}</strong>. Allowed: {{ status_transitions | join(', ') }}.</p>
+
+</div>
+
+{% endif %}
+
+
+
+{% if audit_rows %}
+
+<h3>Audit Log</h3>
+
+<div class="erp-table-panel"><div class="erp-table-scroll"><table class="erp-table"><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Details</th></tr></thead><tbody>
+
+{% for log in audit_rows %}<tr><td>{{ log.created_at }}</td><td>{{ log.action }}</td><td>{{ log.actor or '—' }}</td><td>{{ log.details or '—' }}</td></tr>{% endfor %}
+
+</tbody></table></div></div>
+
+{% endif %}
+
+{% endblock %}
+

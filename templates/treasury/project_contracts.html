@@ -1,0 +1,76 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Contracts — ' ~ project.project_name %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_contract_management') ~ '">Contract Management</a> &gt; ' ~ project.project_name %}
+{% block page_actions %}
+<a href="{{ url_for('treasury_contract_management_new', project_id=project.id) }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> Add Contract</a>
+<a href="{{ url_for('treasury_contract_management') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> All Contracts</a>
+{% endblock %}
+{% block content %}
+<p style="color:#64748b;margin-top:0;">
+  Contract history for <strong>{{ project.project_name }}</strong>
+  {% if project.location %} · {{ project.location }}{% endif %}
+  {% if project.status %} · {{ project.status }}{% endif %}
+</p>
+
+<div class="erp-summary-grid" style="margin-bottom:1.5rem;">
+  <div class="erp-stat-card"><span>Contracts</span><strong>{{ summary.contract_count }}</strong></div>
+  <div class="erp-stat-card"><span>Original Total</span><strong>₹{{ '{:,.2f}'.format(summary.original_total) }}</strong></div>
+  <div class="erp-stat-card"><span>Revised Total</span><strong>₹{{ '{:,.2f}'.format(summary.revised_total) }}</strong></div>
+  <div class="erp-stat-card"><span>Extra Items</span><strong>₹{{ '{:,.2f}'.format(summary.extra_items_total) }}</strong></div>
+  <div class="erp-stat-card"><span>Claims</span><strong>₹{{ '{:,.2f}'.format(summary.claims_total) }}</strong></div>
+  <div class="erp-stat-card"><span>Change (Δ)</span><strong>₹{{ '{:,.2f}'.format(summary.delta) }}</strong></div>
+</div>
+
+<p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;">
+  Project master budget: ₹{{ '{:,.2f}'.format(project.budget or 0) }}
+  · Approved contract on project record: ₹{{ '{:,.2f}'.format(project.approved_total_amount or 0) }}
+  · <a href="{{ url_for('treasury_project_profitability_detail', project_id=project.id) }}">View profitability</a>
+</p>
+
+<div class="erp-table-panel">
+  <div class="erp-table-scroll">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>Contract No.</th>
+          <th>Type</th>
+          <th>Original (₹)</th>
+          <th>Revised (₹)</th>
+          <th>Extra Items</th>
+          <th>Claims</th>
+          <th>Effective</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in contracts %}
+        <tr>
+          <td><strong>{{ row.contract_number }}</strong></td>
+          <td>{{ row.contract_type }}</td>
+          <td>₹{{ '{:,.2f}'.format(row.original_value) }}</td>
+          <td>₹{{ '{:,.2f}'.format(row.revised_value) }}</td>
+          <td>₹{{ '{:,.2f}'.format(row.extra_items_value) }}</td>
+          <td>₹{{ '{:,.2f}'.format(row.claims_value) }}</td>
+          <td>{{ row.effective_date or '—' }}</td>
+          <td>{{ row.status or '—' }}</td>
+          <td>
+            <a href="{{ url_for('treasury_contract_management_detail', contract_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+            <a href="{{ url_for('treasury_contract_management_detail', contract_id=row.id, edit=1) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">No contracts for this project. <a href="{{ url_for('treasury_contract_management_new', project_id=project.id) }}">Register main agreement</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if audit_rows %}
+<h3 style="margin-top:1.5rem;">Recent Audit</h3>
+<div class="erp-table-panel"><div class="erp-table-scroll"><table class="erp-table"><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Details</th></tr></thead><tbody>
+{% for log in audit_rows %}<tr><td>{{ log.created_at }}</td><td>{{ log.action }}</td><td>{{ log.actor or '—' }}</td><td>{{ log.details or '—' }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,70 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Payroll Register — {{ run.run_ref or run.id }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx, orientation='landscape') }}
+  <style>
+    .run-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; font-size: 0.72rem; margin-bottom: 0.35rem; }
+    .run-meta div { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+    th, td { border: 1px solid var(--maxek-secondary); padding: 0.2rem 0.35rem; }
+    th { background: #f0f0f0; }
+    tfoot td { font-weight: bold; background: #f8fafc; }
+  </style>
+  {% if print_mode %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
+</head>
+<body class="corporate-report">
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='PAYROLL SUMMARY / REGISTER', extra_meta=[
+      ('Run Ref', run.run_ref or ('Run #' ~ run.id)),
+      ('Period', (run.period_start or '') ~ ' to ' ~ (run.period_end or '')),
+      ('Employment Type', run.employee_type),
+      ('Status', run.status),
+    ]) }}
+
+    <div class="run-meta">
+      <div><strong>Department:</strong> {{ run.department or 'All' }}</div>
+      <div><strong>Employees:</strong> {{ run.employee_count or 0 }}</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>#</th><th>Staff ID</th><th>Name</th><th>Type</th><th>Present</th><th>OT</th><th>Gross</th><th>Deductions</th><th>Net</th></tr>
+      </thead>
+      <tbody>
+        {% for line in lines %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ line.employee_code or '—' }}</td>
+          <td>{{ line.employee_name }}</td>
+          <td>{{ line.employee_type }}</td>
+          <td>{{ line.present_days or 0 }}</td>
+          <td>{{ line.ot_hours or 0 }}</td>
+          <td>{{ '%.2f'|format(line.gross_salary or 0) }}</td>
+          <td>{{ '%.2f'|format((line.deductions or 0) + (line.advance_deduction or 0)) }}</td>
+          <td>{{ '%.2f'|format(line.net_salary or 0) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">No payroll lines.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="6">Totals</td>
+          <td>{{ '%.2f'|format(run.total_gross or 0) }}</td>
+          <td>—</td>
+          <td>{{ '%.2f'|format(run.total_net or 0) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>
