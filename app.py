@@ -4198,6 +4198,7 @@ def _prepare_corporate_dms_db(db):
 def _prepare_corporate_template_db(db):
     try:
         ensure_corporate_template_schema(db)
+        db.commit()
     except Exception:
         app.logger.exception("Corporate template schema ensure failed")
 
@@ -13416,7 +13417,18 @@ def corporate_template_master():
                 flash("Corporate template saved.")
                 return redirect(url_for("corporate_template_master", template_id=new_id))
         except ValueError as exc:
+            db.rollback()
             flash(str(exc))
+            if template_id:
+                return redirect(url_for("corporate_template_master", template_id=template_id))
+            return redirect(url_for("corporate_template_master"))
+        except (sqlite3.Error, KeyError, TypeError) as exc:
+            db.rollback()
+            app.logger.exception("Corporate template save failed (template_id=%s)", template_id)
+            flash(
+                "Unable to save corporate template. "
+                "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+            )
             if template_id:
                 return redirect(url_for("corporate_template_master", template_id=template_id))
             return redirect(url_for("corporate_template_master"))

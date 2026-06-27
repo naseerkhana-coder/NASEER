@@ -42,6 +42,17 @@ def _table_exists(db, table: str) -> bool:
     return row is not None
 
 
+def _ensure_column(db, table: str, column: str, col_type: str) -> None:
+    if not _table_exists(db, table):
+        return
+    try:
+        cols = [row[1] for row in db.execute(f"PRAGMA table_info({table})").fetchall()]
+        if column not in cols:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+    except Exception:
+        pass
+
+
 def _now_ts() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -101,6 +112,32 @@ def ensure_corporate_template_schema(db) -> None:
         "CREATE INDEX IF NOT EXISTS idx_corp_templates_default "
         "ON corporate_report_templates(is_default, is_active)"
     )
+    for col, ctype in (
+        ("template_name", "TEXT NOT NULL"),
+        ("is_active", "INTEGER DEFAULT 1"),
+        ("is_default", "INTEGER DEFAULT 0"),
+        ("company_logo_path", "TEXT"),
+        ("watermark_logo_path", "TEXT"),
+        ("company_seal_path", "TEXT"),
+        ("signatory_image_path", "TEXT"),
+        ("letterhead_html", "TEXT"),
+        ("footer_html", "TEXT"),
+        ("primary_color", "TEXT DEFAULT '#E30613'"),
+        ("secondary_color", "TEXT DEFAULT '#232323'"),
+        ("background_color", "TEXT DEFAULT '#FFFFFF'"),
+        ("font_family", "TEXT DEFAULT 'Arial, Helvetica, sans-serif'"),
+        ("pdf_orientation", "TEXT DEFAULT 'portrait'"),
+        ("footer_address", "TEXT"),
+        ("footer_phone", "TEXT"),
+        ("footer_email", "TEXT"),
+        ("footer_website", "TEXT"),
+        ("header_title_line1", "TEXT DEFAULT 'MAXEK PRIVATE LIMITED'"),
+        ("header_title_line2", "TEXT DEFAULT 'MAXEK CONSTRUCTION SYSTEM'"),
+        ("created_by", "TEXT"),
+        ("created_at", "TEXT"),
+        ("updated_at", "TEXT"),
+    ):
+        _ensure_column(db, "corporate_report_templates", col, ctype)
     _seed_default_template(db)
 
 
@@ -322,7 +359,7 @@ def save_template(
             footer_address, footer_phone, footer_email, footer_website,
             header_title_line1, header_title_line2,
             created_by, created_at, updated_at
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """,
         (
             values["template_name"],
