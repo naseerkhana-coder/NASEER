@@ -2332,11 +2332,15 @@
   color: #94a3b8;
 }
 
-.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-sidebar-footer {
+.pro-dash-sidebar-footer {
   border-top: 1px solid var(--pro-border);
   padding-top: 8px;
   margin-top: auto;
   flex-shrink: 0;
+}
+
+.pro-dash-nav-item--settings {
+  margin-top: 0;
 }
 
 .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-sidebar--department .pro-dash-nav-item.is-active {
