@@ -41,7 +41,7 @@
 
 /* ── Theme 2: Business Light (default — white/gray admin dashboard) ── */
 .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] {
-  --pro-bg: #f4f7f6;
+  --pro-bg: #f1f5f9;
   --pro-bg-elevated: #ffffff;
   --pro-sidebar: #1e3a4a;
   --pro-card: #ffffff;
@@ -68,7 +68,7 @@
   --pro-content-max-compact: min(calc(100% - 40px), 960px);
   --pro-content-max-wide: min(calc(100% - 48px), 1280px);
   --bg-card-dark: #ffffff;
-  --bg-dark-ops: #f4f7f6;
+  --bg-dark-ops: #f1f5f9;
   --text-main: #1e293b;
   --text-muted: #64748b;
   --border-subtle: rgba(15, 23, 42, 0.08);
@@ -1030,7 +1030,7 @@
 }
 
 .pro-dash-theme-swatch--business {
-  background: linear-gradient(135deg, #f4f7f6 50%, #0d9488 50%);
+  background: linear-gradient(135deg, #f1f5f9 50%, #0d9488 50%);
 }
 
 .pro-dash-theme-swatch--erp-classic {
@@ -1403,7 +1403,7 @@
   min-height: 32px;
 }
 
-.maxek-layout.pro-dashboard-mode .erp-tab.active {
+.maxek-layout.pro-dashboard-mode:not([data-pro-theme="business"]) .erp-tab.active {
   font-weight: 600;
   box-shadow: inset 0 -2px 0 var(--maxek-red);
 }
@@ -2099,15 +2099,21 @@
   color: var(--pro-text);
 }
 
-.maxek-layout.pro-dashboard-mode .department-subbar a {
+.maxek-layout.pro-dashboard-mode .department-subbar-link {
   color: var(--pro-muted);
+  border-color: transparent;
 }
 
-.maxek-layout.pro-dashboard-mode .department-subbar a.is-active,
-.maxek-layout.pro-dashboard-mode .department-subbar a:hover {
+.maxek-layout.pro-dashboard-mode .department-subbar-link:hover,
+.maxek-layout.pro-dashboard-mode .department-subbar-link.active {
   color: var(--pro-text);
   background: var(--pro-accent-soft);
+  border-color: var(--pro-accent-border);
   border-radius: 999px;
+}
+
+.maxek-layout.pro-dashboard-mode .department-subbar-title i {
+  color: var(--pro-accent);
 }
 
 /* ── Department portal workspace (matches main dashboard tiles) ── */
@@ -2491,6 +2497,144 @@
   color: var(--pro-muted) !important;
   background: #f1f5f9 !important;
   border: 1px solid var(--pro-border) !important;
+}
+
+/* Business Light — softer main canvas (off-white, white cards) */
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-shell,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-main,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .dashboard-body {
+  background: var(--pro-bg);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-kpi-row--business .pro-dash-kpi-card,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-chart-card {
+  box-shadow: var(--pro-shadow-card);
+}
+
+/* Module / layout tabs — light pills, teal active (no MAXEK red) */
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-tab-bar {
+  gap: 6px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #eef2f6;
+  border: 1px solid var(--pro-border);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-tab {
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-tab:hover {
+  color: #1e293b;
+  background: #f8fafc;
+  border-color: color-mix(in srgb, var(--pro-accent) 28%, rgba(15, 23, 42, 0.12));
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-tab.active {
+  color: #1e293b;
+  font-weight: 700;
+  background: #ffffff;
+  border-color: var(--pro-accent);
+  box-shadow: inset 0 -2px 0 var(--pro-accent), 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-tab .erp-badge {
+  background: var(--pro-accent);
+  color: #fff;
+}
+
+/* Secondary module sub-toolbar */
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-sub-toolbar,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-sub-toolbar--secondary {
+  background: #ffffff;
+  border-bottom-color: var(--pro-border);
+  box-shadow: none;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-sub-toolbar--secondary::before {
+  background: var(--pro-accent);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-sub-toolbar-link {
+  color: #475569;
+  border: 1px solid transparent;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-sub-toolbar-link i {
+  color: var(--pro-accent);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-sub-toolbar-link:hover,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-sub-toolbar-link.active {
+  color: #1e293b;
+  background: var(--pro-accent-soft);
+  border-color: var(--pro-accent-border);
+}
+
+/* Department sub-nav in pro shell */
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-department-subbar {
+  background: #ffffff;
+  border: 1px solid var(--pro-border);
+  border-bottom-color: var(--pro-border);
+  box-shadow: var(--pro-shadow-elevated);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-title {
+  color: #1e293b;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-title i {
+  color: var(--pro-accent);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-section-label {
+  color: var(--pro-muted);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-divider {
+  background: var(--pro-border);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-link {
+  color: #475569;
+  border: 1px solid transparent;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-link:hover,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-link.active {
+  color: #1e293b;
+  background: var(--pro-accent-soft);
+  border-color: var(--pro-accent);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-close:hover,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-reopen:hover {
+  border-color: var(--pro-accent-border);
+  color: var(--pro-accent);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .department-subbar-reopen i {
+  color: var(--pro-accent);
+}
+
+/* Header layout tabs (pro-dash-tab) — inactive dark text on light pill track */
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-tab {
+  color: #475569;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-tab:hover {
+  color: #1e293b;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-tabs--pills {
+  background: #eef2f6;
 }
 
 /* ── Theme 3: ERP Classic — purple/green action accents ── */
