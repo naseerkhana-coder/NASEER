@@ -38,78 +38,135 @@ CUSTOMER_ADMIN_CREATABLE_ROLES = (
     "User",
 )
 
+ERP_ADMIN_ACTIVE_ENDPOINTS = (
+    "super_admin_platform_dashboard",
+    "erp_admin_customers",
+    "erp_admin_licenses",
+    "erp_admin_subscriptions",
+    "erp_admin_user_limits",
+    "erp_admin_branch_limits",
+    "erp_admin_storage_limits",
+    "erp_admin_login_monitoring",
+    "erp_admin_support_tickets",
+    "erp_admin_change_requests",
+    "erp_admin_settings",
+    "erp_admin_audit_logs",
+    "erp_admin_system_health",
+    "user_management",
+)
+
 ERP_ADMIN_SUBTOOLBAR = (
+    {
+        "endpoint": "super_admin_platform_dashboard",
+        "label": "Platform Command Centre",
+        "icon": "fa-gauge-high",
+        "active_endpoints": ["super_admin_platform_dashboard"],
+    },
     {
         "endpoint": "erp_admin_customers",
         "label": "Customer Master",
         "icon": "fa-building",
         "active_endpoints": ["erp_admin_customers"],
+        "section": "customers-licenses",
     },
     {
         "endpoint": "erp_admin_licenses",
         "label": "License Master",
         "icon": "fa-id-card",
         "active_endpoints": ["erp_admin_licenses"],
+        "section": "customers-licenses",
     },
     {
         "endpoint": "erp_admin_subscriptions",
         "label": "Subscriptions",
         "icon": "fa-file-contract",
         "active_endpoints": ["erp_admin_subscriptions"],
+        "section": "customers-licenses",
     },
     {
         "endpoint": "erp_admin_user_limits",
         "label": "User Limits",
         "icon": "fa-users-gear",
         "active_endpoints": ["erp_admin_user_limits"],
+        "section": "customers-licenses",
+    },
+    {
+        "endpoint": "user_management",
+        "label": "User Management",
+        "icon": "fa-user-shield",
+        "active_endpoints": ["user_management"],
+        "section": "customers-licenses",
     },
     {
         "endpoint": "erp_admin_branch_limits",
         "label": "Branch Limits",
         "icon": "fa-code-branch",
         "active_endpoints": ["erp_admin_branch_limits"],
+        "section": "platform-ops",
     },
     {
         "endpoint": "erp_admin_storage_limits",
         "label": "Storage Limits",
         "icon": "fa-hard-drive",
         "active_endpoints": ["erp_admin_storage_limits"],
+        "section": "platform-ops",
     },
     {
         "endpoint": "erp_admin_login_monitoring",
         "label": "Login Monitoring",
         "icon": "fa-right-to-bracket",
         "active_endpoints": ["erp_admin_login_monitoring"],
+        "section": "platform-ops",
     },
     {
         "endpoint": "erp_admin_support_tickets",
         "label": "Support Tickets",
         "icon": "fa-headset",
         "active_endpoints": ["erp_admin_support_tickets"],
+        "section": "platform-ops",
     },
     {
         "endpoint": "erp_admin_change_requests",
         "label": "Change Requests",
         "icon": "fa-pen-to-square",
         "active_endpoints": ["erp_admin_change_requests"],
+        "section": "platform-ops",
     },
     {
         "endpoint": "erp_admin_settings",
         "label": "ERP Settings",
         "icon": "fa-sliders",
         "active_endpoints": ["erp_admin_settings"],
+        "section": "platform-ops",
     },
     {
         "endpoint": "erp_admin_audit_logs",
         "label": "Audit Logs",
         "icon": "fa-clipboard-list",
         "active_endpoints": ["erp_admin_audit_logs"],
+        "section": "platform-ops",
     },
     {
         "endpoint": "erp_admin_system_health",
         "label": "System Health",
         "icon": "fa-heart-pulse",
         "active_endpoints": ["erp_admin_system_health"],
+        "section": "platform-ops",
+    },
+)
+
+ERP_ADMIN_SUBTOOLBAR_SECTIONS = (
+    {
+        "label": "Overview",
+        "items": ERP_ADMIN_SUBTOOLBAR[:1],
+    },
+    {
+        "label": "Customers & Licenses",
+        "items": [item for item in ERP_ADMIN_SUBTOOLBAR if item.get("section") == "customers-licenses"],
+    },
+    {
+        "label": "Platform Operations",
+        "items": [item for item in ERP_ADMIN_SUBTOOLBAR if item.get("section") == "platform-ops"],
     },
 )
 
@@ -695,6 +752,111 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
     ensure_customer_limits(db, customer_id, fields[9])
     log_audit(db, None, None, "Create", "Customer Master", f"Created customer {code}")
     return customer_id
+
+
+def create_customer_admin_user(
+    db,
+    customer_id: int,
+    *,
+    username: str,
+    password: str,
+    confirm_password: str,
+    display_name: str = "",
+    hash_password_fn,
+) -> None:
+    """Create the first Customer Admin for a new tenant (optional onboarding step)."""
+    username = (username or "").strip()
+    password = (password or "").strip()
+    confirm_password = (confirm_password or "").strip()
+    if not username:
+        return
+
+    if not password:
+        raise ValueError("Admin password is required when creating a first admin account.")
+    if password != confirm_password:
+        raise ValueError("Admin password and confirmation do not match.")
+    if len(password) < 4:
+        raise ValueError("Admin password must be at least 4 characters.")
+
+    customer = get_customer_by_id(db, customer_id)
+    if not customer:
+        raise ValueError("Customer not found.")
+    customer_code = str(customer["customer_code"] or "").strip()
+
+    assert_user_limit_not_exceeded(db, customer_id)
+
+    existing = db.execute(
+        "SELECT id FROM users WHERE username=? AND customer_id=?",
+        (username, customer_id),
+    ).fetchone()
+    if existing:
+        raise ValueError(
+            f"Username '{username}' already exists for customer {customer_code}."
+        )
+
+    employee_name = (display_name or "").strip() or username
+    db.execute(
+        "INSERT INTO users(username, password, role, workflow_role, employee_name, status, customer_id) "
+        "VALUES(?,?,?,?,?,?,?)",
+        (
+            username,
+            hash_password_fn(password),
+            CUSTOMER_ADMIN_ROLE,
+            "Administrator",
+            employee_name,
+            "Active",
+            customer_id,
+        ),
+    )
+    sync_customer_usage_counts(db, customer_id)
+    log_audit(
+        db,
+        customer_id,
+        None,
+        "Create",
+        "Customer Onboarding",
+        f"Created Customer Admin '{username}' for {customer_code}",
+        username=username,
+    )
+
+
+def get_platform_dashboard_data(db) -> dict[str, Any]:
+    """Metrics and lists for the Super Admin platform dashboard."""
+    ensure_super_admin_schema(db)
+    customer_count = db.execute(
+        "SELECT COUNT(*) AS c FROM erp_customers WHERE COALESCE(is_platform, 0)=0"
+    ).fetchone()["c"]
+    active_licenses = db.execute(
+        "SELECT COUNT(*) AS c FROM erp_licenses WHERE status='Active'"
+    ).fetchone()["c"]
+    active_subscriptions = db.execute(
+        """
+        SELECT COUNT(*) AS c FROM erp_subscriptions s
+        JOIN erp_customers c ON c.id = s.customer_id
+        WHERE COALESCE(c.is_platform, 0)=0 AND s.status='Active'
+        """
+    ).fetchone()["c"]
+    open_tickets = db.execute(
+        "SELECT COUNT(*) AS c FROM erp_support_tickets WHERE status IN ('Open','In Progress')"
+    ).fetchone()["c"]
+    recent_rows = db.execute(
+        """
+        SELECT customer_code, company_name, country, plan, status, created_at
+        FROM erp_customers
+        WHERE COALESCE(is_platform, 0)=0
+        ORDER BY COALESCE(created_at, modified_at, '') DESC, id DESC
+        LIMIT 8
+        """
+    ).fetchall()
+    return {
+        "metrics": {
+            "customers": customer_count,
+            "active_licenses": active_licenses,
+            "active_subscriptions": active_subscriptions,
+            "open_tickets": open_tickets,
+        },
+        "recent_customers": [_row_to_dict(row) for row in recent_rows],
+    }
 
 
 def list_licenses(db, search: str = "") -> list[dict[str, Any]]:

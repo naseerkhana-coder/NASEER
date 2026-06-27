@@ -6080,8 +6080,17 @@ GUEST_NAV_SLUGS = frozenset(
 )
 HR_NAV_SLUGS = frozenset({"dashboard", "hr-payroll", "approvals"})
 ERP_ADMIN_NAV_SLUG = "erp-administration"
+ERP_ADMIN_NAV_SLUGS = frozenset(
+    {
+        "erp-administration",
+        "erp-platform",
+        "erp-customers-licenses",
+        "erp-platform-ops",
+    }
+)
 
 ERP_ADMIN_ACTIVE_ENDPOINTS = [
+    "super_admin_platform_dashboard",
     "erp_admin_customers",
     "erp_admin_licenses",
     "erp_admin_subscriptions",
@@ -6094,6 +6103,7 @@ ERP_ADMIN_ACTIVE_ENDPOINTS = [
     "erp_admin_settings",
     "erp_admin_audit_logs",
     "erp_admin_system_health",
+    "user_management",
 ]
 
 
@@ -6118,7 +6128,11 @@ def filter_nav_groups_for_user(nav_groups, guest=False, hr_base=False, super_adm
         allowed = HR_NAV_SLUGS
         return [group for group in nav_groups if group.get("slug") in allowed]
     if not super_admin:
-        return [group for group in nav_groups if group.get("slug") != ERP_ADMIN_NAV_SLUG]
+        return [
+            group
+            for group in nav_groups
+            if group.get("slug") not in ERP_ADMIN_NAV_SLUGS
+        ]
     return nav_groups
 
 
@@ -7537,6 +7551,12 @@ NAV_GROUPS = [
         "slug": ERP_ADMIN_NAV_SLUG,
         "items": [
             {
+                "endpoint": "super_admin_platform_dashboard",
+                "label": "Platform Command Centre",
+                "icon": "fa-gauge-high",
+                "active_endpoints": ERP_ADMIN_ACTIVE_ENDPOINTS,
+            },
+            {
                 "endpoint": "erp_admin_customers",
                 "label": "Customer Master",
                 "icon": "fa-building-user",
@@ -8014,6 +8034,9 @@ def inject_maxek_layout():
         "dashboard_shell_favorites": DASHBOARD_SHELL_FAVORITES,
         "dashboard_shell_nav_groups": build_dashboard_shell_nav_groups(super_admin=super_admin),
         "dashboard_shell_settings": DASHBOARD_SHELL_SETTINGS,
+        "primary_dashboard_endpoint": (
+            "super_admin_platform_dashboard" if super_admin else "dashboard"
+        ),
     }
 
 
@@ -8025,9 +8048,9 @@ def index():
 _LOGIN_REMEMBER_MAX_AGE = 365 * 24 * 60 * 60
 
 
-def _login_remember_cookies(username, company_code):
+def _login_remember_cookies(username, company_code, redirect_endpoint="dashboard"):
     """Persist last login identity for pre-fill on next visit."""
-    resp = make_response(redirect(url_for("dashboard")))
+    resp = make_response(redirect(url_for(redirect_endpoint)))
     resp.set_cookie(
         "maxek_last_username",
         username,
@@ -8048,6 +8071,8 @@ def _login_remember_cookies(username, company_code):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
+        if is_super_admin_user():
+            return redirect(url_for("super_admin_platform_dashboard"))
         return redirect(url_for("dashboard"))
     remembered_user = request.cookies.get("maxek_last_username", "").strip()
     default_company_code = request.cookies.get("maxek_last_company_code", "").strip()
@@ -8110,7 +8135,17 @@ def login():
                     save_dashboard_preferences(get_db(), user_id, role_profile=inferred)
             except Exception:
                 app.logger.exception("Failed to restore user work context")
-            return _login_remember_cookies(username, resolved_company_code or "")
+            post_login_endpoint = "dashboard"
+            try:
+                if _is_super_admin_row(get_db(), user):
+                    post_login_endpoint = "super_admin_platform_dashboard"
+            except Exception:
+                pass
+            return _login_remember_cookies(
+                username,
+                resolved_company_code or "",
+                redirect_endpoint=post_login_endpoint,
+            )
         flash("Invalid username or password, or account is inactive.")
     return render_template(
         "login.html",
@@ -10139,6 +10174,8 @@ def render_choice_b_dashboard():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    if is_super_admin_user():
+        return redirect(url_for("super_admin_platform_dashboard"))
     return render_choice_b_dashboard()
 
 
@@ -21887,6 +21924,7 @@ register_erp_admin_routes(
     get_login_report=get_login_report,
     db_path=DB_PATH,
     support_uploads_dir=SUPPORT_TICKETS_DIR,
+    hash_password=hash_password,
 )
 
 app.config["GET_DB"] = get_db

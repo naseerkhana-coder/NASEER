@@ -13,11 +13,14 @@ from super_admin_service import (
     CUSTOMER_PLANS,
     CUSTOMER_STATUSES,
     ERP_ADMIN_SUBTOOLBAR,
+    ERP_ADMIN_SUBTOOLBAR_SECTIONS,
     LICENSE_PRODUCTS,
     LICENSE_STATUSES,
     PRIORITY_LEVELS,
     SUBSCRIPTION_STATUSES,
     TICKET_STATUSES,
+    create_customer_admin_user,
+    get_platform_dashboard_data,
     get_system_health,
     list_audit_logs,
     list_branch_limits,
@@ -83,6 +86,7 @@ def _render_limits_page(db, *, limit_type, limit_title, table_headers, table_row
         customer_codes=_customer_codes(db),
         plans=plans,
         sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
     )
 
 
@@ -96,7 +100,60 @@ def register_erp_admin_routes(
     get_login_report,
     db_path,
     support_uploads_dir,
+    hash_password,
 ):
+    @app.route("/super-admin/dashboard")
+    @login_required
+    @super_admin_required
+    def super_admin_platform_dashboard():
+        db = get_db()
+        platform_data = get_platform_dashboard_data(db)
+        quick_links = [
+            {
+                "endpoint": "erp_admin_customers",
+                "label": "Customer Master",
+                "icon": "fa-building-user",
+                "description": "Register tenants and onboard first admin accounts",
+            },
+            {
+                "endpoint": "erp_admin_licenses",
+                "label": "License Master",
+                "icon": "fa-key",
+                "description": "Issue and renew product licenses",
+            },
+            {
+                "endpoint": "user_management",
+                "label": "User Management",
+                "icon": "fa-user-shield",
+                "description": "Manage platform and tenant login accounts",
+            },
+            {
+                "endpoint": "erp_admin_user_limits",
+                "label": "User Limits",
+                "icon": "fa-users-gear",
+                "description": "Adjust licensed user capacity per customer",
+            },
+            {
+                "endpoint": "erp_admin_subscriptions",
+                "label": "Subscriptions",
+                "icon": "fa-credit-card",
+                "description": "Billing plans and renewal dates",
+            },
+            {
+                "endpoint": "erp_admin_system_health",
+                "label": "System Health",
+                "icon": "fa-heart-pulse",
+                "description": "Database size and platform status checks",
+            },
+        ]
+        return render_template(
+            "erp_admin/platform_dashboard.html",
+            platform_data=platform_data,
+            quick_links=quick_links,
+            sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+                sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
+        )
+
     @app.route("/erp-admin/customers", methods=["GET", "POST"])
     @login_required
     @super_admin_required
@@ -112,12 +169,32 @@ def register_erp_admin_routes(
         if request.method == "POST":
             try:
                 record_id = request.form.get("record_id", type=int)
-                save_customer(db, request.form, record_id=record_id)
+                admin_username = request.form.get("admin_username", "").strip()
+                admin_password = request.form.get("admin_password", "").strip()
+                if not record_id and admin_password and not admin_username:
+                    raise ValueError("Admin username is required when setting a password.")
+                customer_id = save_customer(db, request.form, record_id=record_id)
+                if not record_id and admin_username:
+                    create_customer_admin_user(
+                        db,
+                        customer_id,
+                        username=admin_username,
+                        password=request.form.get("admin_password", ""),
+                        confirm_password=request.form.get("admin_confirm_password", ""),
+                        display_name=request.form.get("admin_display_name", ""),
+                        hash_password_fn=hash_password,
+                    )
+                    flash("Customer and first admin account created successfully.")
+                else:
+                    flash("Customer saved successfully.")
                 db.commit()
-                flash("Customer saved successfully.")
                 return redirect(url_for("erp_admin_customers"))
             except ValueError as exc:
+                db.rollback()
                 flash(str(exc))
+            except sqlite3.IntegrityError:
+                db.rollback()
+                flash("Username already exists for this customer. Choose a different login ID.")
         search = request.args.get("q", "")
         rows = list_customers(db, search=search)
         return render_template(
@@ -130,6 +207,7 @@ def register_erp_admin_routes(
             plans=CUSTOMER_PLANS,
             statuses=CUSTOMER_STATUSES,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+                sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/licenses", methods=["GET", "POST"])
@@ -166,6 +244,7 @@ def register_erp_admin_routes(
             plans=CUSTOMER_PLANS,
             statuses=LICENSE_STATUSES,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/subscriptions", methods=["GET", "POST"])
@@ -188,6 +267,7 @@ def register_erp_admin_routes(
             plans=CUSTOMER_PLANS,
             statuses=SUBSCRIPTION_STATUSES,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/user-limits", methods=["GET", "POST"])
@@ -342,6 +422,7 @@ def register_erp_admin_routes(
             date_from=date_from,
             date_to=date_to,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/support-tickets", methods=["GET", "POST"])
@@ -379,6 +460,7 @@ def register_erp_admin_routes(
             statuses=TICKET_STATUSES,
             is_super_admin=super_admin,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR if super_admin else None,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS if super_admin else None,
         )
 
     @app.route("/erp-admin/change-requests", methods=["GET", "POST"])
@@ -403,6 +485,7 @@ def register_erp_admin_routes(
             priorities=PRIORITY_LEVELS,
             statuses=CHANGE_REQUEST_STATUSES,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/settings", methods=["GET", "POST"])
@@ -425,6 +508,7 @@ def register_erp_admin_routes(
             "erp_admin/settings.html",
             rows=list_erp_settings(db),
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/audit-logs")
@@ -436,6 +520,7 @@ def register_erp_admin_routes(
             "erp_admin/audit_logs.html",
             rows=list_audit_logs(db),
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/system-health")
@@ -448,6 +533,7 @@ def register_erp_admin_routes(
             "erp_admin/system_health.html",
             health=health,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/support/tickets", methods=["GET", "POST"])

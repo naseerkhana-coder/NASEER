@@ -4,7 +4,7 @@
 
 {% set page_title = 'Customer Master' %}
 
-{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Customer Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a> &gt; Customer Master' %}
 
 {% block content %}
 
@@ -55,6 +55,17 @@
       <div class="erp-field"><select name="plan">{% for p in plans %}<option{% if edit_record and edit_record.plan == p %} selected{% elif not edit_record and p == 'Standard' %} selected{% endif %}>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
 
       <div class="erp-field"><select name="status">{% for s in statuses %}<option{% if edit_record and edit_record.status == s %} selected{% elif not edit_record and s == 'Active' %} selected{% endif %}>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+
+      {% if not edit_record %}
+      <div class="erp-form-section-head span-2">
+        <h3 class="erp-form-section-title">First Admin Account <span class="erp-form-optional">(optional)</span></h3>
+        <p class="erp-form-section-help">Create the tenant&apos;s Customer Admin login in the same step. Leave username blank to skip.</p>
+      </div>
+      <div class="erp-field"><input name="admin_username" placeholder=" " autocomplete="off"><label>Admin Username</label></div>
+      <div class="erp-field"><input type="password" name="admin_password" placeholder=" " autocomplete="new-password"><label>Admin Password</label></div>
+      <div class="erp-field"><input type="password" name="admin_confirm_password" placeholder=" " autocomplete="new-password"><label>Confirm Password</label></div>
+      <div class="erp-field span-2"><input name="admin_display_name" placeholder=" "><label>Display Name</label></div>
+      {% endif %}
 
       <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>{% if edit_record %}<a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}</div>
 

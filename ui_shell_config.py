@@ -417,10 +417,24 @@ DASHBOARD_SHELL_NAV_GROUPS: list[dict] = [
 ]
 
 # Super Admin platform tools — appended to pro dashboard sidebar when user is super admin.
-DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP: dict = {
-    "label": "ERP Administration",
-    "icon": "fa-shield-halved",
-    "slug": "erp-administration",
+DASHBOARD_SHELL_PLATFORM_NAV_GROUP: dict = {
+    "label": "Platform",
+    "icon": "fa-gauge-high",
+    "slug": "erp-platform",
+    "items": [
+        {
+            "endpoint": "super_admin_platform_dashboard",
+            "label": "Platform Command Centre",
+            "icon": "fa-gauge-high",
+            "active_endpoints": ["super_admin_platform_dashboard"],
+        },
+    ],
+}
+
+DASHBOARD_SHELL_CUSTOMERS_LICENSES_NAV_GROUP: dict = {
+    "label": "Customers & Licenses",
+    "icon": "fa-building-user",
+    "slug": "erp-customers-licenses",
     "items": [
         {
             "endpoint": "erp_admin_customers",
@@ -446,6 +460,20 @@ DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP: dict = {
             "icon": "fa-users-gear",
             "active_endpoints": ["erp_admin_user_limits"],
         },
+        {
+            "endpoint": "user_management",
+            "label": "User Management",
+            "icon": "fa-user-shield",
+            "active_endpoints": ["user_management"],
+        },
+    ],
+}
+
+DASHBOARD_SHELL_PLATFORM_OPS_NAV_GROUP: dict = {
+    "label": "Platform Operations",
+    "icon": "fa-shield-halved",
+    "slug": "erp-platform-ops",
+    "items": [
         {
             "endpoint": "erp_admin_branch_limits",
             "label": "Branch Limits",
@@ -497,12 +525,21 @@ DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP: dict = {
     ],
 }
 
+# Legacy single-group export (kept for backward compatibility).
+DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP: dict = DASHBOARD_SHELL_CUSTOMERS_LICENSES_NAV_GROUP
+
 
 def build_dashboard_shell_nav_groups(*, super_admin: bool = False) -> list[dict]:
-    """Pro dashboard sidebar groups; ERP Administration is super-admin only."""
+    """Pro dashboard sidebar groups; platform tools are super-admin only."""
     groups = list(DASHBOARD_SHELL_NAV_GROUPS)
     if super_admin:
-        groups.append(DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP)
+        groups.extend(
+            [
+                DASHBOARD_SHELL_PLATFORM_NAV_GROUP,
+                DASHBOARD_SHELL_CUSTOMERS_LICENSES_NAV_GROUP,
+                DASHBOARD_SHELL_PLATFORM_OPS_NAV_GROUP,
+            ]
+        )
     return groups
 
 

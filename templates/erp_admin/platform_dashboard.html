@@ -1,0 +1,67 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import approval_badge, erp_module_grid %}
+
+{% set page_title = 'Platform Command Centre' %}
+{% set breadcrumbs = '<a href="' ~ url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a>' %}
+
+{% block content %}
+<div class="erp-platform-dashboard">
+  <header class="erp-platform-hero">
+    <div>
+      <p class="erp-platform-eyebrow">MAXEK ERP · Super Admin</p>
+      <h1 class="erp-platform-title">Platform Command Centre</h1>
+      <p class="erp-platform-subtitle">Customer overview, licensing, and platform operations in one place.</p>
+    </div>
+    <a href="{{ url_for('erp_admin_customers') }}#add-customer" class="erp-btn erp-btn-primary">
+      <i class="fa-solid fa-building-circle-check" aria-hidden="true"></i>
+      Register Customer
+    </a>
+  </header>
+
+  <div class="erp-kpi-grid">
+    {% for key, val in platform_data.metrics.items() %}
+    <div class="erp-kpi-card">
+      <div class="erp-kpi-label">{{ key|replace('_', ' ')|title }}</div>
+      <div class="erp-kpi-value">{{ val }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {{ erp_module_grid(quick_links, 'Quick Links') }}
+
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Recent Customers</h3>
+      <a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost erp-btn-sm">View all</a>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Company</th>
+            <th>Country</th>
+            <th>Plan</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in platform_data.recent_customers %}
+          <tr>
+            <td>{{ row.customer_code }}</td>
+            <td>{{ row.company_name }}</td>
+            <td>{{ row.country or '—' }}</td>
+            <td>{{ row.plan or 'Standard' }}</td>
+            <td>{{ approval_badge(row.status) }}</td>
+            <td>{{ row.created_at or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">No customers registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
