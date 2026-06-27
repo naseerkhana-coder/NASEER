@@ -376,6 +376,7 @@ from super_admin_service import (
     ensure_super_admin_schema,
     get_customer_by_code,
     get_customer_by_id,
+    get_customer_enabled_departments,
     is_customer_admin_user as _is_customer_admin_row,
     is_super_admin_user as _is_super_admin_row,
     seed_super_admin_data,
@@ -8697,6 +8698,12 @@ def department_portal(slug):
         flash("This module is not available for HR base accounts.")
         return redirect(url_for("dashboard"))
     db = get_db()
+    if not is_super_admin_user():
+        enabled_slugs = get_customer_enabled_departments(db, session.get("customer_id"))
+        canonical_slug = resolve_department_portal_slug(portal["slug"])
+        if enabled_slugs and canonical_slug not in enabled_slugs and portal["slug"] not in enabled_slugs:
+            flash("This department portal is not included in your subscription package.")
+            return redirect(url_for("dashboard"))
     stat_cards = department_portal_stat_cards(portal["slug"], db)
     menu = enrich_portal_menu_open_counts(db, get_department_portal_menu(portal["slug"]))
     menu = filter_portal_menu_for_user(
@@ -9804,10 +9811,26 @@ def get_command_centre_kpis(db):
     ]
 
 
+def _session_customer_enabled_department_slugs(db):
+    """Return enabled portal slugs for the logged-in tenant, or None if unrestricted."""
+    try:
+        if is_super_admin_user():
+            return None
+    except Exception:
+        pass
+    customer_id = session.get("customer_id")
+    if not customer_id:
+        return None
+    return get_customer_enabled_departments(db, customer_id)
+
+
 def get_command_centre_cards(db):
     meta_by_slug = {meta["slug"]: meta for meta in COMMAND_CENTRE_CARD_META}
     cards = []
+    enabled_slugs = _session_customer_enabled_department_slugs(db)
     for slug, label in MAIN_DASHBOARD_DEPARTMENT_SLUGS:
+        if enabled_slugs is not None and slug not in enabled_slugs:
+            continue
         portal = get_department_portal(slug)
         if not portal:
             continue
@@ -9870,9 +9893,12 @@ def get_command_centre_department_modules(db):
     """Department launcher tiles — each links to /dept/<slug> with open counts."""
     badges = _command_centre_sidebar_badges(db)
     meta_by_slug = {meta["slug"]: meta for meta in COMMAND_CENTRE_CARD_META}
+    enabled_slugs = _session_customer_enabled_department_slugs(db)
     modules = []
     for portal in get_department_portals():
         slug = portal["slug"]
+        if enabled_slugs is not None and slug not in enabled_slugs:
+            continue
         meta = meta_by_slug.get(slug, {})
         open_count = _department_open_count(db, slug, badges)
         modules.append(

@@ -2,12 +2,96 @@
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from typing import Any
 
 CUSTOMER_STATUSES = ("Active", "Inactive", "Suspended")
 CUSTOMER_PLANS = ("Standard", "Professional", "Enterprise", "Demo")
+
+# Assignable department portal slugs (must match ui_shell_config / get_department_portals).
+DEPARTMENT_PORTAL_SLUGS: tuple[str, ...] = (
+    "consultancy",
+    "projects",
+    "accounts",
+    "store",
+    "hr-payroll",
+    "vehicle",
+    "mechanical",
+    "plant-operations",
+    "asphalt-plant",
+    "concrete-plant",
+    "precast-yard",
+    "engineering",
+    "planning-wbs",
+    "subcontract",
+    "procurement",
+    "qc",
+    "tender",
+    "reports",
+    "administration",
+)
+
+DEPARTMENT_SLUG_LABELS: dict[str, str] = {
+    "consultancy": "Consultancy ERP",
+    "projects": "Projects",
+    "accounts": "Accounts",
+    "store": "Store & Inventory",
+    "hr-payroll": "HR & Payroll",
+    "vehicle": "Vehicle / Fleet",
+    "mechanical": "Mechanical / Equipment",
+    "plant-operations": "Plant Operations",
+    "asphalt-plant": "Asphalt Plant",
+    "concrete-plant": "Concrete Plant",
+    "precast-yard": "Precast Yard",
+    "engineering": "Engineering / Smart QTO",
+    "planning-wbs": "Planning & Costing",
+    "subcontract": "Subcontractor",
+    "procurement": "Procurement",
+    "qc": "QA / QC",
+    "tender": "Tender",
+    "reports": "Reports",
+    "administration": "Office Administration",
+}
+
+CUSTOMER_PACKAGE_SEED: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
+    (
+        "Standard",
+        "Standard",
+        "Core construction ERP — projects, accounts, store, HR and admin.",
+        ("projects", "accounts", "store", "hr-payroll", "administration"),
+    ),
+    (
+        "Professional",
+        "Professional",
+        "Standard plus QC, subcontract, planning, fleet and procurement.",
+        (
+            "projects",
+            "accounts",
+            "store",
+            "hr-payroll",
+            "administration",
+            "qc",
+            "subcontract",
+            "planning-wbs",
+            "vehicle",
+            "procurement",
+        ),
+    ),
+    (
+        "Enterprise",
+        "Enterprise",
+        "Full MAXEK ERP — all department portals enabled.",
+        DEPARTMENT_PORTAL_SLUGS,
+    ),
+    (
+        "Demo",
+        "Demo",
+        "Limited demo access for evaluation.",
+        ("projects", "accounts", "hr-payroll"),
+    ),
+)
 LICENSE_STATUSES = ("Active", "Expired", "Suspended", "Pending")
 LICENSE_PRODUCTS = ("TRADEX ERP", "MAXEK ERP", "CONSTRUCTION ERP")
 SUBSCRIPTION_STATUSES = ("Active", "Cancelled", "Expired", "Trial")
@@ -201,6 +285,161 @@ def _row_to_dict(row) -> dict[str, Any]:
     return dict(row)
 
 
+def _parse_department_slugs(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, (list, tuple)):
+        items = raw
+    elif isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return []
+        try:
+            parsed = json.loads(text)
+            items = parsed if isinstance(parsed, list) else [text]
+        except json.JSONDecodeError:
+            items = [part.strip() for part in text.split(",") if part.strip()]
+    else:
+        return []
+    valid = set(DEPARTMENT_PORTAL_SLUGS)
+    seen: set[str] = set()
+    result: list[str] = []
+    for item in items:
+        slug = str(item).strip()
+        if slug in valid and slug not in seen:
+            seen.add(slug)
+            result.append(slug)
+    return result
+
+
+def _serialize_department_slugs(slugs: list[str]) -> str:
+    return json.dumps(_parse_department_slugs(slugs))
+
+
+def seed_customer_packages(db) -> None:
+    if not _table_exists(db, "erp_customer_packages"):
+        return
+    now = _now_ts()
+    for sort_order, (code, name, description, defaults) in enumerate(CUSTOMER_PACKAGE_SEED):
+        slugs_json = _serialize_department_slugs(list(defaults))
+        existing = db.execute(
+            "SELECT id FROM erp_customer_packages WHERE package_code=?",
+            (code,),
+        ).fetchone()
+        if existing:
+            db.execute(
+                "UPDATE erp_customer_packages SET package_name=?, description=?, "
+                "default_department_slugs=?, sort_order=?, modified_at=? WHERE package_code=?",
+                (name, description, slugs_json, sort_order, now, code),
+            )
+        else:
+            db.execute(
+                "INSERT INTO erp_customer_packages("
+                "package_code, package_name, description, default_department_slugs, "
+                "sort_order, status, created_at, modified_at"
+                ") VALUES(?,?,?,?,?,'Active',?,?)",
+                (code, name, description, slugs_json, sort_order, now, now),
+            )
+
+
+def list_customer_packages(db) -> list[dict[str, Any]]:
+    if not _table_exists(db, "erp_customer_packages"):
+        return [
+            {
+                "package_code": code,
+                "package_name": name,
+                "description": description,
+                "default_department_slugs": list(defaults),
+            }
+            for code, name, description, defaults in CUSTOMER_PACKAGE_SEED
+        ]
+    rows = db.execute(
+        "SELECT * FROM erp_customer_packages WHERE status='Active' ORDER BY sort_order, package_name"
+    ).fetchall()
+    packages: list[dict[str, Any]] = []
+    for row in rows:
+        item = _row_to_dict(row)
+        item["default_department_slugs"] = _parse_department_slugs(
+            item.get("default_department_slugs")
+        )
+        packages.append(item)
+    return packages
+
+
+def get_customer_package(db, package_code: str) -> dict[str, Any] | None:
+    code = (package_code or "Standard").strip()
+    if _table_exists(db, "erp_customer_packages"):
+        row = db.execute(
+            "SELECT * FROM erp_customer_packages WHERE package_code=?",
+            (code,),
+        ).fetchone()
+        if row:
+            item = _row_to_dict(row)
+            item["default_department_slugs"] = _parse_department_slugs(
+                item.get("default_department_slugs")
+            )
+            return item
+    for seed_code, name, description, defaults in CUSTOMER_PACKAGE_SEED:
+        if seed_code == code:
+            return {
+                "package_code": seed_code,
+                "package_name": name,
+                "description": description,
+                "default_department_slugs": list(defaults),
+            }
+    return None
+
+
+def get_package_default_departments(db, package_code: str) -> list[str]:
+    package = get_customer_package(db, package_code)
+    if package:
+        return list(package.get("default_department_slugs") or [])
+    return list(get_package_default_departments_static(package_code))
+
+
+def get_package_default_departments_static(package_code: str) -> list[str]:
+    code = (package_code or "Standard").strip()
+    for seed_code, _name, _description, defaults in CUSTOMER_PACKAGE_SEED:
+        if seed_code == code:
+            return list(defaults)
+    return list(CUSTOMER_PACKAGE_SEED[0][3])
+
+
+def get_customer_enabled_departments(db, customer_id: int | None) -> list[str]:
+    if not customer_id or not _table_exists(db, "erp_customers"):
+        return list(DEPARTMENT_PORTAL_SLUGS)
+    row = db.execute(
+        "SELECT package_code, plan, enabled_departments FROM erp_customers WHERE id=?",
+        (customer_id,),
+    ).fetchone()
+    if not row:
+        return list(DEPARTMENT_PORTAL_SLUGS)
+    enabled = _parse_department_slugs(row["enabled_departments"])
+    if enabled:
+        return enabled
+    package_code = (row["package_code"] or row["plan"] or "Standard").strip()
+    return get_package_default_departments(db, package_code)
+
+
+def backfill_customer_package_settings(db) -> None:
+    if not _table_exists(db, "erp_customers"):
+        return
+    rows = db.execute(
+        "SELECT id, plan, package_code, enabled_departments "
+        "FROM erp_customers WHERE COALESCE(is_platform, 0)=0"
+    ).fetchall()
+    for row in rows:
+        plan = (row["plan"] or "Standard").strip() or "Standard"
+        package_code = (row["package_code"] or plan).strip() or "Standard"
+        enabled = _parse_department_slugs(row["enabled_departments"])
+        if not enabled:
+            enabled = get_package_default_departments(db, package_code)
+        db.execute(
+            "UPDATE erp_customers SET package_code=?, plan=?, enabled_departments=? WHERE id=?",
+            (package_code, package_code, _serialize_department_slugs(enabled), row["id"]),
+        )
+
+
 def ensure_super_admin_schema(db) -> None:
     db.execute(
         """
@@ -357,6 +596,21 @@ def ensure_super_admin_schema(db) -> None:
         )
         """
     )
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS erp_customer_packages(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            package_code TEXT UNIQUE NOT NULL,
+            package_name TEXT NOT NULL,
+            description TEXT,
+            default_department_slugs TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'Active',
+            created_at TEXT,
+            modified_at TEXT
+        )
+        """
+    )
     _ensure_column(db, "users", "customer_id", "INTEGER")
     _ensure_column(db, "users", "status", "TEXT DEFAULT 'Active'")
     for column, col_type in (
@@ -373,6 +627,8 @@ def ensure_super_admin_schema(db) -> None:
         ("is_platform", "INTEGER DEFAULT 0"),
         ("created_at", "TEXT"),
         ("modified_at", "TEXT"),
+        ("package_code", "TEXT DEFAULT 'Standard'"),
+        ("enabled_departments", "TEXT"),
     ):
         _ensure_column(db, "erp_customers", column, col_type)
     for table, columns in (
@@ -428,6 +684,12 @@ def ensure_super_admin_schema(db) -> None:
             "UPDATE erp_customers SET plan='Standard' "
             "WHERE plan IS NULL OR TRIM(plan)=''"
         )
+        db.execute(
+            "UPDATE erp_customers SET package_code=plan "
+            "WHERE package_code IS NULL OR TRIM(package_code)=''"
+        )
+    seed_customer_packages(db)
+    backfill_customer_package_settings(db)
     backfill_customer_limit_rows(db)
     try:
         from tenant_isolation import migrate_users_composite_username
@@ -713,6 +975,15 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
         raise ValueError("Customer code is required.")
     if not (data.get("company_name") or "").strip():
         raise ValueError("Company name is required.")
+    package_code = (data.get("package_code") or data.get("plan") or "Standard").strip()
+    if package_code not in CUSTOMER_PLANS:
+        raise ValueError(f"Invalid package: {package_code}")
+    enabled_departments = _parse_department_slugs(data.get("enabled_departments"))
+    if not enabled_departments:
+        enabled_departments = get_package_default_departments(db, package_code)
+    if not enabled_departments:
+        raise ValueError("Select at least one department portal for this customer.")
+    enabled_json = _serialize_department_slugs(enabled_departments)
     fields = (
         code,
         (data.get("company_name") or "").strip(),
@@ -723,15 +994,17 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
         (data.get("vat_gst_number") or "").strip(),
         int(data.get("num_branches") or 0),
         int(data.get("num_users") or 0),
-        (data.get("plan") or "Standard").strip(),
+        package_code,
+        package_code,
+        enabled_json,
         (data.get("status") or "Active").strip(),
         now,
     )
     if record_id:
         db.execute(
             "UPDATE erp_customers SET customer_code=?, company_name=?, country=?, contact_person=?, "
-            "mobile=?, email=?, vat_gst_number=?, num_branches=?, num_users=?, plan=?, status=?, "
-            "modified_at=? WHERE id=? AND is_platform=0",
+            "mobile=?, email=?, vat_gst_number=?, num_branches=?, num_users=?, plan=?, package_code=?, "
+            "enabled_departments=?, status=?, modified_at=? WHERE id=? AND is_platform=0",
             (*fields, record_id),
         )
         ensure_customer_limits(db, record_id, fields[9])
@@ -744,8 +1017,8 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
     cur = db.execute(
         "INSERT INTO erp_customers("
         "customer_code, company_name, country, contact_person, mobile, email, vat_gst_number, "
-        "num_branches, num_users, plan, status, created_at, modified_at"
-        ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "num_branches, num_users, plan, package_code, enabled_departments, status, created_at, modified_at"
+        ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (*fields, now),
     )
     customer_id = cur.lastrowid

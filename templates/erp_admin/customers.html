@@ -13,46 +13,65 @@
 <div class="erp-module-layout">
 
   {{ erp_module_toolbar(
-
     search_placeholder='Search customers...',
-
     search_name='q',
-
     add_url='#add-customer',
-
     export_name='customers',
-
     print_target='#customer-records'
-
   ) }}
 
-
-
   {% call erp_module_form_panel(id='add-customer', title=('Edit Customer' if edit_record else 'Register Customer')) %}
-
-    <form method="post" class="erp-form-grid">
-
+    <form method="post" class="erp-form-grid" id="customer-master-form">
       {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
 
       <div class="erp-field"><input name="customer_code" placeholder=" " required value="{{ edit_record.customer_code if edit_record else next_customer_code }}"><label>Customer Code</label></div>
-
       <div class="erp-field span-2"><input name="company_name" placeholder=" " required value="{{ edit_record.company_name if edit_record else '' }}"><label>Company Name</label></div>
-
       <div class="erp-field"><select name="country"><option value="">Select country</option>{% for c in countries %}<option{% if edit_record and edit_record.country == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select><label>Country</label></div>
-
       <div class="erp-field"><input name="contact_person" placeholder=" " value="{{ edit_record.contact_person if edit_record else '' }}"><label>Contact Person</label></div>
-
       <div class="erp-field"><input name="mobile" placeholder=" " value="{{ edit_record.mobile if edit_record else '' }}"><label>Mobile</label></div>
-
       <div class="erp-field"><input type="email" name="email" placeholder=" " value="{{ edit_record.email if edit_record else '' }}"><label>Email</label></div>
-
       <div class="erp-field"><input name="vat_gst_number" placeholder=" " value="{{ edit_record.vat_gst_number if edit_record else '' }}"><label>VAT/GST Number</label></div>
-
       <div class="erp-field"><input type="number" name="num_branches" min="0" placeholder=" " value="{{ edit_record.num_branches if edit_record else 0 }}"><label>No of Branches</label></div>
-
       <div class="erp-field"><input type="number" name="num_users" min="0" placeholder=" " value="{{ edit_record.num_users if edit_record else 0 }}"><label>No of Users</label></div>
 
-      <div class="erp-field"><select name="plan">{% for p in plans %}<option{% if edit_record and edit_record.plan == p %} selected{% elif not edit_record and p == 'Standard' %} selected{% endif %}>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
+      <div class="erp-form-section-head span-2">
+        <h3 class="erp-form-section-title">Package &amp; Department Access</h3>
+        <p class="erp-form-section-help">Choose a subscription package, then add or remove department portals for this customer.</p>
+      </div>
+
+      {% set current_package = edit_record.package_code if edit_record and edit_record.package_code else (edit_record.plan if edit_record else 'Standard') %}
+      <div class="erp-field span-2">
+        <select name="package_code" id="customer-package-select">
+          {% for pkg in packages %}
+          <option value="{{ pkg.package_code }}"{% if current_package == pkg.package_code %} selected{% elif not edit_record and pkg.package_code == 'Standard' %} selected{% endif %}>{{ pkg.package_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Subscription Package</label>
+      </div>
+      <div class="erp-field span-2">
+        <p id="package-description" class="erp-form-section-help">
+          {% for pkg in packages %}{% if pkg.package_code == current_package or (not edit_record and pkg.package_code == 'Standard') %}{{ pkg.description }}{% endif %}{% endfor %}
+        </p>
+      </div>
+
+      <div class="erp-field span-2">
+        <div class="erp-dept-package-toolbar">
+          <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="apply-package-defaults">Reset to package defaults</button>
+          <span class="erp-form-section-help">Check departments to enable; uncheck to remove from this customer.</span>
+        </div>
+        <div class="erp-dept-checkbox-grid" id="department-checkbox-grid">
+          {% for slug in department_slugs %}
+          {% set label = department_labels.get(slug, slug) %}
+          <label class="erp-dept-checkbox" data-slug="{{ slug }}">
+            <input type="checkbox" name="enabled_departments" value="{{ slug }}"{% if slug in selected_departments %} checked{% elif not edit_record and slug in package_defaults.get('Standard', []) %} checked{% endif %}>
+            <span>{{ label }}</span>
+            <small class="erp-dept-tag erp-dept-tag--default" hidden>In package</small>
+            <small class="erp-dept-tag erp-dept-tag--extra" hidden>Added</small>
+          </label>
+          {% endfor %}
+        </div>
+        <label>Enabled Department Portals</label>
+      </div>
 
       <div class="erp-field"><select name="status">{% for s in statuses %}<option{% if edit_record and edit_record.status == s %} selected{% elif not edit_record and s == 'Active' %} selected{% endif %}>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
 
@@ -68,52 +87,92 @@
       {% endif %}
 
       <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>{% if edit_record %}<a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}</div>
-
     </form>
-
   {% endcall %}
 
-
-
   {% call erp_module_table_panel(id='customer-records', title='Customer List') %}
-
     <div class="erp-table-scroll">
-
       <table class="erp-table erp-table-module">
-
-        <thead><tr><th>Code</th><th>Company</th><th>Country</th><th>Contact</th><th>Mobile</th><th>Email</th><th>VAT/GST</th><th>Branches</th><th>Users</th><th>Plan</th><th>Status</th><th></th></tr></thead>
-
+        <thead><tr><th>Code</th><th>Company</th><th>Country</th><th>Contact</th><th>Mobile</th><th>Email</th><th>Package</th><th>Depts</th><th>Branches</th><th>Users</th><th>Status</th><th></th></tr></thead>
         <tbody>
-
           {% for row in rows %}
-
           <tr>
-
             <td>{{ row.customer_code }}</td><td>{{ row.company_name }}</td><td>{{ row.country or '—' }}</td>
-
             <td>{{ row.contact_person or '—' }}</td><td>{{ row.mobile or '—' }}</td><td>{{ row.email or '—' }}</td>
-
-            <td>{{ row.vat_gst_number or '—' }}</td><td>{{ row.num_branches }}</td><td>{{ row.num_users }}</td>
-
-            <td>{{ row.plan }}</td><td>{{ approval_badge(row.status) }}</td>
-
+            <td>{{ row.package_code or row.plan }}</td>
+            <td>{{ row.enabled_department_count }}</td>
+            <td>{{ row.num_branches }}</td><td>{{ row.num_users }}</td>
+            <td>{{ approval_badge(row.status) }}</td>
             <td><a href="{{ url_for('erp_admin_customers', edit=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a></td>
-
           </tr>
-
           {% else %}<tr><td colspan="12">No customers found.</td></tr>{% endfor %}
-
         </tbody>
-
       </table>
-
     </div>
-
     {{ erp_pagination(rows|length) }}
-
   {% endcall %}
 
 </div>
 
-{% endblock %}
+<style>
+  .erp-dept-package-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .erp-dept-checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--erp-border, #dbeafe); border-radius: 0.5rem; background: var(--erp-surface-muted, #f8fafc); }
+  .erp-dept-checkbox { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; border-radius: 0.375rem; background: #fff; border: 1px solid transparent; }
+  .erp-dept-checkbox span { font-size: 0.875rem; }
+  .erp-dept-tag { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.1rem 0.35rem; border-radius: 999px; }
+  .erp-dept-tag--default { background: #dbeafe; color: #1d4ed8; }
+  .erp-dept-tag--extra { background: #dcfce7; color: #15803d; }
+</style>
 
+<script>
+  (function () {
+    const packageDefaults = {{ package_defaults | tojson }};
+    const packageDescriptions = {
+      {% for pkg in packages %}
+      {{ pkg.package_code | tojson }}: {{ (pkg.description or '') | tojson }}{% if not loop.last %},{% endif %}
+      {% endfor %}
+    };
+    const select = document.getElementById('customer-package-select');
+    const grid = document.getElementById('department-checkbox-grid');
+    const desc = document.getElementById('package-description');
+    const resetBtn = document.getElementById('apply-package-defaults');
+    if (!select || !grid) return;
+
+    function currentDefaults() {
+      return new Set(packageDefaults[select.value] || []);
+    }
+
+    function updateTags() {
+      const defaults = currentDefaults();
+      grid.querySelectorAll('.erp-dept-checkbox').forEach(function (label) {
+        const slug = label.dataset.slug;
+        const input = label.querySelector('input[type="checkbox"]');
+        const defaultTag = label.querySelector('.erp-dept-tag--default');
+        const extraTag = label.querySelector('.erp-dept-tag--extra');
+        const checked = input && input.checked;
+        const inDefault = defaults.has(slug);
+        if (defaultTag) defaultTag.hidden = !(checked && inDefault);
+        if (extraTag) extraTag.hidden = !(checked && !inDefault);
+      });
+    }
+
+    function applyDefaults() {
+      const defaults = currentDefaults();
+      grid.querySelectorAll('input[type="checkbox"]').forEach(function (input) {
+        input.checked = defaults.has(input.value);
+      });
+      updateTags();
+    }
+
+    select.addEventListener('change', function () {
+      if (desc) desc.textContent = packageDescriptions[select.value] || '';
+      applyDefaults();
+    });
+
+    if (resetBtn) resetBtn.addEventListener('click', applyDefaults);
+    grid.addEventListener('change', updateTags);
+    updateTags();
+  })();
+</script>
+
+{% endblock %}

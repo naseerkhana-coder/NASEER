@@ -12,6 +12,8 @@ from super_admin_service import (
     CHANGE_REQUEST_STATUSES,
     CUSTOMER_PLANS,
     CUSTOMER_STATUSES,
+    DEPARTMENT_PORTAL_SLUGS,
+    DEPARTMENT_SLUG_LABELS,
     ERP_ADMIN_SUBTOOLBAR,
     ERP_ADMIN_SUBTOOLBAR_SECTIONS,
     LICENSE_PRODUCTS,
@@ -20,11 +22,13 @@ from super_admin_service import (
     SUBSCRIPTION_STATUSES,
     TICKET_STATUSES,
     create_customer_admin_user,
+    get_customer_enabled_departments,
     get_platform_dashboard_data,
     get_system_health,
     list_audit_logs,
     list_branch_limits,
     list_change_requests,
+    list_customer_packages,
     list_customers,
     list_erp_settings,
     list_licenses,
@@ -151,7 +155,7 @@ def register_erp_admin_routes(
             platform_data=platform_data,
             quick_links=quick_links,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
-                sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/customers", methods=["GET", "POST"])
@@ -159,13 +163,23 @@ def register_erp_admin_routes(
     @super_admin_required
     def erp_admin_customers():
         db = get_db()
+        ensure_super_admin_schema(db)
+        db.commit()
+        packages = list_customer_packages(db)
+        package_defaults = {
+            pkg["package_code"]: pkg.get("default_department_slugs") or []
+            for pkg in packages
+        }
         edit_id = request.args.get("edit", type=int)
         edit_record = None
+        selected_departments: list[str] = []
         if edit_id:
             row = db.execute(
                 "SELECT * FROM erp_customers WHERE id=? AND is_platform=0", (edit_id,)
             ).fetchone()
             edit_record = dict(row) if row else None
+            if edit_record:
+                selected_departments = get_customer_enabled_departments(db, edit_id)
         if request.method == "POST":
             try:
                 record_id = request.form.get("record_id", type=int)
@@ -173,7 +187,9 @@ def register_erp_admin_routes(
                 admin_password = request.form.get("admin_password", "").strip()
                 if not record_id and admin_password and not admin_username:
                     raise ValueError("Admin username is required when setting a password.")
-                customer_id = save_customer(db, request.form, record_id=record_id)
+                form_data = request.form.to_dict(flat=True)
+                form_data["enabled_departments"] = request.form.getlist("enabled_departments")
+                customer_id = save_customer(db, form_data, record_id=record_id)
                 if not record_id and admin_username:
                     create_customer_admin_user(
                         db,
@@ -197,6 +213,10 @@ def register_erp_admin_routes(
                 flash("Username already exists for this customer. Choose a different login ID.")
         search = request.args.get("q", "")
         rows = list_customers(db, search=search)
+        for row in rows:
+            row["enabled_department_count"] = len(
+                get_customer_enabled_departments(db, row["id"])
+            )
         return render_template(
             "erp_admin/customers.html",
             rows=rows,
@@ -205,6 +225,11 @@ def register_erp_admin_routes(
             next_customer_code=next_customer_code(db),
             countries=COMPANY_COUNTRIES,
             plans=CUSTOMER_PLANS,
+            packages=packages,
+            package_defaults=package_defaults,
+            department_slugs=DEPARTMENT_PORTAL_SLUGS,
+            department_labels=DEPARTMENT_SLUG_LABELS,
+            selected_departments=selected_departments,
             statuses=CUSTOMER_STATUSES,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
                 sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
