@@ -347,6 +347,18 @@ def ensure_super_admin_schema(db) -> None:
     ):
         for column, col_type in columns:
             _ensure_column(db, table, column, col_type)
+    for column, col_type in (
+        ("license_no", "TEXT"),
+        ("customer_id", "INTEGER"),
+        ("product", "TEXT DEFAULT 'TRADEX ERP'"),
+        ("plan", "TEXT"),
+        ("start_date", "TEXT"),
+        ("expiry_date", "TEXT"),
+        ("status", "TEXT DEFAULT 'Active'"),
+        ("created_at", "TEXT"),
+        ("modified_at", "TEXT"),
+    ):
+        _ensure_column(db, "erp_licenses", column, col_type)
     if _table_exists(db, "erp_customers"):
         db.execute(
             "UPDATE erp_customers SET is_platform=0 WHERE is_platform IS NULL"
@@ -686,6 +698,7 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
 
 
 def list_licenses(db, search: str = "") -> list[dict[str, Any]]:
+    ensure_super_admin_schema(db)
     clauses = ["1=1"]
     params: list[Any] = []
     if search:
@@ -709,6 +722,7 @@ def list_licenses(db, search: str = "") -> list[dict[str, Any]]:
 
 
 def save_license(db, data: dict[str, Any], record_id: int | None = None) -> int:
+    ensure_super_admin_schema(db)
     now = _now_ts()
     license_no = (data.get("license_no") or "").strip()
     customer_code = (data.get("customer_code") or "").strip().upper()
@@ -717,32 +731,52 @@ def save_license(db, data: dict[str, Any], record_id: int | None = None) -> int:
     customer = get_customer_by_code(db, customer_code)
     if not customer:
         raise ValueError("Customer code not found.")
-    fields = (
+    customer_plan = (
+        str(customer["plan"] or "Standard").strip()
+        if "plan" in customer.keys()
+        else "Standard"
+    )
+    product = (data.get("product") or "TRADEX ERP").strip()
+    plan = (data.get("plan") or customer_plan or "Standard").strip()
+    start_date = (data.get("start_date") or _today()).strip()
+    expiry_date = (data.get("expiry_date") or "").strip()
+    status = (data.get("status") or "Active").strip()
+    update_fields = (
         license_no,
         customer["id"],
-        (data.get("product") or "TRADEX ERP").strip(),
-        (data.get("plan") or customer["plan"] or "Standard").strip(),
-        (data.get("start_date") or _today()).strip(),
-        (data.get("expiry_date") or "").strip(),
-        (data.get("status") or "Active").strip(),
+        product,
+        plan,
+        start_date,
+        expiry_date,
+        status,
         now,
     )
     if record_id:
         db.execute(
             "UPDATE erp_licenses SET license_no=?, customer_id=?, product=?, plan=?, "
             "start_date=?, expiry_date=?, status=?, modified_at=? WHERE id=?",
-            (*fields, record_id),
+            (*update_fields, record_id),
         )
         log_audit(db, None, None, "Update", "License Master", f"Updated license {license_no}")
         return record_id
-    db.execute(
+    cur = db.execute(
         "INSERT INTO erp_licenses("
         "license_no, customer_id, product, plan, start_date, expiry_date, status, created_at, modified_at"
         ") VALUES(?,?,?,?,?,?,?,?,?)",
-        (*fields, now),
+        (
+            license_no,
+            customer["id"],
+            product,
+            plan,
+            start_date,
+            expiry_date,
+            status,
+            now,
+            now,
+        ),
     )
     log_audit(db, None, None, "Create", "License Master", f"Created license {license_no}")
-    return db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return int(cur.lastrowid)
 
 
 def list_subscriptions(db) -> list[dict[str, Any]]:

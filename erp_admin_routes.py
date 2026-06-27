@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sqlite3
 import time
 
 from flask import flash, redirect, render_template, request, session, url_for
@@ -136,6 +137,11 @@ def register_erp_admin_routes(
     @super_admin_required
     def erp_admin_licenses():
         db = get_db()
+        try:
+            ensure_super_admin_schema(db)
+            db.commit()
+        except Exception:
+            logger.exception("erp_admin_licenses schema ensure failed")
         if request.method == "POST":
             try:
                 save_license(db, request.form)
@@ -143,7 +149,15 @@ def register_erp_admin_routes(
                 flash("License saved successfully.")
                 return redirect(url_for("erp_admin_licenses"))
             except ValueError as exc:
+                db.rollback()
                 flash(str(exc))
+            except (sqlite3.Error, KeyError, TypeError):
+                db.rollback()
+                logger.exception("erp_admin_licenses save failed")
+                flash(
+                    "Unable to save license. "
+                    "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+                )
         return render_template(
             "erp_admin/licenses.html",
             rows=list_licenses(db),
