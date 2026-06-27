@@ -3,7 +3,7 @@
 
   var PRO_THEME_STORAGE_KEY = 'maxek_pro_theme';
   var PRO_THEMES = ['midnight', 'business', 'erp-classic'];
-  var DEFAULT_PRO_THEME = 'midnight';
+  var DEFAULT_PRO_THEME = 'business';
 
   function normalizeProTheme(theme) {
     return PRO_THEMES.indexOf(theme) >= 0 ? theme : DEFAULT_PRO_THEME;

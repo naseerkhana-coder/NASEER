@@ -1,17 +1,31 @@
-<header class="pro-dash-header">
-  <div class="pro-dash-tabs" role="tablist" aria-label="Dashboard views">
-    <button type="button" class="pro-dash-tab is-active" role="tab" aria-selected="true" aria-controls="pro-dash-panel-default" data-pro-dash-tab="default">
-      <span class="pro-dash-tab-label">Overview</span>
-    </button>
-    <button type="button" class="pro-dash-tab" role="tab" aria-selected="false" aria-controls="pro-dash-panel-operations" data-pro-dash-tab="operations">
-      <span class="pro-dash-tab-label">Operations</span>
-    </button>
-    <button type="button" class="pro-dash-tab" role="tab" aria-selected="false" aria-controls="pro-dash-panel-finance" data-pro-dash-tab="finance">
-      <span class="pro-dash-tab-label">Finance</span>
-    </button>
+<header class="pro-dash-header pro-dash-header--business">
+  <div class="pro-dash-header-left">
+    <div class="pro-dash-tabs pro-dash-tabs--pills" role="tablist" aria-label="Dashboard views">
+      <button type="button" class="pro-dash-tab is-active" role="tab" aria-selected="true" aria-controls="pro-dash-panel-default" data-pro-dash-tab="default">
+        <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+        <span class="pro-dash-tab-label">Overview</span>
+      </button>
+      <button type="button" class="pro-dash-tab" role="tab" aria-selected="false" aria-controls="pro-dash-panel-operations" data-pro-dash-tab="operations">
+        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+        <span class="pro-dash-tab-label">Operations</span>
+      </button>
+      <button type="button" class="pro-dash-tab" role="tab" aria-selected="false" aria-controls="pro-dash-panel-finance" data-pro-dash-tab="finance">
+        <i class="fa-solid fa-indian-rupee-sign" aria-hidden="true"></i>
+        <span class="pro-dash-tab-label">Finance</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="pro-dash-header-search" role="search">
+    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" id="pro-dash-header-search" placeholder="Search modules, reports…" aria-label="Search" data-global-search-open readonly>
+    <kbd class="pro-dash-kbd" title="Global search">Ctrl+K</kbd>
   </div>
 
   <div class="pro-dash-header-actions">
+    <button type="button" class="pro-dash-header-icon-btn" title="Notifications" aria-label="Notifications">
+      <i class="fa-regular fa-bell" aria-hidden="true"></i>
+    </button>
     <a class="pro-dash-header-link" href="{{ url_for('help_desk') }}">
       <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
       Help
