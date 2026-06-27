@@ -11934,6 +11934,10 @@ def attendance():
         edit_role=wf_ctx.get("edit_role") or monthly_wf_ctx.get("edit_role"),
         can_reopen=wf_ctx.get("can_reopen", False) or monthly_wf_ctx.get("can_reopen", False),
         approval_id=wf_ctx.get("approval_id") or monthly_wf_ctx.get("approval_id"),
+        default_date=datetime.now().strftime("%Y-%m-%d"),
+        default_in_time="08:00",
+        default_out_time="17:00",
+        default_break_hours="1",
     )
 
 

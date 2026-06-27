@@ -1,4 +1,45 @@
 (function () {
+  var ATTENDANCE_FIELD_DEFAULTS = {
+    inTime: '08:00',
+    outTime: '17:00',
+    breakHours: '1'
+  };
+
+  function todayIsoDate() {
+    var today = new Date();
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
+    var dd = String(today.getDate()).padStart(2, '0');
+    return today.getFullYear() + '-' + mm + '-' + dd;
+  }
+
+  function applyAttendanceFieldDefaults(form, options) {
+    if (!form) return;
+    options = options || {};
+    if (options.skipIfEditing && form.querySelector('input[name="record_id"]')) return;
+
+    var dateInput = form.querySelector('[name="attendance_date"], [name="bulk_attendance_date"]');
+    var inTimeInput = form.querySelector('[name="in_time"], [name="bulk_in_time"]');
+    var outTimeInput = form.querySelector('[name="out_time"], [name="bulk_out_time"]');
+    var breakInput = form.querySelector('[name="break_hours"], [name="bulk_break_hours"]');
+
+    if (dateInput && !dateInput.value) {
+      dateInput.value = todayIsoDate();
+      syncHasValue(dateInput);
+    }
+    if (inTimeInput && !inTimeInput.value) {
+      inTimeInput.value = ATTENDANCE_FIELD_DEFAULTS.inTime;
+      syncHasValue(inTimeInput);
+    }
+    if (outTimeInput && !outTimeInput.value) {
+      outTimeInput.value = ATTENDANCE_FIELD_DEFAULTS.outTime;
+      syncHasValue(outTimeInput);
+    }
+    if (breakInput && !breakInput.value) {
+      breakInput.value = ATTENDANCE_FIELD_DEFAULTS.breakHours;
+      syncHasValue(breakInput);
+    }
+  }
+
   function syncHasValue(field) {
     if (!field) return;
     field.classList.toggle('has-value', field.value !== '');
@@ -489,6 +530,7 @@
     if (!(staffType && staffType.value) && !subcontractorOnly) {
       toggleTradeDesignationRows();
     }
+    applyAttendanceFieldDefaults(form, { skipIfEditing: true });
     initSubcontractorBulkAttendance();
   }
 
@@ -712,14 +754,7 @@
       }
     });
 
-    var dateInput = bulkForm.querySelector('#bulk_attendance_date');
-    if (dateInput && !dateInput.value) {
-      var today = new Date();
-      var mm = String(today.getMonth() + 1).padStart(2, '0');
-      var dd = String(today.getDate()).padStart(2, '0');
-      dateInput.value = today.getFullYear() + '-' + mm + '-' + dd;
-      syncHasValue(dateInput);
-    }
+    applyAttendanceFieldDefaults(bulkForm);
   }
 
   document.addEventListener('DOMContentLoaded', initAttendanceForm);
