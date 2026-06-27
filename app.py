@@ -3360,9 +3360,29 @@ STAFF_SALARY_COMPONENT_OPTIONS = [
 
 
 def ensure_staff_hr_tables(db):
-    """Salary split-up, increments, travel tiers, company provision flags."""
-    _ensure_column(db, "staff", "company_room_provided", "TEXT DEFAULT 'No'")
-    _ensure_column(db, "staff", "company_food_provided", "TEXT DEFAULT 'No'")
+    """Staff master columns, salary split-up, increments, travel tiers."""
+    staff_master_columns = (
+        ("designation_id", "INTEGER"),
+        ("reporting_manager", "TEXT"),
+        ("workflow_role", "TEXT"),
+        ("ot_rate_per_hour", "REAL DEFAULT 0"),
+        ("holiday_pay_applicable", "TEXT DEFAULT 'No'"),
+        ("date_of_birth", "TEXT"),
+        ("gender", "TEXT"),
+        ("aadhaar_number", "TEXT"),
+        ("pan_number", "TEXT"),
+        ("bank_account", "TEXT"),
+        ("bank_name", "TEXT"),
+        ("ifsc_code", "TEXT"),
+        ("branch_name", "TEXT"),
+        ("id_proof", "TEXT"),
+        ("aadhaar_document", "TEXT"),
+        ("pan_document", "TEXT"),
+        ("company_room_provided", "TEXT DEFAULT 'No'"),
+        ("company_food_provided", "TEXT DEFAULT 'No'"),
+    )
+    for column, col_type in staff_master_columns:
+        _ensure_column(db, "staff", column, col_type)
     db.execute("""
         CREATE TABLE IF NOT EXISTS staff_salary_components(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -3909,8 +3929,6 @@ def prepare_staff_page_db(db):
     ensure_staff_hr_tables(db)
     ensure_staff_bonus_table(db)
     ensure_payroll_tables(db)
-    _ensure_column(db, "staff", "date_of_birth", "TEXT")
-    _ensure_column(db, "staff", "gender", "TEXT")
     db.commit()
 
 
@@ -5410,6 +5428,10 @@ def ensure_runtime_schema(db=None, force=False):
     ensure_backup_schema(db)
     ensure_cost_planning_tables(db)
     ensure_payroll_tables(db)
+    try:
+        ensure_staff_hr_tables(db)
+    except Exception:
+        app.logger.exception("Staff HR schema bootstrap failed")
     ensure_attendance_master_schema(db)
     try:
         ensure_subcontractor_rate_tables(db)
