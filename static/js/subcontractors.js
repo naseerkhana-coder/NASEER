@@ -104,7 +104,10 @@ document.addEventListener('DOMContentLoaded', function () {
       clone.hidden = false;
       clone.removeAttribute('data-manpower-row-template');
       clone.setAttribute('data-manpower-row', '');
-      clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+      clone.querySelectorAll('input, select').forEach(function (el) {
+        el.disabled = false;
+        if (el.tagName === 'INPUT') el.value = '';
+      });
       clone.querySelectorAll('select').forEach(function (el) { el.selectedIndex = 0; });
       container.appendChild(clone);
       addBtn.disabled = countRows() >= max;

@@ -122,7 +122,7 @@
               {% endfor %}
               <tr data-manpower-row data-manpower-row-template hidden>
                 <td>
-                  <select name="mp_trade_name[]" data-trade-select>
+                  <select name="mp_trade_name[]" data-trade-select disabled>
                     <option value="">Select trade</option>
                     {% for trade in trades %}
                     <option value="{{ trade.trade_name }}">{{ trade.trade_name }}</option>
@@ -130,13 +130,13 @@
                   </select>
                 </td>
                 <td>
-                  <select name="mp_rate_unit[]">
+                  <select name="mp_rate_unit[]" disabled>
                     <option value="Day">Per Day</option>
                     <option value="Hour">Per Hour</option>
                   </select>
                 </td>
-                <td><input name="mp_working_hours[]" type="number" step="0.5" min="1" max="24" placeholder="8"></td>
-                <td><input name="mp_salary_amount[]" type="number" step="0.01" min="0" placeholder="0"></td>
+                <td><input name="mp_working_hours[]" type="number" step="0.5" min="1" max="24" placeholder="8" disabled></td>
+                <td><input name="mp_salary_amount[]" type="number" step="0.01" min="0" placeholder="0" disabled></td>
                 <td>
                   <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-manpower-remove aria-label="Remove trade"><i class="fa-solid fa-trash"></i></button>
                 </td>

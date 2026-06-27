@@ -4836,10 +4836,8 @@ def get_attendance_form_worker_data():
         "ORDER BY s.staff_name, s.employee_code"
     )
     company_worker_rows = query_db(
-        "SELECT id, worker_code, worker_name, photo, designation, worker_category "
-        "FROM workers "
+        "SELECT id, worker_code, worker_name, photo, designation FROM workers "
         "WHERE (status IS NULL OR status = 'Active') "
-        "AND subcontractor_id IS NULL "
         "AND COALESCE(worker_category, 'Company Staff') != 'Sub Contractor Staff' "
         "ORDER BY worker_name, worker_code"
     )
@@ -4862,8 +4860,6 @@ def get_attendance_form_worker_data():
         item["worker_source"] = "staff"
         item["ref"] = format_attendance_worker_ref(item["id"], "staff")
         item["trade_id"] = None
-        item["worker_category"] = "Company Staff"
-        item["subcontractor_id"] = None
         company_staff.append(item)
     for row in company_worker_rows:
         item = dict(row)
@@ -4871,8 +4867,6 @@ def get_attendance_form_worker_data():
         item["ref"] = format_attendance_worker_ref(item["id"], "worker")
         item["designation_id"] = resolve_designation_id_by_name(item.get("designation"))
         item["trade_id"] = None
-        item["worker_category"] = (item.get("worker_category") or "Company Staff").strip()
-        item["subcontractor_id"] = None
         company_staff.append(item)
     company_staff.sort(
         key=lambda item: (
@@ -4887,7 +4881,6 @@ def get_attendance_form_worker_data():
         item["ref"] = format_attendance_worker_ref(item["id"], "worker")
         item["designation_id"] = None
         item["trade_id"] = resolve_trade_id_by_name(item.get("designation"))
-        item["worker_category"] = "Sub Contractor Staff"
         subcontractor_workers.append(item)
     return {
         "company_staff": company_staff,
@@ -4966,20 +4959,10 @@ def ensure_designations_table(db):
     )
 
 
-def normalize_attendance_worker_categories(db):
-    """Keep subcontractor-linked workers out of the company staff attendance list."""
-    db.execute(
-        "UPDATE workers SET worker_category='Sub Contractor Staff' "
-        "WHERE subcontractor_id IS NOT NULL "
-        "AND COALESCE(worker_category, 'Company Staff') != 'Sub Contractor Staff'"
-    )
-
-
 def ensure_attendance_master_schema(db):
     """Trades/designations and attendance FK columns used by timesheet joins."""
     ensure_trades_table(db)
     ensure_designations_table(db)
-    normalize_attendance_worker_categories(db)
     _ensure_column(db, "attendance", "worker_source", "TEXT DEFAULT 'worker'")
     _ensure_column(db, "attendance", "approval_status", "TEXT DEFAULT 'Pending Checker'")
     _ensure_column(db, "attendance", "trade_id", "INTEGER")
