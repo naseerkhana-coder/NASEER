@@ -36,14 +36,14 @@
         <tr>
           <th>Worker ID</th>
           <th>Worker Name</th>
-          <th>Project No.</th>
+          <th>Designation</th>
+          <th>Project ID</th>
           <th>Project Name</th>
-          <th>Date</th>
-          <th>In Time</th>
-          <th>Out Time</th>
-          <th>Break (hrs)</th>
-          <th>Worked (hrs)</th>
-          <th>OT (hrs)</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th>Break Time</th>
+          <th>Total Worked Hrs</th>
+          <th>Earned OT Hrs</th>
           <th>Workflow</th>
           <th>Actions</th>
         </tr>
@@ -53,9 +53,9 @@
         <tr>
           <td>{{ row.worker_code or '—' }}</td>
           <td>{{ row.worker_name or '—' }}</td>
+          <td>{{ row.designation or row.designation_name or row.trade_name or '—' }}</td>
           <td>{{ row.project_code or '—' }}</td>
           <td>{{ row.project_name or '—' }}</td>
-          <td>{{ row.attendance_date or '—' }}</td>
           <td>{{ row.in_time or '—' }}</td>
           <td>{{ row.out_time or '—' }}</td>
           <td>{{ format_decimal_hours(row.break_hours) }}</td>

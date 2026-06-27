@@ -476,20 +476,30 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>Worker Name</th><th>Worker ID</th><th>Project No.</th><th>Project Name</th><th>Trade</th><th>Designation</th><th>Date</th>
-            <th>Start</th><th>End</th><th>Break</th><th>Worked</th><th>OT</th><th>Workflow</th><th>Actions</th>
+            <th>Worker ID</th>
+            <th>Worker Name</th>
+            <th>Designation</th>
+            <th>Project ID</th>
+            <th>Project Name</th>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Break Time</th>
+            <th>Total Worked Hrs</th>
+            <th>Earned OT Hrs</th>
+            <th>Workflow</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for row in rows %}
           <tr>
             <td>{{ row.id }}</td>
-            <td>{{ row.worker_name or '—' }}</td>
             <td>{{ row.worker_code or '—' }}</td>
+            <td>{{ row.worker_name or '—' }}</td>
+            <td>{{ row.designation or row.designation_name or row.trade_name or '—' }}</td>
             <td>{{ row.project_code or '—' }}</td>
             <td>{{ row.project_name or '—' }}</td>
-            <td>{{ row.trade_name or '—' }}</td>
-            <td>{{ row.designation_name or '—' }}</td>
             <td>{{ row.attendance_date }}</td>
             <td>{{ row.in_time or '—' }}</td>
             <td>{{ row.out_time or '—' }}</td>
@@ -500,7 +510,7 @@
             <td>{{ maker_row_actions('attendance', 'attendance', row.id, row.approval_status, 'daily_timesheet') }}</td>
           </tr>
           {% else %}
-          <tr><td colspan="15">No attendance records yet.</td></tr>
+          <tr><td colspan="14">No attendance records yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
