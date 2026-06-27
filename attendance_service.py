@@ -343,7 +343,6 @@ def list_trades_for_subcontractor(db, subcontractor_id: int) -> list[dict]:
         "SELECT DISTINCT TRIM(designation) AS trade_name "
         "FROM workers "
         "WHERE subcontractor_id=? "
-        "AND COALESCE(worker_category, 'Company Staff') = 'Sub Contractor Staff' "
         "AND (status IS NULL OR status = 'Active') "
         "AND designation IS NOT NULL AND TRIM(designation) != '' "
         "ORDER BY trade_name",
@@ -373,7 +372,6 @@ def list_subcontractor_workers_for_attendance(
         "w.working_hours, w.subcontractor_id "
         "FROM workers w "
         "WHERE w.subcontractor_id=? "
-        "AND COALESCE(w.worker_category, 'Company Staff') = 'Sub Contractor Staff' "
         "AND (w.status IS NULL OR w.status = 'Active') "
     )
     params: list = [subcontractor_id]

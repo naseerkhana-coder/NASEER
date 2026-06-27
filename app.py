@@ -1275,6 +1275,13 @@ def backfill_subcontractor_codes(db):
 
 
 def ensure_subcontractor_rate_tables(db):
+    if _table_exists(db, "subcontractors"):
+        for column, col_type in (
+            ("subcontractor_code", "TEXT"),
+            ("rate_type", "TEXT"),
+            ("vendor_id", "INTEGER"),
+        ):
+            _ensure_column(db, "subcontractors", column, col_type)
     db.execute("""
         CREATE TABLE IF NOT EXISTS subcontractor_manpower_rates(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1335,7 +1342,7 @@ def _parse_subcontractor_manpower_rates():
         trade_name = (trade or "").strip()
         if not trade_name:
             continue
-        rate_unit = units[idx].strip() if idx < len(units) else "Day"
+        rate_unit = (units[idx] or "Day").strip() if idx < len(units) else "Day"
         try:
             working_hours = float(working_hours_list[idx] or 8) if idx < len(working_hours_list) else 8.0
         except ValueError:
@@ -4829,8 +4836,10 @@ def get_attendance_form_worker_data():
         "ORDER BY s.staff_name, s.employee_code"
     )
     company_worker_rows = query_db(
-        "SELECT id, worker_code, worker_name, photo, designation FROM workers "
+        "SELECT id, worker_code, worker_name, photo, designation, worker_category "
+        "FROM workers "
         "WHERE (status IS NULL OR status = 'Active') "
+        "AND subcontractor_id IS NULL "
         "AND COALESCE(worker_category, 'Company Staff') != 'Sub Contractor Staff' "
         "ORDER BY worker_name, worker_code"
     )
@@ -4853,6 +4862,8 @@ def get_attendance_form_worker_data():
         item["worker_source"] = "staff"
         item["ref"] = format_attendance_worker_ref(item["id"], "staff")
         item["trade_id"] = None
+        item["worker_category"] = "Company Staff"
+        item["subcontractor_id"] = None
         company_staff.append(item)
     for row in company_worker_rows:
         item = dict(row)
@@ -4860,6 +4871,8 @@ def get_attendance_form_worker_data():
         item["ref"] = format_attendance_worker_ref(item["id"], "worker")
         item["designation_id"] = resolve_designation_id_by_name(item.get("designation"))
         item["trade_id"] = None
+        item["worker_category"] = (item.get("worker_category") or "Company Staff").strip()
+        item["subcontractor_id"] = None
         company_staff.append(item)
     company_staff.sort(
         key=lambda item: (
@@ -4874,6 +4887,7 @@ def get_attendance_form_worker_data():
         item["ref"] = format_attendance_worker_ref(item["id"], "worker")
         item["designation_id"] = None
         item["trade_id"] = resolve_trade_id_by_name(item.get("designation"))
+        item["worker_category"] = "Sub Contractor Staff"
         subcontractor_workers.append(item)
     return {
         "company_staff": company_staff,
@@ -4952,10 +4966,20 @@ def ensure_designations_table(db):
     )
 
 
+def normalize_attendance_worker_categories(db):
+    """Keep subcontractor-linked workers out of the company staff attendance list."""
+    db.execute(
+        "UPDATE workers SET worker_category='Sub Contractor Staff' "
+        "WHERE subcontractor_id IS NOT NULL "
+        "AND COALESCE(worker_category, 'Company Staff') != 'Sub Contractor Staff'"
+    )
+
+
 def ensure_attendance_master_schema(db):
     """Trades/designations and attendance FK columns used by timesheet joins."""
     ensure_trades_table(db)
     ensure_designations_table(db)
+    normalize_attendance_worker_categories(db)
     _ensure_column(db, "attendance", "worker_source", "TEXT DEFAULT 'worker'")
     _ensure_column(db, "attendance", "approval_status", "TEXT DEFAULT 'Pending Checker'")
     _ensure_column(db, "attendance", "trade_id", "INTEGER")
@@ -5404,6 +5428,10 @@ def ensure_runtime_schema(db=None, force=False):
     ensure_payroll_tables(db)
     ensure_attendance_master_schema(db)
     try:
+        ensure_subcontractor_rate_tables(db)
+    except Exception:
+        app.logger.exception("Subcontractor labour rate schema bootstrap failed")
+    try:
         ensure_staff_monthly_attendance_schema(db)
     except Exception:
         app.logger.exception("Staff monthly attendance schema bootstrap failed")
@@ -5805,8 +5833,15 @@ def init_db():
     _ensure_column(db, "workers", "subcontractor_id", "INTEGER")
     _ensure_column(db, "workers", "project_id", "INTEGER")
     db.execute(
+        "UPDATE workers SET worker_category='Sub Contractor Staff' "
+        "WHERE subcontractor_id IS NOT NULL "
+        "AND (worker_category IS NULL OR TRIM(worker_category)='' "
+        "OR COALESCE(worker_category, 'Company Staff') = 'Company Staff')"
+    )
+    db.execute(
         "UPDATE workers SET worker_category='Company Staff' "
-        "WHERE worker_category IS NULL OR TRIM(worker_category)=''"
+        "WHERE subcontractor_id IS NULL "
+        "AND (worker_category IS NULL OR TRIM(worker_category)='')"
     )
     _ensure_column(db, "workers", "bank_account", "TEXT")
     _ensure_column(db, "workers", "bank_name", "TEXT")
@@ -10782,45 +10817,56 @@ def subcontractors():
             request.form.get("rate_type", "Labour Supply").strip()
         )
         status = request.form.get("status", "Active").strip()
-        if existing:
-            subcontractor_id = existing["id"]
-            db.execute(
-                "UPDATE subcontractors SET vendor_id=?, subcontractor_code=?, "
-                "subcontractor_name=?, rate_type=?, status=? WHERE id=?",
-                (
-                    vendor_id,
-                    subcontractor_code,
-                    subcontractor_name,
-                    rate_type,
-                    status,
-                    subcontractor_id,
-                ),
-            )
-        else:
-            cursor = db.execute(
-                "INSERT INTO subcontractors("
-                "vendor_id, subcontractor_code, subcontractor_name, rate_type, status"
-                ") VALUES(?,?,?,?,?)",
-                (
-                    vendor_id,
-                    subcontractor_code,
-                    subcontractor_name,
-                    rate_type,
-                    status,
-                ),
-            )
-            subcontractor_id = cursor.lastrowid
-
-        rate_error = _sync_subcontractor_rates(
-            db, subcontractor_id, rate_type, is_update=bool(existing)
-        )
-        if rate_error:
-            flash(rate_error)
+        try:
             if existing:
-                return redirect(url_for("subcontractors", edit=subcontractor_id) + "#add-subcontractor")
-            return redirect(url_for("subcontractors") + "#add-subcontractor")
+                subcontractor_id = existing["id"]
+                db.execute(
+                    "UPDATE subcontractors SET vendor_id=?, subcontractor_code=?, "
+                    "subcontractor_name=?, rate_type=?, status=? WHERE id=?",
+                    (
+                        vendor_id,
+                        subcontractor_code,
+                        subcontractor_name,
+                        rate_type,
+                        status,
+                        subcontractor_id,
+                    ),
+                )
+            else:
+                cursor = db.execute(
+                    "INSERT INTO subcontractors("
+                    "vendor_id, subcontractor_code, subcontractor_name, rate_type, status"
+                    ") VALUES(?,?,?,?,?)",
+                    (
+                        vendor_id,
+                        subcontractor_code,
+                        subcontractor_name,
+                        rate_type,
+                        status,
+                    ),
+                )
+                subcontractor_id = cursor.lastrowid
 
-        db.commit()
+            rate_error = _sync_subcontractor_rates(
+                db, subcontractor_id, rate_type, is_update=bool(existing)
+            )
+            if rate_error:
+                db.rollback()
+                flash(rate_error)
+                if existing:
+                    return redirect(url_for("subcontractors", edit=subcontractor_id) + "#add-subcontractor")
+                return redirect(url_for("subcontractors") + "#add-subcontractor")
+
+            db.commit()
+        except sqlite3.OperationalError as exc:
+            db.rollback()
+            flash(
+                "Could not save subcontractor labour rates — database needs an update. "
+                f"Contact admin. ({exc})"
+            )
+            if existing:
+                return redirect(url_for("subcontractors", edit=existing["id"]) + "#add-subcontractor")
+            return redirect(url_for("subcontractors") + "#add-subcontractor")
         if existing:
             flash(f"Subcontractor updated: {subcontractor_code or subcontractor_id}")
         else:

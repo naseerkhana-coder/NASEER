@@ -362,7 +362,8 @@
             return;
           }
           var subId = option.getAttribute('data-subcontractor-id') || '';
-          var matches = hasSub && subId === selectedSubId;
+          var category = option.getAttribute('data-worker-category') || 'Sub Contractor Staff';
+          var matches = hasSub && subId === selectedSubId && category === 'Sub Contractor Staff';
           option.hidden = !matches;
           if (!matches && option.selected) {
             option.selected = false;
@@ -381,6 +382,38 @@
 
       setRowVisible(subWorkerNameRow, hasSub);
       setRowVisible(subWorkerIdRow, hasSub);
+      updateWorkerPhoto();
+    }
+
+    function filterCompanyWorkers() {
+      var isCompany = staffType && staffType.value === 'Company Staff';
+      if (!isCompany) {
+        return;
+      }
+
+      [companyWorkerName, companyWorkerId].forEach(function (select) {
+        if (!select) return;
+        Array.prototype.forEach.call(select.options, function (option, index) {
+          if (index === 0) {
+            option.hidden = false;
+            return;
+          }
+          var category = option.getAttribute('data-worker-category') || 'Company Staff';
+          var subId = option.getAttribute('data-subcontractor-id') || '';
+          var matches = category === 'Company Staff' && !subId;
+          option.hidden = !matches;
+          if (!matches && option.selected) {
+            option.selected = false;
+          }
+        });
+        if (select.value) {
+          var current = select.options[select.selectedIndex];
+          if (!current || current.hidden) {
+            select.value = '';
+          }
+        }
+        syncHasValue(select);
+      });
       updateWorkerPhoto();
     }
 
@@ -431,6 +464,10 @@
         setRowVisible(subWorkerIdRow, false);
       } else {
         filterSubcontractorWorkers();
+      }
+
+      if (isCompany) {
+        filterCompanyWorkers();
       }
 
       if (verifyPanel && !isCompany && !isSub) verifyPanel.hidden = true;
