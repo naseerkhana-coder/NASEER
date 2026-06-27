@@ -343,10 +343,28 @@
 
 .pro-dash-logout-link {
   color: var(--pro-muted);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--pro-border);
+  background: var(--pro-card);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
 .pro-dash-logout-link:hover {
-  color: #fca5a5;
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-logout-link {
+  background: #ffffff;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-logout-link:hover {
+  background: #fef2f2;
+  border-color: rgba(239, 68, 68, 0.28);
 }
 
 
