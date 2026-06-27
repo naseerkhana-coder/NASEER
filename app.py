@@ -8133,12 +8133,36 @@ COMMAND_CENTRE_CARD_META = [
         "accent": "#14b8a6",
     },
     {
-        "slug": "plant-machinery",
+        "slug": "plant-operations",
         "card_label": "Plant",
         "category": "PLANT",
-        "description": "Asphalt, RMC, crusher, wet mix & plant operations",
+        "description": "Plant dashboard, master, crusher, wet mix & maintenance",
         "icon": "fa-industry",
         "accent": "#10b981",
+    },
+    {
+        "slug": "asphalt-plant",
+        "card_label": "Asphalt Plant",
+        "category": "PLANT",
+        "description": "Asphalt production, dispatch, QC & costing",
+        "icon": "fa-flask",
+        "accent": "#f59e0b",
+    },
+    {
+        "slug": "concrete-plant",
+        "card_label": "Concrete Plant",
+        "category": "PLANT",
+        "description": "RMC batching, transit dispatch & concrete QC",
+        "icon": "fa-cubes",
+        "accent": "#3b82f6",
+    },
+    {
+        "slug": "precast-yard",
+        "card_label": "Precast Yard",
+        "category": "PLANT",
+        "description": "Yard registry, casting, curing, dispatch & stock",
+        "icon": "fa-border-all",
+        "accent": "#8b5cf6",
     },
     {
         "slug": "engineering",
@@ -8180,6 +8204,10 @@ DEPARTMENT_ACCENT_EXTRAS = {
     "qc": "#06b6d4",
     "vehicle": "#0ea5e9",
     "plant-machinery": "#10b981",
+    "plant-operations": "#10b981",
+    "asphalt-plant": "#f59e0b",
+    "concrete-plant": "#3b82f6",
+    "precast-yard": "#8b5cf6",
     "planning-wbs": "#14b8a6",
     "tender": "#a855f7",
     "reports": "#6366f1",
@@ -8335,6 +8363,90 @@ def get_department_portals():
                 {"endpoint": "plant_maintenance", "label": "Breakdown Log", "icon": "fa-triangle-exclamation", "active_endpoints": ["plant_maintenance"]},
                 {"endpoint": "plant_dashboard", "label": "Equipment Dashboard", "icon": "fa-gauge-high", "active_endpoints": ["plant_dashboard"]},
                 {"endpoint": "reports", "label": "Reports", "icon": "fa-chart-line", "active_endpoints": ["reports", "download_report"]},
+            ],
+        },
+        {
+            "slug": "plant-operations",
+            "card_label": "Plant",
+            "title": "PLANT OPERATIONS",
+            "icon": "fa-industry",
+            "nav_slug": "plant-operations",
+            "summary_title": "Plant Operations Summary",
+            "quick_tabs": [
+                {"endpoint": "plant_dashboard", "label": "Dashboard"},
+                {"endpoint": "plant_plants", "label": "Plant Master"},
+                {"endpoint": "plant_crusher_production", "label": "Crusher"},
+                {"endpoint": "plant_wetmix_production", "label": "Wet Mix"},
+            ],
+            "menu": [
+                {"endpoint": "plant_dashboard", "label": "Plant Dashboard", "icon": "fa-gauge-high", "active_endpoints": ["plant_dashboard"]},
+                {"endpoint": "plant_plants", "label": "Plant Master", "icon": "fa-industry", "active_endpoints": ["plant_plants"]},
+                {"endpoint": "plant_360", "label": "Plant 360° View", "icon": "fa-circle-nodes", "active_endpoints": ["plant_360"]},
+                {"endpoint": "plant_crusher_production", "label": "Crusher Production", "icon": "fa-hammer", "active_endpoints": ["plant_crusher_production"]},
+                {"endpoint": "plant_wetmix_production", "label": "Wet Mix Production", "icon": "fa-layer-group", "active_endpoints": ["plant_wetmix_production"]},
+                {"endpoint": "plant_qc", "label": "Plant QC", "icon": "fa-vial", "active_endpoints": ["plant_qc"]},
+                {"endpoint": "plant_costing", "label": "Production Costing", "icon": "fa-indian-rupee-sign", "active_endpoints": ["plant_costing"]},
+                {"endpoint": "plant_maintenance", "label": "Maintenance", "icon": "fa-screwdriver-wrench", "active_endpoints": ["plant_maintenance"]},
+            ],
+        },
+        {
+            "slug": "asphalt-plant",
+            "card_label": "Asphalt Plant",
+            "title": "ASPHALT PLANT",
+            "icon": "fa-flask",
+            "nav_slug": "plant-operations",
+            "summary_title": "Asphalt Production Summary",
+            "quick_tabs": [
+                {"endpoint": "plant_asphalt_production", "label": "Production"},
+                {"endpoint": "plant_asphalt_dispatch", "label": "Dispatch"},
+                {"endpoint": "plant_qc", "label": "QC"},
+            ],
+            "menu": [
+                {"endpoint": "plant_asphalt_production", "label": "Asphalt Production", "icon": "fa-flask", "active_endpoints": ["plant_asphalt_production"]},
+                {"endpoint": "plant_asphalt_dispatch", "label": "Asphalt Dispatch", "icon": "fa-truck-ramp-box", "active_endpoints": ["plant_asphalt_dispatch", "plant_asphalt_dispatch_print"]},
+                {"endpoint": "plant_qc", "label": "Asphalt QC", "icon": "fa-vial", "active_endpoints": ["plant_qc"]},
+                {"endpoint": "plant_costing", "label": "Production Costing", "icon": "fa-indian-rupee-sign", "active_endpoints": ["plant_costing"]},
+                {"endpoint": "plant_dashboard", "label": "All Plants", "icon": "fa-gauge-high", "active_endpoints": ["plant_dashboard"]},
+            ],
+        },
+        {
+            "slug": "concrete-plant",
+            "card_label": "Concrete Plant",
+            "title": "CONCRETE / RMC PLANT",
+            "icon": "fa-cubes",
+            "nav_slug": "plant-operations",
+            "summary_title": "RMC Production Summary",
+            "quick_tabs": [
+                {"endpoint": "plant_rmc_production", "label": "Production"},
+                {"endpoint": "plant_rmc_dispatch", "label": "Dispatch"},
+                {"endpoint": "plant_qc", "label": "QC"},
+            ],
+            "menu": [
+                {"endpoint": "plant_rmc_production", "label": "RMC Production", "icon": "fa-cubes", "active_endpoints": ["plant_rmc_production"]},
+                {"endpoint": "plant_rmc_dispatch", "label": "RMC Dispatch", "icon": "fa-truck", "active_endpoints": ["plant_rmc_dispatch", "plant_rmc_dispatch_print"]},
+                {"endpoint": "plant_qc", "label": "Concrete QC", "icon": "fa-vial", "active_endpoints": ["plant_qc"]},
+                {"endpoint": "plant_costing", "label": "Production Costing", "icon": "fa-indian-rupee-sign", "active_endpoints": ["plant_costing"]},
+                {"endpoint": "plant_dashboard", "label": "All Plants", "icon": "fa-gauge-high", "active_endpoints": ["plant_dashboard"]},
+            ],
+        },
+        {
+            "slug": "precast-yard",
+            "card_label": "Precast Yard",
+            "title": "PRECAST YARD",
+            "icon": "fa-border-all",
+            "nav_slug": "plant-operations",
+            "summary_title": "Precast Yard Summary",
+            "quick_tabs": [
+                {"endpoint": "precast_yard", "label": "Dashboard"},
+                {"endpoint": "precast_yard_yards", "label": "Yards"},
+                {"endpoint": "plant_precast_production", "label": "Production"},
+            ],
+            "menu": [
+                {"endpoint": "precast_yard", "label": "Precast Dashboard", "icon": "fa-gauge-high", "active_endpoints": ["precast_yard"]},
+                {"endpoint": "precast_yard_yards", "label": "Yard Master", "icon": "fa-warehouse", "active_endpoints": ["precast_yard_yards"]},
+                {"endpoint": "plant_precast_production", "label": "Production", "icon": "fa-border-all", "active_endpoints": ["plant_precast_production"]},
+                {"endpoint": "plant_precast_dispatch", "label": "Dispatch", "icon": "fa-dolly", "active_endpoints": ["plant_precast_dispatch"]},
+                {"endpoint": "plant_qc", "label": "QC Records", "icon": "fa-vial", "active_endpoints": ["plant_qc"], "query": {"source": "Precast"}},
             ],
         },
         {
@@ -8959,6 +9071,10 @@ DEPARTMENT_WORKFLOW_MODULES = {
     "tender": ("boq", "project_creation"),
     "vehicle": (),
     "mechanical": (),
+    "plant-operations": (),
+    "asphalt-plant": (),
+    "concrete-plant": (),
+    "precast-yard": (),
     "qc": (),
     "administration": (),
     "reports": tuple(module for group in APPROVAL_MODULE_GROUPS.values() for module in group),
@@ -8974,6 +9090,10 @@ DEPARTMENT_REPORT_CATEGORIES = {
     "engineering": ("engineering", "management"),
     "subcontract": ("billing",),
     "mechanical": ("fleet_mechanical", "plant_operations"),
+    "plant-operations": ("plant_operations",),
+    "asphalt-plant": ("plant_operations",),
+    "concrete-plant": ("plant_operations",),
+    "precast-yard": ("plant_operations",),
     "vehicle": ("fleet_mechanical",),
     "qc": ("engineering",),
     "tender": ("billing",),
@@ -9404,6 +9524,74 @@ def _command_centre_card_stats(db, slug):
         pills = [
             {"label": "Machines", "value": str(machines)},
             {"label": "Due service", "value": str(due_service), "tone": "warn" if due_service else None},
+        ]
+    elif slug == "plant-operations":
+        active_plants = 0
+        open_jobs = 0
+        try:
+            _prepare_plant_db(db)
+            plant = plant_dashboard_stats(db)
+            active_plants = plant.get("active_plants") or 0
+            open_jobs = plant.get("open_maintenance_jobs") or 0
+        except Exception:
+            pass
+        pills = [
+            {"label": "Active plants", "value": str(active_plants)},
+            {"label": "Open jobs", "value": str(open_jobs), "tone": "warn" if open_jobs else None},
+        ]
+    elif slug == "asphalt-plant":
+        prod_ton = 0.0
+        disp_ton = 0.0
+        try:
+            _prepare_plant_db(db)
+            plant = plant_dashboard_stats(db)
+            prod_ton = plant.get("today_production_ton") or 0.0
+            disp_ton = plant.get("today_dispatch_ton") or 0.0
+        except Exception:
+            pass
+        pills = [
+            {"label": "Today prod (T)", "value": f"{prod_ton:.1f}"},
+            {"label": "Today dispatch (T)", "value": f"{disp_ton:.1f}"},
+        ]
+    elif slug == "concrete-plant":
+        prod_m3 = 0.0
+        disp_count = 0
+        try:
+            _prepare_plant_db(db)
+            plant = plant_dashboard_stats(db)
+            prod_m3 = plant.get("today_rmc_production_m3") or 0.0
+            disp_count = plant.get("today_rmc_dispatch_count") or 0
+        except Exception:
+            pass
+        pills = [
+            {"label": "Today prod (m³)", "value": f"{prod_m3:.1f}"},
+            {"label": "Dispatches", "value": str(disp_count)},
+        ]
+    elif slug == "precast-yard":
+        stock_units = 0.0
+        disp_count = 0
+        try:
+            _prepare_plant_db(db)
+            plant = plant_dashboard_stats(db)
+            stock_units = plant.get("precast_stock_units") or 0.0
+            disp_count = plant.get("today_precast_dispatch_count") or 0
+        except Exception:
+            pass
+        pills = [
+            {"label": "Stock (nos)", "value": f"{stock_units:.0f}"},
+            {"label": "Dispatches today", "value": str(disp_count)},
+        ]
+    elif slug == "administration":
+        inward = 0
+        if _table_exists(db, "office_inward_register"):
+            inward = _safe_scalar_count(
+                db,
+                "SELECT COUNT(*) AS c FROM office_inward_register "
+                "WHERE date(created_at) >= date('now', 'start of month')",
+            )
+        pills = [
+            {"label": "Inward (month)", "value": str(inward)},
+            {"label": "Office", "value": "Active", "tone": "ok"},
         ]
     if not pills and stat_cards:
         pills = [
