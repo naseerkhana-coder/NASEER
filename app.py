@@ -17890,18 +17890,15 @@ def timesheet():
     db = get_db()
     ensure_attendance_master_schema(db)
     db.commit()
-    rows_raw = list_daily_attendance_records(db, limit=50)
-    rows = [
-        {
-            **row,
-            "start_time": row.get("in_time"),
-            "end_time": row.get("out_time"),
-            "worked_hours": row.get("total_hours"),
-            "overtime": row.get("ot_hours"),
-        }
-        for row in rows_raw
-    ]
-    return render_template("timesheet.html", rows=rows)
+    subcontractor_nav = request.args.get("nav") == "subcontract"
+    rows = list_daily_attendance_records(
+        db, subcontractor_only=subcontractor_nav
+    )
+    return render_template(
+        "timesheet.html",
+        rows=rows,
+        subcontractor_nav=subcontractor_nav,
+    )
 
 
 @app.route("/wbs")

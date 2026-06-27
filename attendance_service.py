@@ -136,7 +136,7 @@ def list_daily_attendance_records(
     )
     if subcontractor_only:
         sql += "WHERE COALESCE(w.worker_category, '') = 'Sub Contractor Staff' "
-    sql += "ORDER BY a.id DESC"
+    sql += "ORDER BY a.attendance_date DESC, a.id DESC"
     if limit is not None:
         sql += f" LIMIT {int(limit)}"
     rows = db.execute(sql).fetchall()
