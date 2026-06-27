@@ -77,6 +77,12 @@
   --maxek-toolbar-bg: #f8fafc;
   --pro-shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px -4px rgba(15, 23, 42, 0.08);
   --pro-shadow-elevated: 0 2px 8px rgba(15, 23, 42, 0.06);
+  /* Light data-entry surfaces (override :root navy form tokens) */
+  --bg-form-card: #ffffff;
+  --bg-form-card-top: #ffffff;
+  --bg-form-input: #ffffff;
+  --border-form: #cbd5e1;
+  --form-accent: #14b8a6;
 }
 
 /* ── Theme 3: ERP Classic Dark ── */
@@ -3211,4 +3217,170 @@
   background: var(--pro-accent-soft);
   border-color: var(--pro-accent);
   box-shadow: inset 0 -2px 0 var(--pro-accent);
+}
+
+/* Business Light — module + modal form fields (white inputs; beats navy --bg-form-input) */
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-form-card,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal-card,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-form-card,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal-card {
+  background: #ffffff;
+  color: #1e293b;
+  border-color: #e2e8f0;
+  box-shadow: var(--pro-shadow-card);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input:not([type="checkbox"]):not([type="radio"]),
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field select,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input:not([type="checkbox"]):not([type="radio"]),
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field select,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input:not([type="checkbox"]):not([type="radio"]),
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field select,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-field-auto-number,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field select,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field select,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field select,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-field-auto-number {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input::placeholder,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea::placeholder,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input::placeholder,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea::placeholder,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input::placeholder,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea::placeholder,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input::placeholder,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea::placeholder,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input::placeholder,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea::placeholder,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input::placeholder,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field label,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field label,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field label,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-field-auto-number label,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field label,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field label,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field label,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-field-auto-number label {
+  color: #334155;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input[type="date"],
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input[type="month"],
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input[type="datetime-local"],
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input[type="date"],
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input[type="month"],
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input[type="datetime-local"],
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input[type="date"],
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input[type="month"],
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input[type="datetime-local"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input[type="date"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input[type="month"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input[type="datetime-local"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input[type="date"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input[type="month"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input[type="datetime-local"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input[type="date"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input[type="month"],
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input[type="datetime-local"] {
+  color-scheme: light;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field select option,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field select option,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field select option,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field select option,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field select option,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field select option {
+  background: #ffffff;
+  color: #1e293b;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field select:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field select:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field select:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea:focus,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-field-auto-number:focus-within,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field select:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field select:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field select:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea:focus,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-field-auto-number:focus-within {
+  background: #ffffff;
+  color: #1e293b;
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.28);
+  outline: none;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field select.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input:not(:placeholder-shown),
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea:not(:placeholder-shown),
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field select.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input:not(:placeholder-shown),
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea:not(:placeholder-shown),
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field select.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea.has-value,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input:not(:placeholder-shown),
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea:not(:placeholder-shown),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field select.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field input:not(:placeholder-shown),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field textarea:not(:placeholder-shown),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field select.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field input:not(:placeholder-shown),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field textarea:not(:placeholder-shown),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field select.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea.has-value,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field input:not(:placeholder-shown),
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field textarea:not(:placeholder-shown) {
+  background: #ffffff;
+  color: #1e293b;
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field:focus-within label,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field:focus-within label,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field:focus-within label,
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-field-auto-number:focus-within label,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .pro-dash-content--module .erp-field:focus-within label,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-form-card .erp-field:focus-within label,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-modal .erp-field:focus-within label,
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .erp-field-auto-number:focus-within label {
+  color: #0d9488;
 }
