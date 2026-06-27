@@ -416,6 +416,96 @@ DASHBOARD_SHELL_NAV_GROUPS: list[dict] = [
     },
 ]
 
+# Super Admin platform tools — appended to pro dashboard sidebar when user is super admin.
+DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP: dict = {
+    "label": "ERP Administration",
+    "icon": "fa-shield-halved",
+    "slug": "erp-administration",
+    "items": [
+        {
+            "endpoint": "erp_admin_customers",
+            "label": "Customer Master",
+            "icon": "fa-building-user",
+            "active_endpoints": ["erp_admin_customers"],
+        },
+        {
+            "endpoint": "erp_admin_licenses",
+            "label": "License Master",
+            "icon": "fa-key",
+            "active_endpoints": ["erp_admin_licenses"],
+        },
+        {
+            "endpoint": "erp_admin_subscriptions",
+            "label": "Subscriptions",
+            "icon": "fa-credit-card",
+            "active_endpoints": ["erp_admin_subscriptions"],
+        },
+        {
+            "endpoint": "erp_admin_user_limits",
+            "label": "User Limits",
+            "icon": "fa-users-gear",
+            "active_endpoints": ["erp_admin_user_limits"],
+        },
+        {
+            "endpoint": "erp_admin_branch_limits",
+            "label": "Branch Limits",
+            "icon": "fa-code-branch",
+            "active_endpoints": ["erp_admin_branch_limits"],
+        },
+        {
+            "endpoint": "erp_admin_storage_limits",
+            "label": "Storage Limits",
+            "icon": "fa-hard-drive",
+            "active_endpoints": ["erp_admin_storage_limits"],
+        },
+        {
+            "endpoint": "erp_admin_login_monitoring",
+            "label": "Login Monitoring",
+            "icon": "fa-right-to-bracket",
+            "active_endpoints": ["erp_admin_login_monitoring"],
+        },
+        {
+            "endpoint": "erp_admin_support_tickets",
+            "label": "Support Tickets",
+            "icon": "fa-life-ring",
+            "active_endpoints": ["erp_admin_support_tickets", "customer_support_tickets"],
+        },
+        {
+            "endpoint": "erp_admin_change_requests",
+            "label": "Change Requests",
+            "icon": "fa-code-pull-request",
+            "active_endpoints": ["erp_admin_change_requests"],
+        },
+        {
+            "endpoint": "erp_admin_settings",
+            "label": "ERP Settings",
+            "icon": "fa-sliders",
+            "active_endpoints": ["erp_admin_settings"],
+        },
+        {
+            "endpoint": "erp_admin_audit_logs",
+            "label": "Audit Logs",
+            "icon": "fa-list-check",
+            "active_endpoints": ["erp_admin_audit_logs"],
+        },
+        {
+            "endpoint": "erp_admin_system_health",
+            "label": "System Health",
+            "icon": "fa-heart-pulse",
+            "active_endpoints": ["erp_admin_system_health"],
+        },
+    ],
+}
+
+
+def build_dashboard_shell_nav_groups(*, super_admin: bool = False) -> list[dict]:
+    """Pro dashboard sidebar groups; ERP Administration is super-admin only."""
+    groups = list(DASHBOARD_SHELL_NAV_GROUPS)
+    if super_admin:
+        groups.append(DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP)
+    return groups
+
+
 # Overview tab quick links (mockup bottom-right panel).
 DASHBOARD_OVERVIEW_QUICK_LINKS: list[dict[str, str]] = [
     {"endpoint": "dpr_entry", "label": "Create DPR", "icon": "fa-clipboard-list", "accent": "#22c55e"},

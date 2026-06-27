@@ -345,6 +345,7 @@ from ui_shell_config import (
     DASHBOARD_SHELL_FAVORITES,
     DASHBOARD_SHELL_NAV_GROUPS,
     DASHBOARD_SHELL_SETTINGS,
+    build_dashboard_shell_nav_groups,
     GLOBAL_SEARCH_CATEGORIES,
     HELP_CENTER_ITEMS,
     MAIN_DASHBOARD_BOTTOM_WIDGETS,
@@ -7712,6 +7713,8 @@ def module_sub_toolbar_for_request(endpoint):
         return PRECAST_YARD_SUBTOOLBAR, "Precast Yard"
     if endpoint == "plant_qc" and request.args.get("source") == "Precast":
         return PRECAST_YARD_SUBTOOLBAR, "Precast Yard"
+    if endpoint in ERP_ADMIN_ACTIVE_ENDPOINTS:
+        return ERP_ADMIN_SUBTOOLBAR, "ERP Administration"
     return None, None
 
 
@@ -8009,7 +8012,7 @@ def inject_maxek_layout():
         "command_centre_branch": session.get("branch", branch_options[0] if branch_options else "Head Office"),
         "command_user_role": role_label,
         "dashboard_shell_favorites": DASHBOARD_SHELL_FAVORITES,
-        "dashboard_shell_nav_groups": DASHBOARD_SHELL_NAV_GROUPS,
+        "dashboard_shell_nav_groups": build_dashboard_shell_nav_groups(super_admin=super_admin),
         "dashboard_shell_settings": DASHBOARD_SHELL_SETTINGS,
     }
 
@@ -10123,7 +10126,9 @@ def render_choice_b_dashboard():
         task_overview_series=task_overview_series,
         user_dashboard_prefs=user_prefs,
         dashboard_shell_favorites=DASHBOARD_SHELL_FAVORITES,
-        dashboard_shell_nav_groups=DASHBOARD_SHELL_NAV_GROUPS,
+        dashboard_shell_nav_groups=build_dashboard_shell_nav_groups(
+            super_admin=is_super_admin_user()
+        ),
         dashboard_shell_settings=DASHBOARD_SHELL_SETTINGS,
         dashboard_chart_series=chart_series,
         dashboard_stats=stats,

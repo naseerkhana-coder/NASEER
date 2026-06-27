@@ -64,7 +64,13 @@
     </a>
 
     {% for group in dashboard_shell_nav_groups|default([]) %}
-    <details class="pro-dash-nav-group"{% if loop.first %} open{% endif %}>
+    {% set group_active = namespace(value=false) %}
+    {% for item in group.get('items', []) %}
+      {% if request.endpoint == item.endpoint or request.endpoint in item.get('active_endpoints', [item.endpoint]) %}
+        {% set group_active.value = true %}
+      {% endif %}
+    {% endfor %}
+    <details class="pro-dash-nav-group"{% if group_active.value or loop.first %} open{% endif %}>
       <summary class="pro-dash-nav-group-summary">
         <span class="pro-dash-nav-group-title">
           <i class="fa-solid {{ group.icon }}" aria-hidden="true"></i>
