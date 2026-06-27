@@ -6,7 +6,7 @@
     {% if section.label %}
     <p class="erp-sub-toolbar-section-label">{{ section.label }}</p>
     {% endif %}
-    {{ erp_sub_toolbar_secondary(section.items, section.label) }}
+    {{ erp_sub_toolbar_secondary(section['items'], section.label) }}
   </div>
   {% endfor %}
 </div>
