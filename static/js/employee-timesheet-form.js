@@ -113,6 +113,27 @@
     writeDraft(ctx);
   }
 
+  function applyTodayDayDefaults(form) {
+    if (form.querySelector('input[name="timesheet_id"]')) return;
+    var dayNum = new Date().getDate();
+    var prefix = 'day_' + dayNum + '_';
+    var defaults = {
+      start_time: '8:00',
+      start_ampm: 'am',
+      end_time: '5:00',
+      end_ampm: 'pm',
+      break_hours: '1',
+    };
+    Object.keys(defaults).forEach(function (suffix) {
+      var el = form.querySelector('[name="' + prefix + suffix + '"]');
+      if (!el || el.value) return;
+      el.value = defaults[suffix];
+      if (el.tagName === 'SELECT') {
+        el.classList.toggle('has-value', el.value !== '');
+      }
+    });
+  }
+
   function initTimesheetForm() {
     var form = document.querySelector('[data-timesheet-form]');
     if (!form) return;
@@ -137,6 +158,7 @@
 
     restoreContext(form);
     filterOptions();
+    applyTodayDayDefaults(form);
     source.addEventListener('change', function () {
       filterOptions();
       persistContext(form);
@@ -167,6 +189,7 @@
         }
         filterOptions();
         clearEmployeeFields(form);
+        applyTodayDayDefaults(form);
       });
     }
   }

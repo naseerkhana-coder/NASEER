@@ -1,0 +1,304 @@
+{% set form_endpoint = form_endpoint|default('attendance') %}
+{% set form_mode = form_mode|default('attendance') %}
+{% set entry_label = 'Timesheet' if form_mode == 'timesheet' else 'Attendance' %}
+{% set cancel_url = url_for(form_endpoint, nav='subcontract') if subcontractor_nav else url_for(form_endpoint) %}
+  {% if subcontractor_nav %}
+  <div class="erp-form-card erp-form-card--tabs" style="margin-bottom: 1rem; padding: 0.75rem 1rem;">
+    <div class="erp-btn-group" role="tablist" aria-label="Subcontractor attendance entry mode">
+      <button type="button" class="erp-btn erp-btn-primary" data-sub-att-mode="single" id="sub_att_mode_single">
+        <i class="fa-solid fa-user"></i> Single Entry
+      </button>
+      <button type="button" class="erp-btn erp-btn-ghost" data-sub-att-mode="bulk" id="sub_att_mode_bulk">
+        <i class="fa-solid fa-users"></i> Bulk by Trade
+      </button>
+    </div>
+  </div>
+  {% endif %}
+  <div class="erp-form-card" id="add-attendance"{% if subcontractor_nav %} data-subcontractor-attendance{% endif %}>
+    <h3 class="erp-form-title">{% if edit_record %}Edit {{ entry_label }} #{{ edit_record.id }}{% if edit_role %} ({{ edit_role|title }}){% endif %}{% elif subcontractor_nav %}Subcontractor {{ entry_label }} — Single Entry{% else %}Add {{ entry_label }}{% endif %}</h3>
+    <form method="post" class="erp-form-grid" data-attendance-form data-photos-base="{{ url_for('static', filename='photos/') }}"
+      {% if subcontractor_nav %}data-subcontractor-only="1"{% endif %}
+      {% if edit_record %}
+      data-edit-worker-ref="{{ ('s:' ~ edit_record.worker_id|string) if edit_record.worker_source == 'staff' else ('w:' ~ edit_record.worker_id|string) }}"
+      data-edit-staff-type="{{ edit_staff_type }}"
+      data-edit-subcontractor-id="{{ edit_subcontractor_id }}"
+      {% endif %}>
+      {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
+      <div class="erp-field span-2" id="attendance_staff_type_row"{% if subcontractor_nav %} hidden{% endif %}>
+        <select id="attendance_staff_type">
+          <option value="">Select staff type</option>
+          <option value="Company Staff" {% if edit_staff_type == 'Company Staff' %}selected{% endif %}>Company Staff</option>
+          <option value="Sub Contractor Staff" {% if edit_staff_type == 'Sub Contractor Staff' or subcontractor_nav %}selected{% endif %}>Sub Contractor Staff</option>
+        </select>
+        <label>Staff Type</label>
+      </div>
+      <div class="erp-field span-2" id="attendance_company_worker_name_row" hidden>
+        <select id="attendance_company_worker_name">
+          <option value="">Select worker name</option>
+          {% for item in company_staff %}
+          {% set worker_ref = item.ref %}
+          {% set worker_label = item.worker_name or item.worker_code or ('Worker #' ~ item.id) %}
+          <option value="{{ worker_ref }}"
+            data-worker-code="{{ item.worker_code or '' }}"
+            data-worker-photo="{{ item.photo or '' }}"
+            data-worker-label="{{ worker_label }}"
+            data-worker-category="{{ item.worker_category or 'Company Staff' }}"
+            data-subcontractor-id=""
+            data-designation-id="{{ item.designation_id or '' }}"
+            data-trade-id="{{ item.trade_id or '' }}">
+            {{ worker_label }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>Worker Name</label>
+      </div>
+      <div class="erp-field" id="attendance_company_worker_id_row" hidden>
+        <select id="attendance_company_worker_id">
+          <option value="">Select worker ID</option>
+          {% for item in company_staff %}
+          {% set worker_ref = item.ref %}
+          {% set worker_label = item.worker_name or item.worker_code or ('Worker #' ~ item.id) %}
+          <option value="{{ worker_ref }}"
+            data-worker-code="{{ item.worker_code or '' }}"
+            data-worker-photo="{{ item.photo or '' }}"
+            data-worker-label="{{ worker_label }}"
+            data-worker-category="{{ item.worker_category or 'Company Staff' }}"
+            data-subcontractor-id=""
+            data-designation-id="{{ item.designation_id or '' }}"
+            data-trade-id="{{ item.trade_id or '' }}">
+            {{ item.worker_code or '—' }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>ID Number</label>
+      </div>
+      <div class="erp-field span-2" id="attendance_subcontractor_name_row"{% if subcontractor_nav %} {% else %} hidden{% endif %}>
+        <select id="attendance_subcontractor_name">
+          <option value="">Select subcontractor name</option>
+          {% for item in subcontractors %}
+          <option value="{{ item.id }}"
+            data-subcontractor-code="{{ item.subcontractor_code or '' }}"
+            data-subcontractor-label="{{ item.subcontractor_name }}">
+            {{ item.subcontractor_name }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>Subcontractor Name</label>
+      </div>
+      <div class="erp-field" id="attendance_subcontractor_id_row"{% if subcontractor_nav %} {% else %} hidden{% endif %}>
+        <select id="attendance_subcontractor_id">
+          <option value="">Select subcontractor ID</option>
+          {% for item in subcontractors %}
+          <option value="{{ item.id }}"
+            data-subcontractor-code="{{ item.subcontractor_code or '' }}"
+            data-subcontractor-label="{{ item.subcontractor_name }}">
+            {{ item.subcontractor_code or '—' }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>Subcontractor ID</label>
+      </div>
+      <div class="erp-field span-2" id="attendance_sub_worker_name_row" hidden>
+        <select id="attendance_sub_worker_name">
+          <option value="">Select worker name</option>
+          {% for item in subcontractor_workers %}
+          {% set worker_ref = item.ref %}
+          {% set worker_label = item.worker_name or item.worker_code or ('Worker #' ~ item.id) %}
+          <option value="{{ worker_ref }}"
+            data-subcontractor-id="{{ item.subcontractor_id }}"
+            data-worker-category="Sub Contractor Staff"
+            data-worker-code="{{ item.worker_code or '' }}"
+            data-worker-photo="{{ item.photo or '' }}"
+            data-worker-label="{{ worker_label }}"
+            data-designation-id="{{ item.designation_id or '' }}"
+            data-trade-id="{{ item.trade_id or '' }}"
+            data-working-hours="{{ item.working_hours or '' }}">
+            {{ worker_label }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>Worker Name</label>
+      </div>
+      <div class="erp-field" id="attendance_sub_worker_id_row" hidden>
+        <select id="attendance_sub_worker_id">
+          <option value="">Select worker ID</option>
+          {% for item in subcontractor_workers %}
+          {% set worker_ref = item.ref %}
+          {% set worker_label = item.worker_name or item.worker_code or ('Worker #' ~ item.id) %}
+          <option value="{{ worker_ref }}"
+            data-subcontractor-id="{{ item.subcontractor_id }}"
+            data-worker-category="Sub Contractor Staff"
+            data-worker-code="{{ item.worker_code or '' }}"
+            data-worker-photo="{{ item.photo or '' }}"
+            data-worker-label="{{ worker_label }}"
+            data-designation-id="{{ item.designation_id or '' }}"
+            data-trade-id="{{ item.trade_id or '' }}"
+            data-working-hours="{{ item.working_hours or '' }}">
+            {{ item.worker_code or '—' }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>ID Number</label>
+      </div>
+      <input type="hidden" name="worker_id" id="attendance_worker_ref" value="">
+      <div class="erp-field span-2 attendance-worker-verify" id="attendance_worker_verify" hidden>
+        <div class="attendance-worker-verify-panel">
+          <img id="attendance_worker_photo" class="employee-detail-photo" alt="Worker photo" hidden>
+          <div id="attendance_worker_photo_empty" class="employee-detail-photo employee-detail-photo-empty" hidden>
+            <i class="fa-regular fa-user"></i>
+          </div>
+          <div class="attendance-worker-verify-meta">
+            <strong id="attendance_worker_verify_name"></strong>
+            <span id="attendance_worker_verify_code"></span>
+            <p class="attendance-worker-verify-hint">Confirm this is the correct worker before saving.</p>
+          </div>
+        </div>
+        <label>Worker Verification</label>
+      </div>
+      <div class="erp-field">
+        <select id="attendance_project_number">
+          <option value="">Select project number</option>
+          {% for item in projects %}
+          <option value="{{ item.id }}"
+            data-project-name="{{ item.project_name or '' }}"
+            {% if edit_record and edit_record.project_id|string == item.id|string %}selected{% endif %}>
+            {{ item.project_code or item.id }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>Project Number</label>
+      </div>
+      <div class="erp-field span-2">
+        <select name="project_id" id="attendance_project_name">
+          <option value="">Select project name</option>
+          {% for item in projects %}
+          <option value="{{ item.id }}"
+            data-project-code="{{ item.project_code or item.id }}"
+            {% if edit_record and edit_record.project_id|string == item.id|string %}selected{% endif %}>
+            {{ item.project_name or '—' }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>Project Name</label>
+      </div>
+      <div class="erp-field span-2 erp-field-with-action" id="attendance_trade_row" hidden>
+        <select name="trade_id" id="attendance_trade_id" class="{% if edit_record and edit_record.trade_id %}has-value{% elif select_trade %}has-value{% endif %}">
+          <option value="">Select trade</option>
+          {% for item in trades %}
+          <option value="{{ item.id }}"{% if (edit_record and edit_record.trade_id|string == item.id|string) or select_trade == item.id %} selected{% endif %}>{{ item.trade_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Trade</label>
+        <button type="button" class="erp-inline-action" id="open-new-trade-modal"><i class="fa-solid fa-plus"></i> Add new</button>
+      </div>
+      <div class="erp-field span-2 erp-field-with-action" id="attendance_designation_row" hidden>
+        <select name="designation_id" id="attendance_designation_id" class="{% if edit_record and edit_record.designation_id %}has-value{% elif select_designation %}has-value{% endif %}">
+          <option value="">Select designation</option>
+          {% for item in designations %}
+          <option value="{{ item.id }}"{% if (edit_record and edit_record.designation_id|string == item.id|string) or select_designation == item.id %} selected{% endif %}>{{ item.designation_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Designation</label>
+        <button type="button" class="erp-inline-action" id="open-new-designation-modal"><i class="fa-solid fa-plus"></i> Add new</button>
+      </div>
+      <div class="erp-field"><input name="attendance_date" id="attendance_date" type="date" placeholder=" " required value="{{ edit_record.attendance_date if edit_record else default_date }}"><label>Date</label></div>
+      <div class="erp-field"><select name="status">
+        <option {% if not edit_record or edit_record.status == 'Present' %}selected{% endif %}>Present</option>
+        <option {% if edit_record and edit_record.status == 'Absent' %}selected{% endif %}>Absent</option>
+        <option {% if edit_record and edit_record.status == 'Half Day' %}selected{% endif %}>Half Day</option>
+        <option {% if edit_record and edit_record.status == 'Leave' %}selected{% endif %}>Leave</option>
+      </select><label>Status</label></div>
+      <div class="erp-field"><input name="in_time" id="attendance_in_time" type="time" placeholder=" " required value="{{ edit_record.in_time if edit_record else default_in_time }}"><label>In Time</label></div>
+      <div class="erp-field"><input name="out_time" id="attendance_out_time" type="time" placeholder=" " required value="{{ edit_record.out_time if edit_record else default_out_time }}"><label>Out Time</label></div>
+      <div class="erp-field"><input name="break_hours" id="attendance_break_hours" type="number" step="0.1" value="{{ edit_record.break_hours if edit_record else default_break_hours }}" placeholder=" "><label>Break Hours</label></div>
+      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save {{ entry_label }}</button>
+      {% if edit_record %}<a href="{{ cancel_url }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}
+      </div>
+    </form>
+  </div>
+
+  {% if subcontractor_nav and not edit_record %}
+  <div class="erp-form-card" id="sub-bulk-attendance" hidden>
+    <h3 class="erp-form-title">Subcontractor Attendance — Bulk by Trade</h3>
+    <p class="erp-form-hint" style="margin-bottom: 0.75rem;">Select subcontractor and trade, tick workers, set time once, then save. Untick workers on leave or set their status individually.</p>
+    <form method="post" class="erp-form-grid" data-sub-bulk-form>
+      <input type="hidden" name="form_action" value="save_sub_bulk">
+      <div class="erp-field span-2">
+        <select name="bulk_subcontractor_id" id="bulk_subcontractor_id" required>
+          <option value="">Select subcontractor</option>
+          {% for item in subcontractors %}
+          <option value="{{ item.id }}">{{ item.subcontractor_name }} ({{ item.subcontractor_code or item.id }})</option>
+          {% endfor %}
+        </select>
+        <label>Subcontractor</label>
+      </div>
+      <div class="erp-field span-2">
+        <select id="bulk_trade_id" required disabled>
+          <option value="">Select trade</option>
+        </select>
+        <label>Trade</label>
+      </div>
+      <div class="erp-field">
+        <select id="bulk_project_number">
+          <option value="">Select project number</option>
+          {% for item in projects %}
+          <option value="{{ item.id }}" data-project-name="{{ item.project_name or '' }}">{{ item.project_code or item.id }}</option>
+          {% endfor %}
+        </select>
+        <label>Project Number</label>
+      </div>
+      <div class="erp-field span-2">
+        <select name="bulk_project_id" id="bulk_project_name">
+          <option value="">Select project name</option>
+          {% for item in projects %}
+          <option value="{{ item.id }}" data-project-code="{{ item.project_code or item.id }}">{{ item.project_name or '—' }}</option>
+          {% endfor %}
+        </select>
+        <label>Project Name</label>
+      </div>
+      <div class="erp-field erp-field--date">
+        <input name="bulk_attendance_date" id="bulk_attendance_date" type="date" required placeholder=" " class="erp-input--date" value="{{ default_date }}">
+        <label>Date</label>
+      </div>
+      <div class="erp-field">
+        <select name="bulk_default_status" id="bulk_default_status">
+          {% for st in sub_attendance_statuses %}
+          <option value="{{ st }}"{% if st == 'Present' %} selected{% endif %}>{{ st }}</option>
+          {% endfor %}
+        </select>
+        <label>Default Status</label>
+      </div>
+      <div class="erp-field"><input name="bulk_in_time" id="bulk_in_time" type="time" required placeholder=" " value="{{ default_in_time }}"><label>In Time</label></div>
+      <div class="erp-field"><input name="bulk_out_time" id="bulk_out_time" type="time" required placeholder=" " value="{{ default_out_time }}"><label>Out Time</label></div>
+      <div class="erp-field"><input name="bulk_break_hours" id="bulk_break_hours" type="number" step="0.1" value="{{ default_break_hours }}" placeholder=" "><label>Break Hours</label></div>
+      <div class="erp-field span-3 erp-form-actions" style="align-self: end;">
+        <button type="button" class="erp-btn erp-btn-ghost" id="bulk_apply_to_ticked"><i class="fa-solid fa-check-double"></i> Apply time &amp; status to ticked</button>
+      </div>
+      <div class="span-3" id="bulk_worker_checklist_wrap" hidden>
+        <div class="attendance-bulk-toolbar">
+          <label class="attendance-bulk-select-all">
+            <input type="checkbox" id="bulk_select_all" checked> Select all
+          </label>
+          <span class="attendance-bulk-count" id="bulk_worker_count"></span>
+        </div>
+        <div class="erp-table-scroll attendance-bulk-table-wrap">
+          <table class="erp-table erp-table-module" id="bulk_worker_table">
+            <thead>
+              <tr>
+                <th style="width:2.5rem;"></th>
+                <th>Worker</th>
+                <th>ID</th>
+                <th>Trade</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="bulk_worker_tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="erp-form-actions span-3">
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Bulk {{ entry_label }}</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}

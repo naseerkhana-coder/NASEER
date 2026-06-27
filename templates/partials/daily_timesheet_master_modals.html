@@ -1,0 +1,44 @@
+{% set form_endpoint = form_endpoint|default('attendance') %}
+{% set modal_action = url_for(form_endpoint, nav='subcontract') if subcontractor_nav else url_for(form_endpoint) %}
+
+<div class="erp-modal" id="new-trade-modal" hidden aria-hidden="true">
+  <div class="erp-modal-backdrop" data-modal-close></div>
+  <div class="erp-modal-card" role="dialog" aria-modal="true" aria-labelledby="new-trade-title">
+    <div class="erp-modal-header">
+      <div>
+        <h3 id="new-trade-title">Add Trade</h3>
+        <p>Add a trade, then continue entering timesheet data.</p>
+      </div>
+      <button type="button" class="erp-modal-close" data-modal-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="post" class="erp-form-grid" action="{{ modal_action }}#add-attendance">
+      <input type="hidden" name="form_action" value="add_trade">
+      <div class="erp-field span-2"><input name="trade_name" placeholder=" " required><label>Trade Name</label></div>
+      <div class="erp-form-actions">
+        <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Cancel</button>
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Trade</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="erp-modal" id="new-designation-modal" hidden aria-hidden="true">
+  <div class="erp-modal-backdrop" data-modal-close></div>
+  <div class="erp-modal-card" role="dialog" aria-modal="true" aria-labelledby="new-designation-title">
+    <div class="erp-modal-header">
+      <div>
+        <h3 id="new-designation-title">Add Designation</h3>
+        <p>Add a designation, then continue entering timesheet data.</p>
+      </div>
+      <button type="button" class="erp-modal-close" data-modal-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="post" class="erp-form-grid" action="{{ modal_action }}#add-attendance">
+      <input type="hidden" name="form_action" value="add_designation">
+      <div class="erp-field span-2"><input name="designation_name" placeholder=" " required><label>Designation Name</label></div>
+      <div class="erp-form-actions">
+        <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Cancel</button>
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Designation</button>
+      </div>
+    </form>
+  </div>
+</div>

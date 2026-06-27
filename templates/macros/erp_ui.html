@@ -30,15 +30,21 @@
 {% endif %}
 {% endmacro %}
 
-{% macro maker_row_actions(module_endpoint, delete_table, record_id, approval_status, module_id='', redirect_endpoint='', nav_only=false, edit_anchor='', can_edit=none) %}
+{% macro maker_row_actions(module_endpoint, delete_table, record_id, approval_status, module_id='', redirect_endpoint='', nav_only=false, edit_anchor='', can_edit=none, nav='') %}
 {% set s = approval_status or 'Pending Checker' %}
 {% set editable = can_edit if can_edit is not none else s in ['Rejected by Checker', 'Rejected by Approver', 'Pending Checker', 'Pending Approval'] %}
 {% set deletable = s in ['Rejected by Checker', 'Rejected by Approver', 'Pending Checker'] and module_id %}
 {% set redirect = redirect_endpoint or module_endpoint %}
+{% if nav %}
+{% set edit_href = url_for(module_endpoint, edit=record_id, nav=nav) ~ edit_anchor %}
+{% set view_href = url_for(module_endpoint, view=record_id, nav=nav) %}
+{% else %}
 {% set edit_href = url_for(module_endpoint, edit=record_id) ~ edit_anchor %}
+{% set view_href = url_for(module_endpoint, view=record_id) %}
+{% endif %}
 <div class="workflow-row-actions">
   {% if not nav_only %}
-  <a href="{{ url_for(module_endpoint, view=record_id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+  <a href="{{ view_href }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
   {% if editable %}
   <a href="{{ edit_href }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
   {% elif s == 'Pending Approval' %}

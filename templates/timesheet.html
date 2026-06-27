@@ -1,77 +1,181 @@
 {% extends 'base_maxek.html' %}
+
 {% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, workflow_modals, erp_pagination %}
+
 {% set subcontractor_nav = subcontractor_nav|default(false) %}
+
 {% set page_title = 'Subcontractor Timesheet' if subcontractor_nav else 'Timesheet' %}
+
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ' ~ ('Subcontract' if subcontractor_nav else 'HR') ~ ' &gt; Timesheet' %}
+
 {% block page_actions %}
+
 {% if subcontractor_nav %}
+
 <a href="{{ url_for('workers', nav='subcontract') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-hard-hat"></i> Workers</a>
+
 <a href="{{ url_for('attendance', nav='subcontract') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-calendar-day"></i> Worker Attendance</a>
-<a href="{{ url_for('timesheet', nav='subcontract') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-clock"></i> Timesheet</a>
+
+<a href="{{ url_for('timesheet', nav='subcontract') }}#add-attendance" class="erp-btn erp-btn-primary"><i class="fa-solid fa-clock"></i> Timesheet</a>
+
 {% else %}
+
 <a href="{{ url_for('attendance') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-calendar-check"></i> Attendance</a>
-<a href="{{ url_for('timesheet') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-clock"></i> Timesheet</a>
+
+<a href="{{ url_for('timesheet') }}#add-attendance" class="erp-btn erp-btn-primary"><i class="fa-solid fa-clock"></i> Timesheet</a>
+
 {% endif %}
+
 {% endblock %}
+
 {% block content %}
-<div class="erp-validation" style="margin-bottom: 1rem;">
-  {% if subcontractor_nav %}
-  <strong>Subcontractor workers only.</strong> Timesheet rows are created from subcontractor attendance entries. Use <a href="{{ url_for('attendance', nav='subcontract') }}">Worker Attendance</a> to add or edit records.
-  {% else %}
-  <strong>Read-only view.</strong> Timesheet entries come from Attendance (company staff and subcontractor workers). Use <a href="{{ url_for('attendance') }}">Attendance</a> to add or edit records (maker / checker / approver workflow).
-  {% endif %}
+
+{% if view_record %}
+
+<div class="erp-form-card" style="margin-bottom: 1rem;">
+
+  <h3 class="erp-form-title">Timesheet #{{ view_record.id }}</h3>
+
+  <p><strong>Date:</strong> {{ view_record.attendance_date }} | <strong>Worker:</strong> {{ view_record.worker_name or '—' }} ({{ view_record.worker_code or '—' }})</p>
+
+  <p><strong>Project:</strong> {{ view_record.project_name or '—' }} ({{ view_record.project_code or '—' }})</p>
+
+  <p><strong>Time:</strong> {{ view_record.in_time or '—' }} – {{ view_record.out_time or '—' }} | Break: {{ format_decimal_hours(view_record.break_hours) }} | Status: {{ view_record.status or 'Present' }}</p>
+
+  <p><strong>Workflow:</strong> {{ role_status_badge(view_record.approval_status or 'Pending Checker', 'maker') }}</p>
+
+  <div class="erp-form-actions">
+
+    <a href="{{ url_for('timesheet', edit=view_record.id, nav='subcontract') if subcontractor_nav else url_for('timesheet', edit=view_record.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-pen"></i> Edit</a>
+
+    <a href="{{ url_for('timesheet', nav='subcontract') if subcontractor_nav else url_for('timesheet') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Back to List</a>
+
+  </div>
+
 </div>
+
+{% endif %}
+
+
+
+{% if not view_record %}
+
+{% include 'partials/daily_timesheet_entry_form.html' %}
+
+{% endif %}
+
+
+
 <div class="erp-table-panel" data-erp-table>
+
   <div class="erp-table-toolbar">
+
     <h3 class="erp-table-title">Time Sheet Entries</h3>
+
     <div class="erp-table-controls">
+
       <div class="erp-table-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-table-search placeholder="Search timesheet..."></div>
+
       <button type="button" class="erp-btn erp-btn-ghost" data-table-filter><i class="fa-solid fa-filter"></i> Filter</button>
+
       <button type="button" class="erp-btn erp-btn-ghost" data-table-export="timesheet"><i class="fa-solid fa-file-export"></i> Export</button>
+
     </div>
+
   </div>
+
   <div class="erp-table-scroll">
+
     <table class="erp-table erp-table-module">
+
       <thead>
+
         <tr>
+
           <th>Worker ID</th>
+
           <th>Worker Name</th>
+
           <th>Designation</th>
+
           <th>Project ID</th>
+
           <th>Project Name</th>
+
           <th>Start Time</th>
+
           <th>End Time</th>
+
           <th>Break Time</th>
+
           <th>Total Worked Hrs</th>
+
           <th>Earned OT Hrs</th>
+
           <th>Workflow</th>
+
           <th>Actions</th>
+
         </tr>
+
       </thead>
+
       <tbody>
+
         {% for row in rows %}
+
         <tr>
+
           <td>{{ row.worker_code or '—' }}</td>
+
           <td>{{ row.worker_name or '—' }}</td>
+
           <td>{{ row.designation or row.designation_name or row.trade_name or '—' }}</td>
+
           <td>{{ row.project_code or '—' }}</td>
+
           <td>{{ row.project_name or '—' }}</td>
+
           <td>{{ row.in_time or '—' }}</td>
+
           <td>{{ row.out_time or '—' }}</td>
+
           <td>{{ format_decimal_hours(row.break_hours) }}</td>
+
           <td>{{ format_decimal_hours(row.total_hours) }}</td>
+
           <td>{{ format_decimal_hours(row.ot_hours) }}</td>
+
           <td>{{ role_status_badge(row.approval_status or 'Pending Checker', 'maker') }}</td>
-          <td>{{ maker_row_actions('attendance', 'attendance', row.id, row.approval_status, 'daily_timesheet', 'timesheet') }}</td>
+
+          <td>{{ maker_row_actions('timesheet', 'attendance', row.id, row.approval_status, 'daily_timesheet', 'timesheet', nav_only=false, nav='subcontract' if subcontractor_nav else '') }}</td>
+
         </tr>
+
         {% else %}
-        <tr><td colspan="12">No timesheet records yet. Add attendance entries to populate this view.</td></tr>
+
+        <tr><td colspan="12">No timesheet records yet. Use the form above to add an entry.</td></tr>
+
         {% endfor %}
+
       </tbody>
+
     </table>
+
   </div>
+
   {{ erp_pagination(rows|length) }}
+
 </div>
+
 {{ workflow_modals() }}
+
+{% include 'partials/daily_timesheet_master_modals.html' %}
+
 <script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
+
+<script src="{{ url_for('static', filename='js/attendance-form.js') }}"></script>
+
 {% endblock %}
+
+

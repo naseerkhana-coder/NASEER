@@ -11684,6 +11684,165 @@ def workers():
     )
 
 
+def _daily_timesheet_field_defaults() -> dict[str, str]:
+    return {
+        "default_date": datetime.now().strftime("%Y-%m-%d"),
+        "default_in_time": "08:00",
+        "default_out_time": "17:00",
+        "default_break_hours": "1",
+    }
+
+
+def _apply_monthly_timesheet_day_defaults(
+    day_rows: list[dict], year: int, month: int
+) -> None:
+    today = datetime.now()
+    if today.year != year or today.month != month:
+        return
+    for day in day_rows:
+        if day.get("day_num") == today.day:
+            day.setdefault("start_time", "8:00")
+            day.setdefault("start_ampm", "am")
+            day.setdefault("end_time", "5:00")
+            day.setdefault("end_ampm", "pm")
+            day.setdefault("break_hours", "1")
+            break
+
+
+_DAILY_ATTENDANCE_RECORD_SQL = (
+    "SELECT a.*, "
+    f"{ATTENDANCE_ROW_LOOKUP_SQL} "
+    "FROM attendance a "
+    f"{ATTENDANCE_WORKER_JOIN_SQL} "
+    "LEFT JOIN projects p ON a.project_id = p.id "
+    f"{ATTENDANCE_MASTER_JOIN_SQL} "
+    "WHERE a.id=?"
+)
+
+
+def _timesheet_nav_kwargs(subcontractor_nav: bool) -> dict[str, str]:
+    return {"nav": "subcontract"} if subcontractor_nav else {}
+
+
+def _handle_daily_timesheet_post(
+    db,
+    *,
+    endpoint: str,
+    module_id: str,
+    table: str,
+    subcontractor_nav: bool,
+):
+    """Handle POST actions for daily timesheet / attendance entry forms."""
+    entry_label = "Timesheet" if endpoint == "timesheet" else "Attendance"
+    form_action = request.form.get("form_action", "save").strip()
+    nav_q = _timesheet_nav_kwargs(subcontractor_nav)
+
+    if form_action == "add_trade":
+        new_id = _create_trade_from_form(db)
+        if new_id:
+            flash("Trade added and selected in the form.")
+            return redirect(
+                url_for(endpoint, select_trade=new_id, **nav_q) + "#add-attendance"
+            )
+        return redirect(url_for(endpoint, **nav_q) + "#add-attendance")
+
+    if form_action == "add_designation":
+        new_id = _create_designation_from_form(db)
+        if new_id:
+            flash("Designation added and selected in the form.")
+            return redirect(
+                url_for(endpoint, select_designation=new_id, **nav_q) + "#add-attendance"
+            )
+        return redirect(url_for(endpoint, **nav_q) + "#add-attendance")
+
+    if form_action == "save_sub_bulk":
+        try:
+            saved_count = save_bulk_subcontractor_attendance(
+                db,
+                request.form,
+                username=session.get("username", ""),
+                create_approval_request=create_approval_request,
+                module_id=module_id,
+                table=table,
+                user_id=session.get("user_id"),
+            )
+            db.commit()
+            flash(
+                f"Saved {saved_count} {entry_label.lower()} record(s). Status: Pending Checker."
+            )
+            return redirect(url_for(endpoint, **nav_q) + "#sub-bulk-attendance")
+        except ValueError as exc:
+            flash(str(exc))
+            return redirect(url_for(endpoint, **nav_q) + "#sub-bulk-attendance")
+
+    worker_ref = request.form.get("worker_id", "")
+    worker_id, worker_source = parse_attendance_worker_ref(worker_ref)
+    project_id = request.form.get("project_id", "")
+    attendance_date = request.form.get("attendance_date", "").strip()
+    in_time = request.form.get("in_time", "").strip()
+    out_time = request.form.get("out_time", "").strip()
+    break_hours = request.form.get("break_hours", "0").strip()
+    status = request.form.get("status", "Present").strip()
+    trade_id = request.form.get("trade_id", "").strip() or None
+    designation_id = request.form.get("designation_id", "").strip() or None
+    if worker_id:
+        master_ids = attendance_master_ids_for_worker(worker_id, worker_source)
+        if not designation_id and master_ids.get("designation_id"):
+            designation_id = str(master_ids["designation_id"])
+        if not trade_id and master_ids.get("trade_id"):
+            trade_id = str(master_ids["trade_id"])
+    record_id = request.form.get("record_id", "").strip()
+    try:
+        start_dt = datetime.strptime(in_time, "%H:%M")
+        end_dt = datetime.strptime(out_time, "%H:%M")
+        break_hours_val = float(break_hours or 0)
+        total_hours = (end_dt - start_dt).seconds / 3600 - break_hours_val
+        if total_hours < 0:
+            total_hours += 24
+        ot_hours = max(total_hours - 8, 0)
+    except Exception:
+        flash("Enter valid time values.")
+        return redirect(url_for(endpoint, **nav_q) + "#add-attendance")
+    if record_id:
+        ctx = _module_edit_context(module_id, table, endpoint)
+        if ctx[0] == "redirect":
+            return redirect(ctx[1])
+        rid, edit_role = ctx
+        db.execute(
+            "UPDATE attendance SET worker_id=?, worker_source=?, project_id=?, attendance_date=?, "
+            "in_time=?, out_time=?, break_hours=?, total_hours=?, ot_hours=?, status=?, "
+            "trade_id=?, designation_id=? WHERE id=?",
+            (
+                worker_id, worker_source, project_id or None, attendance_date,
+                in_time, out_time, break_hours_val, total_hours, ot_hours, status,
+                trade_id, designation_id, rid,
+            ),
+        )
+        _complete_module_save(db, module_id, table, rid, edit_role)
+        db.commit()
+        flash(f"{entry_label} updated.")
+        return redirect(url_for(endpoint, **nav_q))
+    db.execute(
+        "INSERT INTO attendance(worker_id, worker_source, project_id, attendance_date, "
+        "in_time, out_time, break_hours, total_hours, ot_hours, status, approval_status, "
+        "trade_id, designation_id) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            worker_id, worker_source, project_id or None, attendance_date,
+            in_time, out_time, break_hours_val, total_hours, ot_hours, status,
+            "Pending Checker", trade_id, designation_id,
+        ),
+    )
+    record_id_new = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    create_approval_request(
+        db, module_id, record_id_new, table,
+        session.get("username", ""), session.get("user_id")
+    )
+    db.commit()
+    flash("Saved. Status: Pending Checker.")
+    return redirect(url_for(endpoint, **nav_q) + "#add-attendance")
+
+
 @app.route("/attendance", methods=["GET", "POST"])
 @login_required
 def attendance():
@@ -11694,15 +11853,7 @@ def attendance():
     ensure_attendance_master_schema(db)
     ensure_staff_monthly_attendance_schema(db)
     db.commit()
-    record_sql = (
-        "SELECT a.*, "
-        f"{ATTENDANCE_ROW_LOOKUP_SQL} "
-        "FROM attendance a "
-        f"{ATTENDANCE_WORKER_JOIN_SQL} "
-        "LEFT JOIN projects p ON a.project_id = p.id "
-        f"{ATTENDANCE_MASTER_JOIN_SQL} "
-        "WHERE a.id=?"
-    )
+    record_sql = _DAILY_ATTENDANCE_RECORD_SQL
     attendance_workers = get_attendance_form_worker_data()
     monthly_staff = list_monthly_staff_for_attendance(db)
     monthly_rows = list_monthly_attendance_records(db)
@@ -11767,22 +11918,6 @@ def attendance():
     if request.method == "POST":
         form_action = request.form.get("form_action", "save").strip()
         db = get_db()
-        if form_action == "add_trade":
-            new_id = _create_trade_from_form(db)
-            if new_id:
-                flash("Trade added and selected in the form.")
-                return redirect(
-                    url_for(endpoint, select_trade=new_id) + "#add-attendance"
-                )
-            return redirect(url_for(endpoint) + "#add-attendance")
-        if form_action == "add_designation":
-            new_id = _create_designation_from_form(db)
-            if new_id:
-                flash("Designation added and selected in the form.")
-                return redirect(
-                    url_for(endpoint, select_designation=new_id) + "#add-attendance"
-                )
-            return redirect(url_for(endpoint) + "#add-attendance")
         if form_action == "save_monthly":
             try:
                 if request.form.get("record_id", "").strip():
@@ -11820,92 +11955,13 @@ def attendance():
                 flash(str(exc))
                 return redirect(url_for(endpoint, mode="monthly") + "#monthly-attendance")
 
-        if form_action == "save_sub_bulk":
-            try:
-                saved_count = save_bulk_subcontractor_attendance(
-                    db,
-                    request.form,
-                    username=session.get("username", ""),
-                    create_approval_request=create_approval_request,
-                    module_id=module_id,
-                    table=table,
-                    user_id=session.get("user_id"),
-                )
-                db.commit()
-                flash(
-                    f"Saved {saved_count} attendance record(s). Status: Pending Checker."
-                )
-                nav_q = "?nav=subcontract" if subcontractor_nav else ""
-                return redirect(url_for(endpoint) + nav_q + "#sub-bulk-attendance")
-            except ValueError as exc:
-                flash(str(exc))
-                nav_q = "?nav=subcontract" if subcontractor_nav else ""
-                return redirect(url_for(endpoint) + nav_q + "#sub-bulk-attendance")
-
-        worker_ref = request.form.get("worker_id", "")
-        worker_id, worker_source = parse_attendance_worker_ref(worker_ref)
-        project_id = request.form.get("project_id", "")
-        attendance_date = request.form.get("attendance_date", "").strip()
-        in_time = request.form.get("in_time", "").strip()
-        out_time = request.form.get("out_time", "").strip()
-        break_hours = request.form.get("break_hours", "0").strip()
-        status = request.form.get("status", "Present").strip()
-        trade_id = request.form.get("trade_id", "").strip() or None
-        designation_id = request.form.get("designation_id", "").strip() or None
-        if worker_id:
-            master_ids = attendance_master_ids_for_worker(worker_id, worker_source)
-            if not designation_id and master_ids.get("designation_id"):
-                designation_id = str(master_ids["designation_id"])
-            if not trade_id and master_ids.get("trade_id"):
-                trade_id = str(master_ids["trade_id"])
-        record_id = request.form.get("record_id", "").strip()
-        try:
-            start_dt = datetime.strptime(in_time, "%H:%M")
-            end_dt = datetime.strptime(out_time, "%H:%M")
-            break_hours_val = float(break_hours or 0)
-            total_hours = (end_dt - start_dt).seconds / 3600 - break_hours_val
-            if total_hours < 0:
-                total_hours += 24
-            ot_hours = max(total_hours - 8, 0)
-        except Exception:
-            flash("Enter valid attendance time values.")
-            return redirect(url_for(endpoint))
-        if record_id:
-            ctx = _module_edit_context(module_id, table, endpoint)
-            if ctx[0] == "redirect":
-                return redirect(ctx[1])
-            rid, edit_role = ctx
-            db.execute(
-                "UPDATE attendance SET worker_id=?, worker_source=?, project_id=?, attendance_date=?, "
-                "in_time=?, out_time=?, break_hours=?, total_hours=?, ot_hours=?, status=?, "
-                "trade_id=?, designation_id=? WHERE id=?",
-                (
-                    worker_id, worker_source, project_id or None, attendance_date,
-                    in_time, out_time, break_hours_val, total_hours, ot_hours, status,
-                    trade_id, designation_id, rid,
-                ),
-            )
-            _complete_module_save(db, module_id, table, rid, edit_role)
-            return redirect(url_for(endpoint))
-        db.execute(
-            "INSERT INTO attendance(worker_id, worker_source, project_id, attendance_date, "
-            "in_time, out_time, break_hours, total_hours, ot_hours, status, approval_status, "
-            "trade_id, designation_id) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (
-                worker_id, worker_source, project_id or None, attendance_date,
-                in_time, out_time, break_hours_val, total_hours, ot_hours, status,
-                "Pending Checker", trade_id, designation_id,
-            ),
+        return _handle_daily_timesheet_post(
+            db,
+            endpoint=endpoint,
+            module_id=module_id,
+            table=table,
+            subcontractor_nav=subcontractor_nav,
         )
-        record_id_new = db.execute("SELECT last_insert_rowid()").fetchone()[0]
-        create_approval_request(
-            db, module_id, record_id_new, table,
-            session.get("username", ""), session.get("user_id")
-        )
-        db.commit()
-        flash("Saved. Status: Pending Checker.")
-        return redirect(url_for(endpoint))
     rows = list_daily_attendance_records(
         db, subcontractor_only=subcontractor_nav
     )
@@ -11935,10 +11991,7 @@ def attendance():
         edit_role=wf_ctx.get("edit_role") or monthly_wf_ctx.get("edit_role"),
         can_reopen=wf_ctx.get("can_reopen", False) or monthly_wf_ctx.get("can_reopen", False),
         approval_id=wf_ctx.get("approval_id") or monthly_wf_ctx.get("approval_id"),
-        default_date=datetime.now().strftime("%Y-%m-%d"),
-        default_in_time="08:00",
-        default_out_time="17:00",
-        default_break_hours="1",
+        **_daily_timesheet_field_defaults(),
     )
 
 
@@ -17884,13 +17937,52 @@ def inventory():
     return render_template("store_inventory.html", rows=rows, low_stock_count=low_stock_count)
 
 
-@app.route("/timesheet")
+@app.route("/timesheet", methods=["GET", "POST"])
 @login_required
 def timesheet():
+    module_id, table, endpoint = "daily_timesheet", "attendance", "timesheet"
     db = get_db()
     ensure_attendance_master_schema(db)
     db.commit()
     subcontractor_nav = request.args.get("nav") == "subcontract"
+    attendance_workers = get_attendance_form_worker_data()
+    projects = get_attendance_project_options()
+    trades = get_active_trades()
+    designations = get_active_designations()
+    select_trade = request.args.get("select_trade", type=int)
+    select_designation = request.args.get("select_designation", type=int)
+    view_id = request.args.get("view")
+    edit_id = request.args.get("edit")
+    view_record = edit_record = None
+    edit_worker_ctx = {"staff_type": "", "subcontractor_id": ""}
+    wf_ctx = {}
+    if view_id:
+        view_record = query_db(_DAILY_ATTENDANCE_RECORD_SQL, (view_id,), one=True)
+        if view_record:
+            wf_ctx = _workflow_view_context(
+                module_id, view_record["id"], table, view_record["approval_status"]
+            )
+    elif edit_id:
+        edit_record = query_db(_DAILY_ATTENDANCE_RECORD_SQL, (edit_id,), one=True)
+        if edit_record:
+            edit_role = get_edit_role_for_user(
+                get_db(), session.get("user_id"), module_id,
+                edit_record["approval_status"], is_admin_user(),
+            )
+            if not edit_role:
+                flash("This record is locked and cannot be edited.")
+                nav_q = _timesheet_nav_kwargs(subcontractor_nav)
+                return redirect(url_for(endpoint, view=edit_id, **nav_q))
+            wf_ctx = {"edit_role": edit_role}
+            edit_worker_ctx = get_attendance_edit_worker_context(edit_record)
+    if request.method == "POST":
+        return _handle_daily_timesheet_post(
+            db,
+            endpoint=endpoint,
+            module_id=module_id,
+            table=table,
+            subcontractor_nav=subcontractor_nav,
+        )
     rows = list_daily_attendance_records(
         db, subcontractor_only=subcontractor_nav
     )
@@ -17898,6 +17990,26 @@ def timesheet():
         "timesheet.html",
         rows=rows,
         subcontractor_nav=subcontractor_nav,
+        company_staff=attendance_workers["company_staff"],
+        subcontractors=attendance_workers["subcontractors"],
+        subcontractor_workers=attendance_workers["subcontractor_workers"],
+        projects=projects,
+        trades=trades,
+        designations=designations,
+        select_trade=select_trade,
+        select_designation=select_designation,
+        sub_attendance_statuses=SUBCONTRACTOR_ATTENDANCE_STATUSES,
+        view_record=view_record,
+        edit_record=edit_record,
+        edit_staff_type=edit_worker_ctx["staff_type"],
+        edit_subcontractor_id=edit_worker_ctx["subcontractor_id"],
+        history=wf_ctx.get("history"),
+        edit_role=wf_ctx.get("edit_role"),
+        can_reopen=wf_ctx.get("can_reopen", False),
+        approval_id=wf_ctx.get("approval_id"),
+        form_endpoint="timesheet",
+        form_mode="timesheet",
+        **_daily_timesheet_field_defaults(),
     )
 
 
@@ -21010,8 +21122,11 @@ def employee_timesheets_form():
         year, month = parse_year_month(ym)
         total = days_in_month(year, month)
         day_rows = [{"day_num": d} for d in range(1, total + 1)]
+        if not edit_record:
+            _apply_monthly_timesheet_day_defaults(day_rows, year, month)
 
     today_ym = datetime.now().strftime("%Y-%m")
+    today_day_num = datetime.now().day if not edit_record else None
     preserve_ym = request.args.get("year_month", "").strip()
     preserve_project_id = request.args.get("project_id", type=int)
     return render_template(
@@ -21027,6 +21142,8 @@ def employee_timesheets_form():
             "year_month": preserve_ym or today_ym,
             "project_id": preserve_project_id,
         },
+        today_day_num=today_day_num,
+        **_daily_timesheet_field_defaults(),
     )
 
 
