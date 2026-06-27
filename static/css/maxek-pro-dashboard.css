@@ -1182,6 +1182,12 @@
   border-bottom: 1px solid var(--pro-border);
 }
 
+.pro-dash-home-header--tight {
+  padding-bottom: 8px;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
 .pro-dash-home-header--compact {
   padding-bottom: 12px;
   margin-bottom: 12px;
@@ -1238,7 +1244,67 @@
 }
 
 .pro-dash-home-stats {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
+}
+
+.pro-dash-kpi-row {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-kpi-card {
+  padding: 10px 12px;
+  min-height: 56px;
+  gap: 2px;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-kpi-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-kpi-card strong {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.pro-dash-dept-section {
+  background: var(--pro-card);
+  border: 1px solid var(--pro-border);
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+}
+
+.pro-dash-dept-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pro-dash-dept-section-title {
+  margin: 0;
+}
+
+.pro-dash-dept-count {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pro-muted);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--pro-border);
+}
+
+.pro-dash-home-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .maxek-layout.pro-dashboard-mode .pro-dash-stat-card {
@@ -1264,19 +1330,13 @@
   color: var(--pro-muted);
 }
 
-.pro-dash-stat-hint--warn { color: #FBBF24; }
+.pro-dash-stat-hint--warn { color: #a8a29e; }
 .pro-dash-stat-hint--ok { color: var(--pro-green); }
 .pro-dash-stat-hint--danger { color: #F87171; }
 
-.pro-dash-home-main {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
 .pro-dash-dept-tile-grid {
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
 }
 
 .maxek-layout.pro-dashboard-mode .pro-dash-dept-tile {
@@ -1297,6 +1357,40 @@
   background: color-mix(in srgb, var(--dept-accent, var(--pro-blue)) 16%, transparent);
   color: var(--dept-accent, var(--pro-blue));
   border-radius: 10px;
+}
+
+/* Dark pill badges — home dashboard + all dept portals */
+.maxek-layout.pro-dashboard-mode .erp-module-tile-open,
+.maxek-layout.pro-dashboard-mode .erp-module-tile-run {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.22rem 0.58rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.maxek-layout.pro-dashboard-mode .erp-module-tile-open {
+  color: color-mix(in srgb, var(--dept-accent, #cbd5e1) 75%, #e2e8f0);
+  background: color-mix(in srgb, var(--dept-accent, #94a3b8) 15%, transparent);
+  border-color: color-mix(in srgb, var(--dept-accent, #94a3b8) 22%, transparent);
+}
+
+.maxek-layout.pro-dashboard-mode .erp-module-tile-run {
+  color: var(--pro-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.maxek-layout.pro-dashboard-mode .erp-module-tile-label {
+  color: var(--pro-text);
+}
+
+.maxek-layout.pro-dashboard-mode .erp-module-tile-desc,
+.maxek-layout.pro-dashboard-mode .erp-module-tile-chevron {
+  color: var(--pro-muted);
 }
 
 .maxek-layout.pro-dashboard-mode .erp-module-section-title {
@@ -1466,7 +1560,19 @@
 }
 
 .maxek-layout.pro-dashboard-mode.dept-workspace-mode .dept-stat-warn {
-  color: #fbbf24;
+  color: #f87171;
+}
+
+.maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-open {
+  color: color-mix(in srgb, var(--dept-accent, #cbd5e1) 75%, #e2e8f0);
+  background: color-mix(in srgb, var(--dept-accent, #94a3b8) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dept-accent, #94a3b8) 22%, transparent);
+}
+
+.maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-run {
+  color: var(--pro-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Force dark pro surfaces on department shell module pages */
@@ -1518,18 +1624,6 @@
   color: var(--dept-accent, var(--pro-blue));
 }
 
-.maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-open {
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.22);
-}
-
-.maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-run {
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.22);
-}
-
 [data-theme="pro-light"] .maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-stat-card,
 [data-theme="ultra-color"] .maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-stat-card {
   background: var(--pro-card) !important;
@@ -1554,18 +1648,22 @@
   color: var(--pro-text) !important;
 }
 
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode .erp-module-tile-open,
+[data-theme="ultra-color"] .maxek-layout.pro-dashboard-mode .erp-module-tile-open,
 [data-theme="pro-light"] .maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-open,
 [data-theme="ultra-color"] .maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-open {
-  color: #fbbf24 !important;
-  background: rgba(251, 191, 36, 0.1) !important;
-  border: 1px solid rgba(251, 191, 36, 0.22) !important;
+  color: color-mix(in srgb, var(--dept-accent, #cbd5e1) 75%, #e2e8f0) !important;
+  background: color-mix(in srgb, var(--dept-accent, #94a3b8) 15%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--dept-accent, #94a3b8) 22%, transparent) !important;
 }
 
+[data-theme="pro-light"] .maxek-layout.pro-dashboard-mode .erp-module-tile-run,
+[data-theme="ultra-color"] .maxek-layout.pro-dashboard-mode .erp-module-tile-run,
 [data-theme="pro-light"] .maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-run,
 [data-theme="ultra-color"] .maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-run {
-  color: #93c5fd !important;
-  background: rgba(59, 130, 246, 0.1) !important;
-  border: 1px solid rgba(59, 130, 246, 0.22) !important;
+  color: var(--pro-muted) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 [data-theme="pro-light"] .maxek-layout.pro-dashboard-mode.dept-workspace-mode .erp-module-tile-icon,

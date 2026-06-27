@@ -8106,7 +8106,7 @@ COMMAND_CENTRE_CARD_META = [
         "category": "INVENTORY",
         "description": "Material requests, receipts, issues & stock control",
         "icon": "fa-warehouse",
-        "accent": "#f59e0b",
+        "accent": "#14b8a6",
     },
     {
         "slug": "hr-payroll",

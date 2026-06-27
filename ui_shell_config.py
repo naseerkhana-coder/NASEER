@@ -389,7 +389,7 @@ DEPARTMENT_PORTAL_SLUG_ALIASES: dict[str, str] = {
 DEPARTMENT_PORTAL_ACCENTS: dict[str, str] = {
     "accounts": "#3b82f6",
     "projects": "#8b5cf6",
-    "store": "#f59e0b",
+    "store": "#14b8a6",
     "hr-payroll": "#ec4899",
     "vehicle": "#0ea5e9",
     "planning-wbs": "#14b8a6",

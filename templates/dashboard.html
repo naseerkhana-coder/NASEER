@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="pro-dash-content pro-dash-content--home" id="pro-dash-panel-default" data-pro-dash-panel="default">
-  <header class="pro-dash-home-header">
+  <header class="pro-dash-home-header pro-dash-home-header--tight">
     <div class="pro-dash-home-header-main">
       <span class="pro-dash-home-icon" aria-hidden="true"><i class="fa-solid fa-gauge-high"></i></span>
       <div class="pro-dash-home-header-text">
@@ -18,10 +18,10 @@
   </header>
 
   {% if command_centre_kpis %}
-  <div class="erp-summary-grid erp-summary-grid--stats pro-dash-home-stats" aria-label="Key performance indicators">
+  <div class="pro-dash-kpi-row erp-summary-grid erp-summary-grid--stats pro-dash-home-stats" aria-label="Key performance indicators">
     {% for kpi in command_centre_kpis %}
-    <div class="erp-stat-card pro-dash-stat-card">
-      <span>{{ kpi.label }}</span>
+    <div class="erp-stat-card pro-dash-stat-card pro-dash-kpi-card">
+      <span class="pro-dash-kpi-label">{{ kpi.label }}</span>
       <strong{% if kpi.hint %} class="pro-dash-stat-value"{% endif %}>{{ kpi.value }}</strong>
       {% if kpi.hint %}
       <small class="pro-dash-stat-hint pro-dash-stat-hint--{{ kpi.hint_tone|default('muted') }}">{{ kpi.hint }}</small>
@@ -31,27 +31,28 @@
   </div>
   {% endif %}
 
-  <section class="pro-dash-home-main">
-    <section class="erp-module-section">
-      <h3 class="erp-module-section-title">Department workspaces</h3>
-      <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid">
-        {% for card in command_centre_cards %}
-        <a href="{{ url_for('department_portal', slug=card.slug) }}" class="erp-module-tile dept-module-tile pro-dash-dept-tile" style="--dept-accent: {{ card.accent }};">
-          <span class="erp-module-tile-icon"><i class="fa-solid {{ card.icon }}" aria-hidden="true"></i></span>
-          <span class="erp-module-tile-body">
-            <span class="erp-module-tile-label">{{ card.card_label }}</span>
-            {% if card.description %}
-            <span class="erp-module-tile-desc">{{ card.description }}</span>
-            {% endif %}
-          </span>
-          {% for pill in card.stat_pills[:1] %}
-          <span class="erp-module-tile-open">{{ pill.value }} {{ pill.label }}</span>
-          {% endfor %}
-          <i class="fa-solid fa-chevron-right erp-module-tile-chevron" aria-hidden="true"></i>
-        </a>
+  <section class="pro-dash-dept-section" aria-labelledby="pro-dash-dept-heading">
+    <div class="pro-dash-dept-section-head">
+      <h3 id="pro-dash-dept-heading" class="erp-module-section-title pro-dash-dept-section-title">Department workspaces</h3>
+      <span class="pro-dash-dept-count">{{ command_centre_cards|length }} portals</span>
+    </div>
+    <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid">
+      {% for card in command_centre_cards %}
+      <a href="{{ url_for('department_portal', slug=card.slug) }}" class="erp-module-tile dept-module-tile pro-dash-dept-tile" style="--dept-accent: {{ card.accent }};">
+        <span class="erp-module-tile-icon"><i class="fa-solid {{ card.icon }}" aria-hidden="true"></i></span>
+        <span class="erp-module-tile-body">
+          <span class="erp-module-tile-label">{{ card.card_label }}</span>
+          {% if card.description %}
+          <span class="erp-module-tile-desc">{{ card.description }}</span>
+          {% endif %}
+        </span>
+        {% for pill in card.stat_pills[:1] %}
+        <span class="erp-module-tile-open">{{ pill.value }} {{ pill.label }}</span>
         {% endfor %}
-      </div>
-    </section>
+        <i class="fa-solid fa-chevron-right erp-module-tile-chevron" aria-hidden="true"></i>
+      </a>
+      {% endfor %}
+    </div>
   </section>
 </div>
 
@@ -146,7 +147,7 @@
             ('Projects', dashboard_stats.active_projects|default(0), '#FF4D97'),
             ('Approvals', dashboard_stats.pending_approvals_count|default(0), '#3B82F6'),
             ('DPR Today', dashboard_stats.dpr_today_count|default(0), '#4ADE80'),
-            ('Store MR', dashboard_stats.pending_mrs|default(0), '#F59E0B')
+            ('Store MR', dashboard_stats.pending_mrs|default(0), '#14B8A6')
           ] %}
           {% set max_bar = [bars[0][1], bars[1][1], bars[2][1], bars[3][1]]|max %}
           {% set max_bar = max_bar if max_bar > 0 else 1 %}
