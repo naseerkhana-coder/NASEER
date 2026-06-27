@@ -8,6 +8,29 @@ from typing import Any
 MODULE_ID = "monthly_staff_attendance"
 RECORD_TABLE = "staff_monthly_attendance"
 
+ATTENDANCE_WORKER_JOIN_SQL = (
+    "LEFT JOIN workers w ON a.worker_id = w.id "
+    "LEFT JOIN staff s ON a.worker_id = s.id "
+)
+
+ATTENDANCE_MASTER_JOIN_SQL = (
+    "LEFT JOIN trades t ON a.trade_id = t.id "
+    "LEFT JOIN designations ad ON a.designation_id = ad.id"
+)
+
+ATTENDANCE_ROW_LOOKUP_SQL = (
+    "COALESCE("
+    "CASE WHEN a.worker_source = 'staff' THEN s.staff_name END, "
+    "w.worker_name, s.staff_name"
+    ") AS worker_name, "
+    "COALESCE("
+    "CASE WHEN a.worker_source = 'staff' THEN s.employee_code END, "
+    "w.worker_code, s.employee_code"
+    ") AS worker_code, "
+    "p.project_name, p.project_code, "
+    "t.trade_name, ad.designation_name "
+)
+
 
 def _now_ts() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -93,6 +116,30 @@ def list_monthly_attendance_records(db) -> list[dict]:
         "LEFT JOIN projects p ON m.project_id = p.id "
         "ORDER BY m.year_month DESC, s.staff_name"
     ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_daily_attendance_records(
+    db,
+    *,
+    subcontractor_only: bool = False,
+    limit: int | None = None,
+) -> list[dict]:
+    """Daily attendance register rows with worker and project names resolved."""
+    sql = (
+        "SELECT a.*, "
+        f"{ATTENDANCE_ROW_LOOKUP_SQL} "
+        "FROM attendance a "
+        f"{ATTENDANCE_WORKER_JOIN_SQL} "
+        "LEFT JOIN projects p ON a.project_id = p.id "
+        f"{ATTENDANCE_MASTER_JOIN_SQL} "
+    )
+    if subcontractor_only:
+        sql += "WHERE COALESCE(w.worker_category, '') = 'Sub Contractor Staff' "
+    sql += "ORDER BY a.id DESC"
+    if limit is not None:
+        sql += f" LIMIT {int(limit)}"
+    rows = db.execute(sql).fetchall()
     return [dict(r) for r in rows]
 
 

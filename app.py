@@ -54,9 +54,13 @@ from payroll_service import (
 from attendance_service import (
     MODULE_ID as MONTHLY_ATTENDANCE_MODULE_ID,
     RECORD_TABLE as MONTHLY_ATTENDANCE_TABLE,
+    ATTENDANCE_WORKER_JOIN_SQL,
+    ATTENDANCE_MASTER_JOIN_SQL,
+    ATTENDANCE_ROW_LOOKUP_SQL,
     ensure_staff_monthly_attendance_schema,
     list_monthly_staff_for_attendance,
     list_monthly_attendance_records,
+    list_daily_attendance_records,
     get_monthly_attendance_record,
     save_monthly_attendance_from_form,
     list_trades_for_subcontractor,
@@ -4725,13 +4729,6 @@ def get_project_options_for_boq():
     )
 
 
-ATTENDANCE_WORKER_JOIN_SQL = (
-    "LEFT JOIN workers w ON a.worker_id = w.id "
-    "AND COALESCE(a.worker_source, 'worker') = 'worker' "
-    "LEFT JOIN staff s ON a.worker_id = s.id AND a.worker_source = 'staff'"
-)
-
-
 def format_attendance_worker_ref(worker_id, worker_source=None):
     if worker_id is None or str(worker_id).strip() == "":
         return ""
@@ -5055,12 +5052,6 @@ def _create_designation_from_form(db):
             "SELECT id FROM designations WHERE designation_name=?", (name,)
         ).fetchone()
         return row["id"] if row else None
-
-
-ATTENDANCE_MASTER_JOIN_SQL = (
-    "LEFT JOIN trades t ON a.trade_id = t.id "
-    "LEFT JOIN designations ad ON a.designation_id = ad.id"
-)
 
 
 def _parse_boq_line_items(max_lines=None):
@@ -11676,10 +11667,7 @@ def attendance():
     db.commit()
     record_sql = (
         "SELECT a.*, "
-        "COALESCE(w.worker_name, s.staff_name) AS worker_name, "
-        "COALESCE(w.worker_code, s.employee_code) AS worker_code, "
-        "p.project_name, p.project_code, "
-        "t.trade_name, ad.designation_name "
+        f"{ATTENDANCE_ROW_LOOKUP_SQL} "
         "FROM attendance a "
         f"{ATTENDANCE_WORKER_JOIN_SQL} "
         "LEFT JOIN projects p ON a.project_id = p.id "
@@ -11889,25 +11877,9 @@ def attendance():
         db.commit()
         flash("Saved. Status: Pending Checker.")
         return redirect(url_for(endpoint))
-    rows_sql = (
-        "SELECT a.*, "
-        "COALESCE(w.worker_name, s.staff_name) AS worker_name, "
-        "COALESCE(w.worker_code, s.employee_code) AS worker_code, "
-        "p.project_name, p.project_code, "
-        "t.trade_name, ad.designation_name "
-        "FROM attendance a "
-        f"{ATTENDANCE_WORKER_JOIN_SQL} "
-        "LEFT JOIN projects p ON a.project_id = p.id "
-        f"{ATTENDANCE_MASTER_JOIN_SQL} "
+    rows = list_daily_attendance_records(
+        db, subcontractor_only=subcontractor_nav
     )
-    if subcontractor_nav:
-        rows_sql += (
-            "WHERE COALESCE(w.worker_category, '') = 'Sub Contractor Staff' "
-            "ORDER BY a.id DESC"
-        )
-    else:
-        rows_sql += "ORDER BY a.id DESC"
-    rows = query_db(rows_sql)
     return render_template(
         "attendance.html",
         rows=rows,
@@ -17889,20 +17861,17 @@ def timesheet():
     db = get_db()
     ensure_attendance_master_schema(db)
     db.commit()
-    rows = query_db(
-        "SELECT a.id, a.attendance_date, a.in_time AS start_time, a.out_time AS end_time, "
-        "a.break_hours, a.total_hours AS worked_hours, a.ot_hours AS overtime, "
-        "a.approval_status, "
-        "COALESCE(w.worker_name, s.staff_name) AS worker_name, "
-        "COALESCE(w.worker_code, s.employee_code) AS worker_code, "
-        "p.project_name, p.project_code, "
-        "t.trade_name, ad.designation_name "
-        "FROM attendance a "
-        f"{ATTENDANCE_WORKER_JOIN_SQL} "
-        "LEFT JOIN projects p ON a.project_id = p.id "
-        f"{ATTENDANCE_MASTER_JOIN_SQL} "
-        "ORDER BY a.id DESC LIMIT 50"
-    )
+    rows_raw = list_daily_attendance_records(db, limit=50)
+    rows = [
+        {
+            **row,
+            "start_time": row.get("in_time"),
+            "end_time": row.get("out_time"),
+            "worked_hours": row.get("total_hours"),
+            "overtime": row.get("ot_hours"),
+        }
+        for row in rows_raw
+    ]
     return render_template("timesheet.html", rows=rows)
 
 

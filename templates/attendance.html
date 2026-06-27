@@ -470,7 +470,7 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>Worker</th><th>Worker ID</th><th>Project No.</th><th>Project</th><th>Trade</th><th>Designation</th><th>Date</th>
+            <th>Worker Name</th><th>Worker ID</th><th>Project No.</th><th>Project Name</th><th>Trade</th><th>Designation</th><th>Date</th>
             <th>Start</th><th>End</th><th>Break</th><th>Worked</th><th>OT</th><th>Workflow</th><th>Actions</th>
           </tr>
         </thead>
@@ -515,7 +515,8 @@
             <th>Half</th>
             <th>Absent</th>
             <th>OT</th>
-            <th>Project</th>
+            <th>Project No.</th>
+            <th>Project Name</th>
             <th>Workflow</th>
             <th>Actions</th>
           </tr>
@@ -532,6 +533,7 @@
             <td>{{ row.absent_days or 0 }}</td>
             <td>{{ format_decimal_hours(row.ot_hours) }}</td>
             <td>{{ row.project_code or '—' }}</td>
+            <td>{{ row.project_name or '—' }}</td>
             <td>{{ role_status_badge(row.approval_status, 'maker') }}</td>
             <td>
               <div class="workflow-row-actions">
@@ -543,7 +545,7 @@
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="11">No monthly attendance summaries yet.</td></tr>
+          <tr><td colspan="12">No monthly attendance summaries yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
