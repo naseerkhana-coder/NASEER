@@ -3361,6 +3361,24 @@ STAFF_SALARY_COMPONENT_OPTIONS = [
 
 def ensure_staff_hr_tables(db):
     """Staff master columns, salary split-up, increments, travel tiers."""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS staff(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_code TEXT,
+            staff_name TEXT,
+            mobile TEXT,
+            email TEXT,
+            department TEXT,
+            designation TEXT,
+            salary_type TEXT,
+            salary_amount REAL,
+            ot_applicable TEXT,
+            working_hours REAL,
+            joining_date TEXT,
+            photo TEXT,
+            status TEXT
+        )
+    """)
     staff_master_columns = (
         ("designation_id", "INTEGER"),
         ("reporting_manager", "TEXT"),
@@ -3929,6 +3947,10 @@ def prepare_staff_page_db(db):
     ensure_staff_hr_tables(db)
     ensure_staff_bonus_table(db)
     ensure_payroll_tables(db)
+    try:
+        ensure_tenant_isolation_schema(db)
+    except Exception:
+        app.logger.exception("Tenant isolation schema ensure failed on staff page")
     db.commit()
 
 
@@ -10324,6 +10346,11 @@ def staff():
         except ValueError:
             flash("Enter valid numeric values for salary and working hours.")
             return redirect(url_for("staff"))
+        tenant_values = (
+            session.get("customer_id"),
+            session.get("company_id"),
+            session.get("branch_id"),
+        )
         values = (
             employee_code, staff_name, mobile, email, department, designation_name,
             designation_id, reporting_manager, workflow_role or None,
@@ -10333,40 +10360,52 @@ def staff():
             bank_account, bank_name, ifsc_code, branch_name,
             id_proof, aadhaar_document, pan_document,
             company_room_provided or "No", company_food_provided or "No",
-        )
-        if existing_staff:
-            db.execute(
-                "UPDATE staff SET employee_code=?, staff_name=?, mobile=?, email=?, department=?, "
-                "designation=?, designation_id=?, reporting_manager=?, workflow_role=?, salary_type=?, "
-                "salary_amount=?, ot_applicable=?, ot_rate_per_hour=?, holiday_pay_applicable=?, "
-                "working_hours=?, joining_date=?, date_of_birth=?, gender=?, photo=?, status=?, "
-                "aadhaar_number=?, pan_number=?, bank_account=?, bank_name=?, ifsc_code=?, "
-                "branch_name=?, id_proof=?, aadhaar_document=?, pan_document=?, "
-                "company_room_provided=?, company_food_provided=? WHERE id=?",
-                values + (staff_id,),
+        ) + tenant_values
+        try:
+            if existing_staff:
+                db.execute(
+                    "UPDATE staff SET employee_code=?, staff_name=?, mobile=?, email=?, department=?, "
+                    "designation=?, designation_id=?, reporting_manager=?, workflow_role=?, salary_type=?, "
+                    "salary_amount=?, ot_applicable=?, ot_rate_per_hour=?, holiday_pay_applicable=?, "
+                    "working_hours=?, joining_date=?, date_of_birth=?, gender=?, photo=?, status=?, "
+                    "aadhaar_number=?, pan_number=?, bank_account=?, bank_name=?, ifsc_code=?, "
+                    "branch_name=?, id_proof=?, aadhaar_document=?, pan_document=?, "
+                    "company_room_provided=?, company_food_provided=?, "
+                    "customer_id=?, company_id=?, branch_id=? WHERE id=?",
+                    values + (staff_id,),
+                )
+                saved_id = int(staff_id)
+                flash(f"Employee updated. Employee Code: {employee_code}")
+            else:
+                db.execute(
+                    "INSERT INTO staff(employee_code, staff_name, mobile, email, department, designation, "
+                    "designation_id, reporting_manager, workflow_role, salary_type, salary_amount, "
+                    "ot_applicable, ot_rate_per_hour, holiday_pay_applicable, working_hours, joining_date, "
+                    "date_of_birth, gender, photo, status, "
+                    "aadhaar_number, pan_number, bank_account, bank_name, ifsc_code, branch_name, id_proof, "
+                    "aadhaar_document, pan_document, company_room_provided, company_food_provided, "
+                    "customer_id, company_id, branch_id) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    values,
+                )
+                saved_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+                flash(f"Employee saved. Employee Code: {employee_code}")
+            if salary_type == "Monthly":
+                _save_staff_salary_components(db, saved_id, components)
+                _save_staff_travel_tiers(db, saved_id, travel_tiers)
+            else:
+                db.execute("DELETE FROM staff_salary_components WHERE staff_id=?", (saved_id,))
+                db.execute("DELETE FROM staff_travel_tiers WHERE staff_id=?", (saved_id,))
+            db.commit()
+        except (sqlite3.Error, KeyError, TypeError, ValueError) as exc:
+            db.rollback()
+            app.logger.exception("Staff save failed for %s", staff_name or employee_code)
+            flash(
+                "Unable to save employee. "
+                "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
             )
-            saved_id = int(staff_id)
-            flash(f"Employee updated. Employee Code: {employee_code}")
-        else:
-            db.execute(
-                "INSERT INTO staff(employee_code, staff_name, mobile, email, department, designation, "
-                "designation_id, reporting_manager, workflow_role, salary_type, salary_amount, "
-                "ot_applicable, ot_rate_per_hour, holiday_pay_applicable, working_hours, joining_date, "
-                "date_of_birth, gender, photo, status, "
-                "aadhaar_number, pan_number, bank_account, bank_name, ifsc_code, branch_name, id_proof, "
-                "aadhaar_document, pan_document, company_room_provided, company_food_provided) "
-                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                values,
-            )
-            saved_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
-            flash(f"Employee saved. Employee Code: {employee_code}")
-        if salary_type == "Monthly":
-            _save_staff_salary_components(db, saved_id, components)
-            _save_staff_travel_tiers(db, saved_id, travel_tiers)
-        else:
-            db.execute("DELETE FROM staff_salary_components WHERE staff_id=?", (saved_id,))
-            db.execute("DELETE FROM staff_travel_tiers WHERE staff_id=?", (saved_id,))
-        db.commit()
+            redirect_target = url_for("staff", edit=staff_id) if staff_id else url_for("staff")
+            return redirect(redirect_target)
         return redirect(url_for("staff"))
     rows_raw = query_db(
         "SELECT s.*, d.designation_name AS designation_label "
