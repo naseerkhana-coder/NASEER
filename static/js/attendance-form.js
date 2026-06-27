@@ -12,32 +12,41 @@
     return today.getFullYear() + '-' + mm + '-' + dd;
   }
 
+  function readFormDefaults(form) {
+    if (!form) return ATTENDANCE_FIELD_DEFAULTS;
+    return {
+      date: form.getAttribute('data-default-date') || todayIsoDate(),
+      inTime: form.getAttribute('data-default-in-time') || ATTENDANCE_FIELD_DEFAULTS.inTime,
+      outTime: form.getAttribute('data-default-out-time') || ATTENDANCE_FIELD_DEFAULTS.outTime,
+      breakHours: form.getAttribute('data-default-break-hours') || ATTENDANCE_FIELD_DEFAULTS.breakHours
+    };
+  }
+
   function applyAttendanceFieldDefaults(form, options) {
     if (!form) return;
     options = options || {};
     if (options.skipIfEditing && form.querySelector('input[name="record_id"]')) return;
 
+    var defaults = readFormDefaults(form);
     var dateInput = form.querySelector('[name="attendance_date"], [name="bulk_attendance_date"]');
     var inTimeInput = form.querySelector('[name="in_time"], [name="bulk_in_time"]');
     var outTimeInput = form.querySelector('[name="out_time"], [name="bulk_out_time"]');
     var breakInput = form.querySelector('[name="break_hours"], [name="bulk_break_hours"]');
 
     if (dateInput && !dateInput.value) {
-      dateInput.value = todayIsoDate();
-      syncHasValue(dateInput);
+      dateInput.value = defaults.date;
     }
     if (inTimeInput && !inTimeInput.value) {
-      inTimeInput.value = ATTENDANCE_FIELD_DEFAULTS.inTime;
-      syncHasValue(inTimeInput);
+      inTimeInput.value = defaults.inTime;
     }
     if (outTimeInput && !outTimeInput.value) {
-      outTimeInput.value = ATTENDANCE_FIELD_DEFAULTS.outTime;
-      syncHasValue(outTimeInput);
+      outTimeInput.value = defaults.outTime;
     }
     if (breakInput && !breakInput.value) {
-      breakInput.value = ATTENDANCE_FIELD_DEFAULTS.breakHours;
-      syncHasValue(breakInput);
+      breakInput.value = defaults.breakHours;
     }
+
+    [dateInput, inTimeInput, outTimeInput, breakInput].forEach(syncHasValue);
   }
 
   function syncHasValue(field) {
@@ -62,6 +71,8 @@
   function initAttendanceForm() {
     var form = document.querySelector('[data-attendance-form]');
     if (!form) return;
+
+    applyAttendanceFieldDefaults(form, { skipIfEditing: true });
 
     var staffType = form.querySelector('#attendance_staff_type');
     var companyNameRow = form.querySelector('#attendance_company_worker_name_row');
@@ -567,7 +578,6 @@
     if (!(staffType && staffType.value) && !subcontractorOnly) {
       toggleTradeDesignationRows();
     }
-    applyAttendanceFieldDefaults(form, { skipIfEditing: true });
     initSubcontractorBulkAttendance();
   }
 
@@ -794,5 +804,18 @@
     applyAttendanceFieldDefaults(bulkForm);
   }
 
+  function refreshAttendanceDefaults() {
+    var form = document.querySelector('[data-attendance-form]');
+    if (form) {
+      applyAttendanceFieldDefaults(form, { skipIfEditing: true });
+    }
+    var bulkForm = document.querySelector('[data-sub-bulk-form]');
+    if (bulkForm) {
+      applyAttendanceFieldDefaults(bulkForm);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', initAttendanceForm);
+  window.addEventListener('hashchange', refreshAttendanceDefaults);
+  document.addEventListener('maxek:entry-opened', refreshAttendanceDefaults);
 })();

@@ -2,6 +2,14 @@
 {% set form_mode = form_mode|default('attendance') %}
 {% set entry_label = 'Timesheet' if form_mode == 'timesheet' else 'Attendance' %}
 {% set cancel_url = url_for(form_endpoint, nav='subcontract') if subcontractor_nav else url_for(form_endpoint) %}
+{% set ts_default_date = default_date|default('') %}
+{% set ts_default_in_time = default_in_time|default('08:00') %}
+{% set ts_default_out_time = default_out_time|default('17:00') %}
+{% set ts_default_break_hours = default_break_hours|default('1') %}
+{% set attendance_date_value = edit_record.attendance_date if edit_record else ts_default_date %}
+{% set attendance_in_time_value = edit_record.in_time if edit_record else ts_default_in_time %}
+{% set attendance_out_time_value = edit_record.out_time if edit_record else ts_default_out_time %}
+{% set attendance_break_hours_value = edit_record.break_hours if edit_record else ts_default_break_hours %}
   {% if subcontractor_nav %}
   <div class="erp-form-card erp-form-card--tabs" style="margin-bottom: 1rem; padding: 0.75rem 1rem;">
     <div class="erp-btn-group" role="tablist" aria-label="Subcontractor attendance entry mode">
@@ -17,6 +25,10 @@
   <div class="erp-form-card" id="add-attendance"{% if subcontractor_nav %} data-subcontractor-attendance{% endif %}>
     <h3 class="erp-form-title">{% if edit_record %}Edit {{ entry_label }} #{{ edit_record.id }}{% if edit_role %} ({{ edit_role|title }}){% endif %}{% elif subcontractor_nav %}Subcontractor {{ entry_label }} — Single Entry{% else %}Add {{ entry_label }}{% endif %}</h3>
     <form method="post" class="erp-form-grid" data-attendance-form data-photos-base="{{ url_for('static', filename='photos/') }}"
+      data-default-date="{{ ts_default_date }}"
+      data-default-in-time="{{ ts_default_in_time }}"
+      data-default-out-time="{{ ts_default_out_time }}"
+      data-default-break-hours="{{ ts_default_break_hours }}"
       {% if subcontractor_nav %}data-subcontractor-only="1"{% endif %}
       {% if edit_record %}
       data-edit-worker-ref="{{ ('s:' ~ edit_record.worker_id|string) if edit_record.worker_source == 'staff' else ('w:' ~ edit_record.worker_id|string) }}"
@@ -201,16 +213,16 @@
         <label>Designation</label>
         <button type="button" class="erp-inline-action" id="open-new-designation-modal"><i class="fa-solid fa-plus"></i> Add new</button>
       </div>
-      <div class="erp-field"><input name="attendance_date" id="attendance_date" type="date" placeholder=" " required value="{{ edit_record.attendance_date if edit_record else default_date }}"><label>Date</label></div>
+      <div class="erp-field"><input name="attendance_date" id="attendance_date" type="date" placeholder=" " required value="{{ attendance_date_value }}"{% if attendance_date_value %} class="has-value"{% endif %}><label>Date</label></div>
       <div class="erp-field"><select name="status">
         <option {% if not edit_record or edit_record.status == 'Present' %}selected{% endif %}>Present</option>
         <option {% if edit_record and edit_record.status == 'Absent' %}selected{% endif %}>Absent</option>
         <option {% if edit_record and edit_record.status == 'Half Day' %}selected{% endif %}>Half Day</option>
         <option {% if edit_record and edit_record.status == 'Leave' %}selected{% endif %}>Leave</option>
       </select><label>Status</label></div>
-      <div class="erp-field"><input name="in_time" id="attendance_in_time" type="time" placeholder=" " required value="{{ edit_record.in_time if edit_record else default_in_time }}"><label>In Time</label></div>
-      <div class="erp-field"><input name="out_time" id="attendance_out_time" type="time" placeholder=" " required value="{{ edit_record.out_time if edit_record else default_out_time }}"><label>Out Time</label></div>
-      <div class="erp-field"><input name="break_hours" id="attendance_break_hours" type="number" step="0.1" value="{{ edit_record.break_hours if edit_record else default_break_hours }}" placeholder=" "><label>Break Hours</label></div>
+      <div class="erp-field"><input name="in_time" id="attendance_in_time" type="time" placeholder=" " required value="{{ attendance_in_time_value }}"{% if attendance_in_time_value %} class="has-value"{% endif %}><label>In Time</label></div>
+      <div class="erp-field"><input name="out_time" id="attendance_out_time" type="time" placeholder=" " required value="{{ attendance_out_time_value }}"{% if attendance_out_time_value %} class="has-value"{% endif %}><label>Out Time</label></div>
+      <div class="erp-field"><input name="break_hours" id="attendance_break_hours" type="number" step="0.1" value="{{ attendance_break_hours_value }}" placeholder=" "{% if attendance_break_hours_value %} class="has-value"{% endif %}><label>Break Hours</label></div>
       <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save {{ entry_label }}</button>
       {% if edit_record %}<a href="{{ cancel_url }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}
       </div>
@@ -257,7 +269,7 @@
         <label>Project Name</label>
       </div>
       <div class="erp-field erp-field--date">
-        <input name="bulk_attendance_date" id="bulk_attendance_date" type="date" required placeholder=" " class="erp-input--date" value="{{ default_date }}">
+        <input name="bulk_attendance_date" id="bulk_attendance_date" type="date" required placeholder=" " class="erp-input--date{% if ts_default_date %} has-value{% endif %}" value="{{ ts_default_date }}">
         <label>Date</label>
       </div>
       <div class="erp-field">
@@ -268,9 +280,9 @@
         </select>
         <label>Default Status</label>
       </div>
-      <div class="erp-field"><input name="bulk_in_time" id="bulk_in_time" type="time" required placeholder=" " value="{{ default_in_time }}"><label>In Time</label></div>
-      <div class="erp-field"><input name="bulk_out_time" id="bulk_out_time" type="time" required placeholder=" " value="{{ default_out_time }}"><label>Out Time</label></div>
-      <div class="erp-field"><input name="bulk_break_hours" id="bulk_break_hours" type="number" step="0.1" value="{{ default_break_hours }}" placeholder=" "><label>Break Hours</label></div>
+      <div class="erp-field"><input name="bulk_in_time" id="bulk_in_time" type="time" required placeholder=" "{% if ts_default_in_time %} class="has-value"{% endif %} value="{{ ts_default_in_time }}"><label>In Time</label></div>
+      <div class="erp-field"><input name="bulk_out_time" id="bulk_out_time" type="time" required placeholder=" "{% if ts_default_out_time %} class="has-value"{% endif %} value="{{ ts_default_out_time }}"><label>Out Time</label></div>
+      <div class="erp-field"><input name="bulk_break_hours" id="bulk_break_hours" type="number" step="0.1" value="{{ ts_default_break_hours }}" placeholder=" "{% if ts_default_break_hours %} class="has-value"{% endif %}><label>Break Hours</label></div>
       <div class="erp-field span-3 erp-form-actions" style="align-self: end;">
         <button type="button" class="erp-btn erp-btn-ghost" id="bulk_apply_to_ticked"><i class="fa-solid fa-check-double"></i> Apply time &amp; status to ticked</button>
       </div>
