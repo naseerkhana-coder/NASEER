@@ -56,6 +56,7 @@ from attendance_service import (
     RECORD_TABLE as MONTHLY_ATTENDANCE_TABLE,
     ATTENDANCE_WORKER_JOIN_SQL,
     ATTENDANCE_MASTER_JOIN_SQL,
+    ATTENDANCE_BASE_SELECT_SQL,
     ATTENDANCE_ROW_LOOKUP_SQL,
     ensure_staff_monthly_attendance_schema,
     list_monthly_staff_for_attendance,
@@ -11710,7 +11711,7 @@ def _apply_monthly_timesheet_day_defaults(
 
 
 _DAILY_ATTENDANCE_RECORD_SQL = (
-    "SELECT a.*, "
+    f"SELECT {ATTENDANCE_BASE_SELECT_SQL}, "
     f"{ATTENDANCE_ROW_LOOKUP_SQL} "
     "FROM attendance a "
     f"{ATTENDANCE_WORKER_JOIN_SQL} "

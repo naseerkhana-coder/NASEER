@@ -101,6 +101,32 @@ class AttendanceWorkerNameLookupTests(unittest.TestCase):
         self.assertEqual(legacy["worker_name"], "Company Staff Five")
         self.assertEqual(legacy["worker_code"], "E-005")
 
+    def test_legacy_denormalized_columns_do_not_shadow_joins(self):
+        """NULL worker_name/project_name on attendance row must not hide joined values."""
+        db = _make_db()
+        db.execute(
+            "ALTER TABLE attendance ADD COLUMN worker_name TEXT"
+        )
+        db.execute(
+            "ALTER TABLE attendance ADD COLUMN worker_code TEXT"
+        )
+        db.execute(
+            "ALTER TABLE attendance ADD COLUMN project_name TEXT"
+        )
+        db.execute(
+            "ALTER TABLE attendance ADD COLUMN project_code TEXT"
+        )
+        db.execute(
+            "UPDATE attendance SET worker_name=NULL, worker_code=NULL, "
+            "project_name=NULL, project_code=NULL WHERE id=1"
+        )
+        rows = list_daily_attendance_records(db)
+        row = next(r for r in rows if r["id"] == 1)
+        self.assertEqual(row["worker_name"], "Sub Worker One")
+        self.assertEqual(row["worker_code"], "W-001")
+        self.assertEqual(row["project_name"], "Tower A")
+        self.assertEqual(row["project_code"], "PRJ-01")
+
 
 if __name__ == "__main__":
     unittest.main()

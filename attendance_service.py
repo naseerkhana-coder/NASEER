@@ -23,6 +23,15 @@ ATTENDANCE_MASTER_JOIN_SQL = (
     "LEFT JOIN designations ad ON a.designation_id = ad.id"
 )
 
+# Legacy attendance rows may store denormalized worker/project text columns (often NULL).
+# Never SELECT a.* before joined aliases — sqlite3 dict(row) keeps the first duplicate key.
+ATTENDANCE_BASE_SELECT_SQL = (
+    "a.id, a.worker_id, a.worker_source, a.project_id, "
+    "a.attendance_date, a.in_time, a.out_time, a.break_hours, "
+    "a.total_hours, a.ot_hours, a.status, a.approval_status, "
+    "a.trade_id, a.designation_id"
+)
+
 ATTENDANCE_ROW_LOOKUP_SQL = (
     "COALESCE("
     "CASE WHEN COALESCE(a.worker_source, 'worker') = 'staff' "
@@ -151,7 +160,7 @@ def list_daily_attendance_records(
 ) -> list[dict]:
     """Daily attendance register rows with worker and project names resolved."""
     sql = (
-        "SELECT a.*, "
+        f"SELECT {ATTENDANCE_BASE_SELECT_SQL}, "
         f"{ATTENDANCE_ROW_LOOKUP_SQL} "
         "FROM attendance a "
         f"{ATTENDANCE_WORKER_JOIN_SQL} "
