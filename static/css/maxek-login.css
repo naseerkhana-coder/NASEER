@@ -62,8 +62,8 @@ body.login-page {
 }
 
 .login-brand-logo {
-  width: 32px;
-  height: 32px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -75,7 +75,7 @@ body.login-page {
 }
 
 .login-brand-name {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.04em;
   line-height: 1.2;
@@ -170,6 +170,60 @@ body.login-page {
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.login-card-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 1.25rem;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--login-border);
+}
+
+.login-tenant-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px;
+}
+
+.login-tenant-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.login-tenant-copy strong {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--login-text);
+}
+
+.login-tenant-code {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--login-muted);
+}
+
+.login-tenant-erp {
+  font-size: 0.8125rem;
+  color: var(--login-accent);
+  font-weight: 600;
+}
+
+.login-card-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--login-muted);
 }
 
 .login-card-head {

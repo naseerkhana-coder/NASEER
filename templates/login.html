@@ -17,8 +17,8 @@
               class="login-brand-logo"
               src="{{ url_for('static', filename='images/maxek-logo.png') }}"
               alt="MAXEK Technologies"
-              width="32"
-              height="32"
+              width="56"
+              height="56"
               onerror="this.style.display='none'"
             />
             <div class="login-brand-title">
@@ -58,9 +58,25 @@
       </aside>
 
       <section class="login-card" role="main">
+        <div class="login-card-brand" id="login-tenant-brand"{% if not login_branding %} hidden{% endif %}>
+          <img
+            class="login-tenant-logo"
+            id="login-tenant-logo"
+            src="{% if login_branding and login_branding.logo_path %}{{ url_for('static', filename=login_branding.logo_path) }}{% else %}{{ url_for('static', filename='images/maxek-logo.png') }}{% endif %}"
+            alt=""
+            width="72"
+            height="72"
+            onerror="this.src='{{ url_for('static', filename='images/maxek-logo.png') }}'"
+          />
+          <div class="login-tenant-copy">
+            <strong id="login-tenant-name">{% if login_branding %}{{ login_branding.company_name }}{% endif %}</strong>
+            <span id="login-tenant-code">{% if login_branding %}{{ login_branding.customer_code }}{% endif %}</span>
+            <span class="login-tenant-erp">MAXEK Technologies ERP</span>
+          </div>
+        </div>
         <div class="login-card-head">
           <h2>Sign In</h2>
-          <p>MAXEK Technologies ERP</p>
+          <p class="login-card-subtitle">MAXEK Technologies ERP</p>
         </div>
 
         {% with messages = get_flashed_messages() %}
@@ -149,6 +165,6 @@
       </section>
     </div>
 
-    <script src="{{ url_for('static', filename='js/login.js') }}?v=20260627-split"></script>
+    <script src="{{ url_for('static', filename='js/login.js') }}?v=20260628-brand"></script>
   </body>
 </html>

@@ -112,10 +112,56 @@
     });
   }
 
+  function initCompanyBrandingPreview() {
+    var companyInput = document.getElementById("company_code");
+    var brandPanel = document.getElementById("login-tenant-brand");
+    if (!companyInput || !brandPanel) return;
+
+    var debounceTimer;
+    function refreshBranding() {
+      var code = (companyInput.value || "").trim();
+      if (!code) {
+        brandPanel.hidden = true;
+        return;
+      }
+      fetch("/login/branding?company_code=" + encodeURIComponent(code), {
+        headers: { Accept: "application/json" },
+      })
+        .then(function (res) {
+          return res.ok ? res.json() : null;
+        })
+        .then(function (data) {
+          if (!data || !data.company_name) {
+            brandPanel.hidden = true;
+            return;
+          }
+          brandPanel.hidden = false;
+          var nameEl = document.getElementById("login-tenant-name");
+          var codeEl = document.getElementById("login-tenant-code");
+          var logoEl = document.getElementById("login-tenant-logo");
+          if (nameEl) nameEl.textContent = data.company_name;
+          if (codeEl) codeEl.textContent = data.customer_code || code;
+          if (logoEl && data.logo_url) logoEl.src = data.logo_url;
+        })
+        .catch(function () {
+          brandPanel.hidden = true;
+        });
+    }
+
+    companyInput.addEventListener("input", function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(refreshBranding, 350);
+    });
+    if (companyInput.value.trim()) {
+      refreshBranding();
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initPasswordToggle();
     initRememberedFields();
     initFormSubmit();
     initFocus();
+    initCompanyBrandingPreview();
   });
 })();
