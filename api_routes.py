@@ -22,6 +22,7 @@ from super_admin_service import (
     get_customer_by_code,
     get_customer_by_id,
     is_super_admin_user,
+    is_platform_super_admin,
     list_customers,
     list_licenses,
     log_audit,
@@ -76,7 +77,7 @@ def _require_super_admin_jwt(db):
     if role in ("super admin", "superadmin"):
         return None
     user = db.execute("SELECT * FROM users WHERE id=?", (g.api_user_id,)).fetchone()
-    if user and is_super_admin_user(db, user):
+    if user and is_platform_super_admin(db, user):
         return None
     return _json_error("Super Admin access required", "forbidden", 403)
 

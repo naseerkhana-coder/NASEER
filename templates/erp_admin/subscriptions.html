@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, entity_status_badge %}
 {% set page_title = 'Subscription Management' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Subscriptions' %}
 {% block content %}
@@ -33,7 +33,7 @@
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">
         <thead><tr><th>Customer</th><th>Company</th><th>Plan</th><th>Cycle</th><th>Amount</th><th>Start</th><th>Renewal</th><th>Status</th></tr></thead>
-        <tbody>{% for row in rows %}<tr><td>{{ row.customer_code }}</td><td>{{ row.company_name }}</td><td>{{ row.plan }}</td><td>{{ row.billing_cycle }}</td><td>{{ row.amount }}</td><td>{{ row.start_date or '—' }}</td><td>{{ row.renewal_date or '—' }}</td><td>{{ approval_badge(row.status) }}</td></tr>{% else %}<tr><td colspan="8">No subscriptions yet.</td></tr>{% endfor %}</tbody>
+        <tbody>{% for row in rows %}<tr><td>{{ row.customer_code }}</td><td>{{ row.company_name }}</td><td>{{ row.plan }}</td><td>{{ row.billing_cycle }}</td><td>{{ row.amount }}</td><td>{{ row.start_date or '—' }}</td><td>{{ row.renewal_date or '—' }}</td><td>{{ entity_status_badge(row.status) }}</td></tr>{% else %}<tr><td colspan="8">No subscriptions yet.</td></tr>{% endfor %}</tbody>
       </table>
     </div>
   </div>

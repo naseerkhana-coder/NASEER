@@ -1,32 +1,34 @@
-MAXEK ERP — VPS Patch v1.0.1 Hotfix (revised)
-Generated: 2026-06-28 20:16
+MAXEK ERP — VPS Patch v1.0.1 Hotfix (platform admin security)
+Generated: 2026-06-28 20:22
 Archive: deploy/dist/vps-patch-v1.0.1-hotfix.zip
 
 Purpose
 -------
-Fix production UAT issues after initial v1.0.1 hotfix:
-  1. Dashboard theme settings (Settings + Customer Settings templates/services)
-  2. Main dashboard shows all 14 department tiles (locked when not subscribed)
-  3. Super Admin two-level dashboard (Platform + Company ERP when company selected)
-  4. WSGI-safe bulk import registration (try/except in app.py)
-
-Root cause
-----------
-Initial hotfix zip deployed app.py only. VPS kept older templates without
-dashboard_layout_theme / dashboard_theme UI. Department tiles were filtered by
-subscription enabled_departments and user favorite_modules preferences.
+  1. Platform menu + /erp-admin/* + /super-admin/* restricted to Platform Super Admin (403 otherwise)
+  2. Platform admin modules save immediately — no maker/checker/approver workflow
+  3. Dashboard theme + department tiles fixes from prior hotfix retained
 
 Files in archive
 ----------------
   app.py
-  dashboard_prefs_service.py
+  api_routes.py
+  super_admin_service.py
   user_context_service.py
+  workflow_service.py
+  ui_shell_config.py
   erp_admin_routes.py
-  erp_platform_routes.py
+  dashboard_prefs_service.py
   standard_boq_library_service.py
   templates/settings.html
-  templates/erp_admin/customer_settings.html
+  templates/erp_admin/customers.html
+  templates/erp_admin/licenses.html
+  templates/erp_admin/subscriptions.html
+  templates/erp_admin/change_requests.html
+  templates/erp_admin/support_tickets.html
   templates/erp_admin/platform_dashboard.html
+  templates/erp_admin/customer_settings.html
+  templates/macros/erp_ui.html
+  templates/partials/dashboard_shell_sidebar.html
   templates/dashboard.html
   templates/dashboard_theme_executive.html
   templates/dashboard_theme_compact.html
@@ -37,22 +39,32 @@ Files in archive
 Deployment
 ----------
 Extract zip at application root (preserve paths). Restart gunicorn/uwsgi.
-Schema columns (dashboard_theme, dashboard_layout_theme) auto-migrate on boot.
+No database schema changes required.
 
 LOCAL -> VPS
 --------------------------------------------------------------------------------
    1. C:\Users\rajee\Documents\New project\MAXEK_ERP\app.py -> /var/www/maxek-erp-flask/app.py
-   2. C:\Users\rajee\Documents\New project\MAXEK_ERP\dashboard_prefs_service.py -> /var/www/maxek-erp-flask/dashboard_prefs_service.py
-   3. C:\Users\rajee\Documents\New project\MAXEK_ERP\user_context_service.py -> /var/www/maxek-erp-flask/user_context_service.py
-   4. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_admin_routes.py -> /var/www/maxek-erp-flask/erp_admin_routes.py
-   5. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_platform_routes.py -> /var/www/maxek-erp-flask/erp_platform_routes.py
-   6. C:\Users\rajee\Documents\New project\MAXEK_ERP\standard_boq_library_service.py -> /var/www/maxek-erp-flask/standard_boq_library_service.py
-   7. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\settings.html -> /var/www/maxek-erp-flask/templates/settings.html
-   8. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\customer_settings.html -> /var/www/maxek-erp-flask/templates/erp_admin/customer_settings.html
-   9. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\platform_dashboard.html -> /var/www/maxek-erp-flask/templates/erp_admin/platform_dashboard.html
-  10. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard.html -> /var/www/maxek-erp-flask/templates/dashboard.html
-  11. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_executive.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_executive.html
-  12. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_compact.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_compact.html
-  13. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\command_centre_dept_tiles.html -> /var/www/maxek-erp-flask/templates/partials/command_centre_dept_tiles.html
-  14. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\css\maxek-dashboard.css -> /var/www/maxek-erp-flask/static/css/maxek-dashboard.css
-  15. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\js\maxek-ui.js -> /var/www/maxek-erp-flask/static/js/maxek-ui.js
+   2. C:\Users\rajee\Documents\New project\MAXEK_ERP\api_routes.py -> /var/www/maxek-erp-flask/api_routes.py
+   3. C:\Users\rajee\Documents\New project\MAXEK_ERP\super_admin_service.py -> /var/www/maxek-erp-flask/super_admin_service.py
+   4. C:\Users\rajee\Documents\New project\MAXEK_ERP\user_context_service.py -> /var/www/maxek-erp-flask/user_context_service.py
+   5. C:\Users\rajee\Documents\New project\MAXEK_ERP\workflow_service.py -> /var/www/maxek-erp-flask/workflow_service.py
+   6. C:\Users\rajee\Documents\New project\MAXEK_ERP\ui_shell_config.py -> /var/www/maxek-erp-flask/ui_shell_config.py
+   7. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_admin_routes.py -> /var/www/maxek-erp-flask/erp_admin_routes.py
+   8. C:\Users\rajee\Documents\New project\MAXEK_ERP\dashboard_prefs_service.py -> /var/www/maxek-erp-flask/dashboard_prefs_service.py
+   9. C:\Users\rajee\Documents\New project\MAXEK_ERP\standard_boq_library_service.py -> /var/www/maxek-erp-flask/standard_boq_library_service.py
+  10. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\settings.html -> /var/www/maxek-erp-flask/templates/settings.html
+  11. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\customers.html -> /var/www/maxek-erp-flask/templates/erp_admin/customers.html
+  12. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\licenses.html -> /var/www/maxek-erp-flask/templates/erp_admin/licenses.html
+  13. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\subscriptions.html -> /var/www/maxek-erp-flask/templates/erp_admin/subscriptions.html
+  14. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\change_requests.html -> /var/www/maxek-erp-flask/templates/erp_admin/change_requests.html
+  15. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\support_tickets.html -> /var/www/maxek-erp-flask/templates/erp_admin/support_tickets.html
+  16. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\platform_dashboard.html -> /var/www/maxek-erp-flask/templates/erp_admin/platform_dashboard.html
+  17. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\customer_settings.html -> /var/www/maxek-erp-flask/templates/erp_admin/customer_settings.html
+  18. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\macros\erp_ui.html -> /var/www/maxek-erp-flask/templates/macros/erp_ui.html
+  19. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\dashboard_shell_sidebar.html -> /var/www/maxek-erp-flask/templates/partials/dashboard_shell_sidebar.html
+  20. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard.html -> /var/www/maxek-erp-flask/templates/dashboard.html
+  21. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_executive.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_executive.html
+  22. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_compact.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_compact.html
+  23. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\command_centre_dept_tiles.html -> /var/www/maxek-erp-flask/templates/partials/command_centre_dept_tiles.html
+  24. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\css\maxek-dashboard.css -> /var/www/maxek-erp-flask/static/css/maxek-dashboard.css
+  25. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\js\maxek-ui.js -> /var/www/maxek-erp-flask/static/js/maxek-ui.js

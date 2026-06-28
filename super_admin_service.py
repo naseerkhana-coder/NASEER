@@ -177,7 +177,7 @@ ERP_ADMIN_SUBTOOLBAR = (
     },
     {
         "endpoint": "user_management",
-        "label": "User Management",
+        "label": "Platform User Management",
         "icon": "fa-user-shield",
         "active_endpoints": ["user_management"],
         "section": "customers-licenses",
@@ -795,21 +795,25 @@ def get_customer_by_id(db, customer_id: int):
         return None
 
 
-def is_super_admin_user(db, user_row) -> bool:
+def is_platform_super_admin(db, user_row) -> bool:
+    """True only for MAXEK platform Super Admin (not tenant Customer/Company Admin)."""
     if user_row is None:
         return False
     role = str(user_row["role"] or "").strip().lower() if "role" in user_row.keys() else ""
-    if role in ("super admin", "superadmin"):
-        return True
+    if role not in ("super admin", "superadmin"):
+        return False
     customer_id = user_row["customer_id"] if "customer_id" in user_row.keys() else None
-    if customer_id:
-        try:
-            customer = get_customer_by_id(db, customer_id)
-        except Exception:
-            return False
-        if customer and customer["is_platform"]:
-            return role in ("super admin", "superadmin", "admin", "administrator")
-    return False
+    if not customer_id:
+        return True
+    try:
+        customer = get_customer_by_id(db, customer_id)
+    except Exception:
+        return False
+    return bool(customer and customer["is_platform"])
+
+
+def is_super_admin_user(db, user_row) -> bool:
+    return is_platform_super_admin(db, user_row)
 
 
 def is_customer_admin_user(user_row) -> bool:

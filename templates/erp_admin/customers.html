@@ -1,6 +1,6 @@
 {% extends 'base_maxek.html' %}
 
-{% from 'macros/erp_ui.html' import approval_badge, erp_pagination, erp_module_toolbar, erp_module_form_panel, erp_module_table_panel %}
+{% from 'macros/erp_ui.html' import entity_status_badge, erp_pagination, erp_module_toolbar, erp_module_form_panel, erp_module_table_panel %}
 
 {% set page_title = 'Customer Master' %}
 
@@ -140,7 +140,7 @@
             <td>{{ row.package_code or row.plan }}</td>
             <td>{{ row.enabled_department_count }}</td>
             <td>{{ row.num_branches }}</td><td>{{ row.num_users }}</td>
-            <td>{{ approval_badge(row.status) }}</td>
+            <td>{{ entity_status_badge(row.status) }}</td>
             <td class="erp-table-col-actions">
               <a href="{{ url_for('erp_admin_customer_settings', customer_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
               <a href="{{ url_for('erp_admin_migration_wizard', customer_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Migration</a>

@@ -22,6 +22,36 @@ WORKFLOW_MODE_LABELS = {
 }
 DEFAULT_WORKFLOW_MODE = "full"
 
+# Platform administration — immediate save, no maker/checker/approver workflow.
+PLATFORM_ADMIN_MODULE_IDS = frozenset(
+    {
+        "customer_master",
+        "license_master",
+        "platform_user_management",
+        "company_creation",
+        "customer_settings",
+        "platform_settings",
+    }
+)
+
+PLATFORM_ADMIN_ROUTE_ENDPOINTS = frozenset(
+    {
+        "super_admin_platform_dashboard",
+        "erp_admin_customers",
+        "erp_admin_customer_settings",
+        "erp_admin_licenses",
+        "erp_admin_subscriptions",
+        "erp_admin_user_limits",
+        "erp_admin_branch_limits",
+        "erp_admin_storage_limits",
+        "erp_admin_login_monitoring",
+        "erp_admin_change_requests",
+        "erp_admin_settings",
+        "erp_admin_audit_logs",
+        "erp_admin_system_health",
+    }
+)
+
 # Internal workflow_status keys
 STATUS_PENDING_CHECKER = "pending_checker"
 STATUS_PENDING_APPROVAL = "pending_approval"
@@ -406,7 +436,21 @@ def get_user_designation_id(db, user_id):
     return row["designation_id"] if row and row["designation_id"] else None
 
 
+def is_platform_admin_module(module_id: str | None) -> bool:
+    if not module_id:
+        return False
+    return str(module_id).strip().lower() in PLATFORM_ADMIN_MODULE_IDS
+
+
+def route_exempt_from_workflow(endpoint: str | None) -> bool:
+    if not endpoint:
+        return False
+    return endpoint in PLATFORM_ADMIN_ROUTE_ENDPOINTS
+
+
 def get_workflow_for_module(db, module_id):
+    if is_platform_admin_module(module_id):
+        return None
     row = db.execute(
         "SELECT wm.*, "
         "dm.designation_name AS maker_designation, "
@@ -440,6 +484,8 @@ def workflow_mode_requires_approver(mode):
 
 def initial_workflow_after_save(db, module_id):
     """Return (workflow_status, current_stage, record_status) after maker save."""
+    if is_platform_admin_module(module_id):
+        return STATUS_APPROVED, "completed", RECORD_APPROVED
     mode = get_module_workflow_mode(db, module_id)
     if mode == "maker_only":
         return STATUS_APPROVED, "completed", RECORD_APPROVED
@@ -789,6 +835,8 @@ def display_status_from_workflow(workflow_status, role="maker"):
 
 def create_approval_request(db, module_id, record_id, record_table, created_by, user_id=None):
     """Maker SAVE — route to next stage per module workflow_mode."""
+    if is_platform_admin_module(module_id):
+        return None
     wf_status, stage, record_status = initial_workflow_after_save(db, module_id)
     mode = get_module_workflow_mode(db, module_id)
     db.execute(

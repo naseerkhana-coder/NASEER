@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, entity_status_badge %}
 {% set page_title = 'Change Request Register' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Change Requests' %}
 {% block content %}
@@ -32,7 +32,7 @@
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">
         <thead><tr><th>Request No</th><th>Customer</th><th>Date</th><th>Module</th><th>Issue</th><th>Priority</th><th>Status</th></tr></thead>
-        <tbody>{% for row in rows %}<tr><td>{{ row.request_no }}</td><td>{{ row.company_name or row.customer_code }}</td><td>{{ row.request_date }}</td><td>{{ row.module }}</td><td>{{ row.issue }}</td><td>{{ row.priority }}</td><td>{{ approval_badge(row.status) }}</td></tr>{% else %}<tr><td colspan="7">No change requests.</td></tr>{% endfor %}</tbody>
+        <tbody>{% for row in rows %}<tr><td>{{ row.request_no }}</td><td>{{ row.company_name or row.customer_code }}</td><td>{{ row.request_date }}</td><td>{{ row.module }}</td><td>{{ row.issue }}</td><td>{{ row.priority }}</td><td>{{ entity_status_badge(row.status) }}</td></tr>{% else %}<tr><td colspan="7">No change requests.</td></tr>{% endfor %}</tbody>
       </table>
     </div>
   </div>

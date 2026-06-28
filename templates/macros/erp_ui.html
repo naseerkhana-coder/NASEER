@@ -4,6 +4,12 @@
 <span class="approval-badge approval-{{ normalized }}">{{ raw }}</span>
 {% endmacro %}
 
+{% macro entity_status_badge(status) %}
+{% set raw = (status or '—')|string %}
+{% set normalized = raw|lower|replace(' ', '-')|replace('_', '-') %}
+<span class="entity-status-badge entity-status-{{ normalized }}">{{ raw }}</span>
+{% endmacro %}
+
 {% macro workflow_badge(role) %}
 <span class="workflow-role-badge role-{{ role|lower }}">{{ role }}</span>
 {% endmacro %}

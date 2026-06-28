@@ -381,6 +381,7 @@ from super_admin_service import (
     get_customer_by_id,
     get_customer_enabled_departments,
     is_customer_admin_user as _is_customer_admin_row,
+    is_platform_super_admin as _is_platform_super_admin_row,
     is_super_admin_user as _is_super_admin_row,
     seed_super_admin_data,
     sync_customer_usage_counts,
@@ -6208,15 +6209,21 @@ def filter_nav_groups_for_user(nav_groups, guest=False, hr_base=False, super_adm
 
 
 def is_super_admin_user():
+    return is_platform_super_admin_user()
+
+
+def is_platform_super_admin_user():
     if not session.get("user_id"):
         return False
     user = query_db("SELECT * FROM users WHERE id=?", (session["user_id"],), one=True)
     if not user:
         return False
     try:
-        return _is_super_admin_row(get_db(), user)
+        return _is_platform_super_admin_row(get_db(), user)
     except Exception:
-        app.logger.exception("Super admin role check failed for user_id=%s", session.get("user_id"))
+        app.logger.exception(
+            "Platform super admin role check failed for user_id=%s", session.get("user_id")
+        )
         return False
 
 
@@ -6232,13 +6239,14 @@ def is_customer_admin_user():
 def super_admin_required(fn):
     from functools import wraps
 
+    from flask import abort
+
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return redirect(url_for("login"))
-        if not is_super_admin_user():
-            flash("Super Admin access required.")
-            return redirect(url_for("dashboard"))
+        if not is_platform_super_admin_user():
+            abort(403)
         return fn(*args, **kwargs)
 
     return wrapper
@@ -7894,11 +7902,11 @@ def inject_maxek_layout():
     nav_slug = (request.view_args or {}).get("slug") if request.endpoint in ("department_hub", "department_portal") else None
     guest_user = is_guest_user()
     hr_base_user = is_hr_base_user()
-    super_admin = is_super_admin_user()
+    platform_super_admin = is_platform_super_admin_user()
     visible_nav_groups = filter_nav_groups_for_user(
-        NAV_GROUPS, guest=guest_user, hr_base=hr_base_user, super_admin=super_admin
+        NAV_GROUPS, guest=guest_user, hr_base=hr_base_user, super_admin=platform_super_admin
     )
-    tab_perm_full_access = is_admin_user() or super_admin or guest_user
+    tab_perm_full_access = is_admin_user() or platform_super_admin or guest_user
     if user_id and not tab_perm_full_access:
         visible_nav_groups = apply_user_tab_permissions_to_nav_groups(
             db,
@@ -7946,7 +7954,7 @@ def inject_maxek_layout():
                 user_id,
                 dept_portal["slug"],
                 portal_menu,
-                full_access=is_admin_user() or super_admin or guest_user,
+                full_access=is_admin_user() or platform_super_admin or guest_user,
             )
             dept_portal_view = dict(dept_portal)
             dept_portal_view["menu"] = portal_menu
@@ -7971,7 +7979,7 @@ def inject_maxek_layout():
         }
     sub_toolbar_items = [] if in_dept_portal_shell else filter_sub_toolbar_items(current_nav_group)
     sub_toolbar_sections = None
-    if not in_dept_portal_shell and request.endpoint in ERP_ADMIN_ACTIVE_ENDPOINTS:
+    if not in_dept_portal_shell and request.endpoint in ERP_ADMIN_ACTIVE_ENDPOINTS and platform_super_admin:
         sub_toolbar_sections = ERP_ADMIN_SUBTOOLBAR_SECTIONS
         sub_toolbar_items = list(ERP_ADMIN_SUBTOOLBAR)
     elif not in_dept_portal_shell and active_toolbar_slug == "accounts-finance":
@@ -8059,7 +8067,8 @@ def inject_maxek_layout():
         "module_sub_toolbar_label": module_sub_toolbar_label,
         "is_guest_user": guest_user,
         "is_hr_base_user": hr_base_user,
-        "is_super_admin_user": super_admin,
+        "is_super_admin_user": platform_super_admin,
+        "is_platform_super_admin": platform_super_admin,
         "company_code": session.get("company_code"),
         "timestamp": format_app_datetime(),
         "app_timezone": app_timezone,
@@ -8088,7 +8097,9 @@ def inject_maxek_layout():
         "sub_toolbar_items": sub_toolbar_items,
         "sub_toolbar_sections": sub_toolbar_sections,
         "erp_admin_active_endpoints": list(ERP_ADMIN_ACTIVE_ENDPOINTS),
-        "is_erp_admin_page": request.endpoint in ERP_ADMIN_ACTIVE_ENDPOINTS,
+        "is_erp_admin_page": (
+            request.endpoint in ERP_ADMIN_ACTIVE_ENDPOINTS and platform_super_admin
+        ),
         "quick_panel_links": quick_panel_for_slug(active_toolbar_slug),
         "global_search_categories": GLOBAL_SEARCH_CATEGORIES,
         "help_center_items": HELP_CENTER_ITEMS,
@@ -8108,11 +8119,13 @@ def inject_maxek_layout():
         "command_centre_branch": session.get("branch", branch_options[0] if branch_options else "Head Office"),
         "command_user_role": role_label,
         "dashboard_shell_favorites": DASHBOARD_SHELL_FAVORITES,
-        "dashboard_shell_nav_groups": build_dashboard_shell_nav_groups(super_admin=super_admin),
+        "dashboard_shell_nav_groups": build_dashboard_shell_nav_groups(
+            super_admin=platform_super_admin
+        ),
         "dashboard_shell_command_centre_items": DASHBOARD_SHELL_COMMAND_CENTRE_ITEMS,
         "dashboard_shell_settings": DASHBOARD_SHELL_SETTINGS,
         "primary_dashboard_endpoint": (
-            "super_admin_platform_dashboard" if super_admin else "dashboard"
+            "super_admin_platform_dashboard" if platform_super_admin else "dashboard"
         ),
     }
 

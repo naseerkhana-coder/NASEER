@@ -482,7 +482,7 @@ DASHBOARD_SHELL_CUSTOMERS_LICENSES_NAV_GROUP: dict = {
         },
         {
             "endpoint": "user_management",
-            "label": "User Management",
+            "label": "Platform User Management",
             "icon": "fa-user-shield",
             "active_endpoints": ["user_management"],
         },
@@ -550,7 +550,7 @@ DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP: dict = DASHBOARD_SHELL_CUSTOMERS_LICENSES_N
 
 
 def build_dashboard_shell_nav_groups(*, super_admin: bool = False) -> list[dict]:
-    """Platform nav groups for super admin; tenant Command Centre uses flat items only."""
+    """Platform nav groups for Platform Super Admin only; tenants get flat Command Centre items."""
     if super_admin:
         return [
             DASHBOARD_SHELL_PLATFORM_NAV_GROUP,

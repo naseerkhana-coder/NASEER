@@ -64,7 +64,7 @@
       <span class="pro-dash-nav-label">{% if home_endpoint == 'super_admin_platform_dashboard' %}Platform{% else %}Dashboard{% endif %}</span>
     </a>
 
-    {% if is_super_admin_user|default(false) and dashboard_shell_nav_groups|default([])|length %}
+    {% if is_platform_super_admin|default(is_super_admin_user|default(false)) and dashboard_shell_nav_groups|default([])|length %}
     {% for group in dashboard_shell_nav_groups|default([]) %}
     {% set group_active = namespace(value=false) %}
     {% for item in group.get('items', []) %}
