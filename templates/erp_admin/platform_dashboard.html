@@ -13,10 +13,6 @@
       <p class="erp-platform-subtitle">Customer overview, licensing, and platform operations in one place.</p>
     </div>
     <div class="erp-platform-hero-actions">
-      <a href="{{ url_for('dashboard') }}" class="erp-btn erp-btn-ghost">
-        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-        Main Dashboard
-      </a>
       <a href="{{ url_for('erp_admin_customers') }}#add-customer" class="erp-btn erp-btn-primary">
         <i class="fa-solid fa-building-circle-check" aria-hidden="true"></i>
         Register Customer
@@ -25,10 +21,10 @@
   </header>
 
   <div class="erp-kpi-grid">
-    {% for key, val in platform_data.metrics.items() %}
+    {% for card in platform_data.metric_cards %}
     <div class="erp-kpi-card">
-      <div class="erp-kpi-label">{{ key|replace('_', ' ')|title }}</div>
-      <div class="erp-kpi-value">{{ val }}</div>
+      <div class="erp-kpi-label">{{ card.label }}</div>
+      <div class="erp-kpi-value{% if card.get('warn') %} dept-stat-warn{% endif %}">{{ card.value }}</div>
     </div>
     {% endfor %}
   </div>

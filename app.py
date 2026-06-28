@@ -342,6 +342,7 @@ from helpdesk_service import (
 from ui_shell_config import (
     APP_VERSION_LABEL,
     DASHBOARD_OVERVIEW_QUICK_LINKS,
+    DASHBOARD_SHELL_COMMAND_CENTRE_ITEMS,
     DASHBOARD_SHELL_FAVORITES,
     DASHBOARD_SHELL_NAV_GROUPS,
     DASHBOARD_SHELL_SETTINGS,
@@ -8034,8 +8035,11 @@ def inject_maxek_layout():
         "command_user_role": role_label,
         "dashboard_shell_favorites": DASHBOARD_SHELL_FAVORITES,
         "dashboard_shell_nav_groups": build_dashboard_shell_nav_groups(super_admin=super_admin),
+        "dashboard_shell_command_centre_items": DASHBOARD_SHELL_COMMAND_CENTRE_ITEMS,
         "dashboard_shell_settings": DASHBOARD_SHELL_SETTINGS,
-        "primary_dashboard_endpoint": "dashboard",
+        "primary_dashboard_endpoint": (
+            "super_admin_platform_dashboard" if super_admin else "dashboard"
+        ),
     }
 
 
@@ -8241,9 +8245,27 @@ COMMAND_CENTRE_CARD_META = [
         "slug": "projects",
         "card_label": "Project Management",
         "category": "OPERATIONS",
-        "description": "Projects, BOQ, DPR, billing & progress tracking",
+        "description": "Project master, billing & progress tracking",
         "icon": "fa-diagram-project",
         "accent": "#8b5cf6",
+    },
+    {
+        "slug": "boq",
+        "card_label": "BOQ",
+        "category": "ENGINEERING",
+        "description": "Bill of quantities, rate analysis & quantity take-off",
+        "icon": "fa-table-list",
+        "accent": "#8b5cf6",
+        "nav_slug": "project-management",
+    },
+    {
+        "slug": "dpr",
+        "card_label": "DPR",
+        "category": "OPERATIONS",
+        "description": "Daily progress reports & measurement book",
+        "icon": "fa-clipboard-list",
+        "accent": "#22c55e",
+        "nav_slug": "project-management",
     },
     {
         "slug": "store",
@@ -8736,7 +8758,7 @@ def get_department_portal(slug):
                 "card_label": meta.get("card_label") or slug.replace("-", " ").title(),
                 "title": meta.get("card_label") or slug.replace("-", " ").title(),
                 "icon": meta.get("icon") or "fa-folder",
-                "nav_slug": slug,
+                "nav_slug": meta.get("nav_slug") or slug,
                 "summary_title": meta.get("card_label") or "",
                 "accent": get_department_accent(slug),
                 "menu": menu,
@@ -8883,26 +8905,13 @@ def get_accounts_department_stat_cards(db):
     )
     hub = accounts_hub_stats(db)
     tds_pending = hub.get("tds_pending", 0)
-    trial_rows = get_trial_balance(db)
-    trial_total = round(
-        sum(float(r.get("debit") or 0) + float(r.get("credit") or 0) for r in trial_rows),
-        2,
-    )
-    pl = get_profit_and_loss(db)
-    bs = get_balance_sheet(db)
     return [
         {"label": "Cash Balance", "value": _format_dashboard_currency(_accounts_cash_balance(db))},
         {"label": "Bank Balance", "value": _format_dashboard_currency(_accounts_bank_balance(db))},
-        {"label": "Petty Cash", "value": _format_dashboard_currency(_accounts_petty_cash_balance(db))},
+        {"label": "GST", "value": _format_dashboard_currency(gst_net)},
+        {"label": "TDS", "value": tds_pending, "warn": tds_pending > 0},
         {"label": "Receivables", "value": _format_dashboard_currency(_accounts_outstanding_receivables(db))},
         {"label": "Payables", "value": _format_dashboard_currency(_accounts_outstanding_payables(db))},
-        {"label": "Today's Receipts", "value": _format_dashboard_currency(_accounts_today_voucher_total(db, "receipt_vouchers"))},
-        {"label": "Today's Payments", "value": _format_dashboard_currency(_accounts_today_voucher_total(db, "payment_vouchers"))},
-        {"label": "GST Summary", "value": _format_dashboard_currency(gst_net)},
-        {"label": "TDS Summary", "value": tds_pending, "warn": tds_pending > 0},
-        {"label": "Trial Balance", "value": _format_dashboard_currency(trial_total)},
-        {"label": "Profit & Loss", "value": _format_dashboard_currency(pl.get("net_profit", 0))},
-        {"label": "Balance Sheet", "value": _format_dashboard_currency(bs.get("total_assets", 0))},
     ]
 
 
@@ -8915,21 +8924,46 @@ def department_portal_stat_cards(slug, db):
             app.logger.exception("Accounts department stat cards failed")
             return []
     if slug == "projects":
+        total = _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects")
+        active = _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")
+        progress_pct = f"{min(99, max(0, int(active / total * 100)))}%" if total else "—"
+        total_boqs = _safe_scalar_count(
+            db, "SELECT COUNT(*) AS c FROM boq_master WHERE COALESCE(is_deleted, 0)=0"
+        )
+        open_boqs = _safe_scalar_count(
+            db,
+            "SELECT COUNT(*) AS c FROM boq_master "
+            "WHERE COALESCE(is_deleted, 0)=0 AND approval_status NOT IN ('Approved', 'approved')",
+        )
+        dpr_today = _safe_scalar_count(
+            db, "SELECT COUNT(*) AS c FROM dpr_measurements WHERE report_date=date('now')"
+        )
+        wbs_count = _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM wbs_nodes") if _table_exists(db, "wbs_nodes") else 0
         return [
-            {"label": "Total Projects", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects")},
-            {"label": "Active Projects", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")},
-            {"label": "Open BOQs", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM boq_master WHERE COALESCE(is_deleted, 0)=0 AND approval_status NOT IN ('Approved', 'approved')")},
-            {"label": "DPR Today", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM dpr_measurements WHERE report_date=date('now')")},
+            {"label": "Project Progress", "value": f"{active}/{total} active ({progress_pct})"},
+            {"label": "BOQ Status", "value": f"{total_boqs - open_boqs}/{total_boqs} approved" if total_boqs else "—"},
+            {"label": "DPR Status", "value": f"{dpr_today} today"},
+            {"label": "WBS Progress", "value": wbs_count if wbs_count else "—"},
         ]
     if slug == "store":
         try:
             _prepare_store_db(db)
             stats = store_dashboard_stats(db)
+            pending_po = _safe_scalar_count(
+                db,
+                "SELECT COUNT(*) AS c FROM purchase_orders "
+                "WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending', 'Draft')",
+            )
+            pending_grn = _safe_scalar_count(
+                db,
+                "SELECT COUNT(*) AS c FROM store_receipts "
+                "WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')",
+            )
             return [
-                {"label": "Materials", "value": stats.get("materials", 0)},
-                {"label": "Pending MR", "value": stats.get("pending_material_requests", 0)},
-                {"label": "Pending PR", "value": stats.get("pending_purchase_requests", 0)},
-                {"label": "Low Stock", "value": stats.get("low_stock_count", 0), "warn": stats.get("low_stock_count", 0) > 0},
+                {"label": "Stock", "value": stats.get("materials", 0)},
+                {"label": "Material Requests", "value": stats.get("pending_material_requests", 0)},
+                {"label": "Purchase Orders", "value": pending_po},
+                {"label": "GRN", "value": pending_grn},
             ]
         except Exception:
             return []
@@ -10176,7 +10210,6 @@ def get_command_centre_cards(db):
                 **meta,
                 "slug": canonical_slug,
                 "card_label": label,
-                "stat_pills": _command_centre_card_stats(db, canonical_slug),
             }
         )
     return cards
@@ -10490,6 +10523,11 @@ def render_choice_b_dashboard():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    try:
+        if is_super_admin_user():
+            return redirect(url_for("super_admin_platform_dashboard"))
+    except Exception:
+        pass
     return render_choice_b_dashboard()
 
 

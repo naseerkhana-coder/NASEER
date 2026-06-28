@@ -64,6 +64,7 @@
       <span class="pro-dash-nav-label">{% if home_endpoint == 'super_admin_platform_dashboard' %}Platform{% else %}Dashboard{% endif %}</span>
     </a>
 
+    {% if is_super_admin_user|default(false) and dashboard_shell_nav_groups|default([])|length %}
     {% for group in dashboard_shell_nav_groups|default([]) %}
     {% set group_active = namespace(value=false) %}
     {% for item in group.get('items', []) %}
@@ -71,7 +72,7 @@
         {% set group_active.value = true %}
       {% endif %}
     {% endfor %}
-    <details class="pro-dash-nav-group"{% if group_active.value or loop.first %} open{% endif %}>
+    <details class="pro-dash-nav-group"{% if group_active.value %} open{% endif %}>
       <summary class="pro-dash-nav-group-summary">
         <span class="pro-dash-nav-group-title">
           <i class="fa-solid {{ group.icon }}" aria-hidden="true"></i>
@@ -89,6 +90,16 @@
       </div>
     </details>
     {% endfor %}
+    {% else %}
+    {% for item in dashboard_shell_command_centre_items|default([]) %}
+    {% set item_href = safe_url_for(item.endpoint, **(item.get('query') or {})) %}
+    {% if item.get('anchor') %}{% set item_href = item_href ~ '#' ~ item.anchor %}{% endif %}
+    <a class="pro-dash-nav-item{% if request.endpoint in item.get('active_endpoints', [item.endpoint]) %} is-active{% endif %}" href="{{ item_href }}">
+      <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
+      <span class="pro-dash-nav-label">{{ item.label }}</span>
+    </a>
+    {% endfor %}
+    {% endif %}
     {% endif %}
   </nav>
 

@@ -36,6 +36,8 @@ HELP_CENTER_ITEMS = [
 MAIN_DASHBOARD_DEPARTMENT_SLUGS: list[tuple[str, str]] = [
     ("projects", "Projects"),
     ("planning-wbs", "Planning & WBS"),
+    ("boq", "BOQ"),
+    ("dpr", "DPR"),
     ("procurement", "Procurement"),
     ("store", "Store"),
     ("hr-payroll", "HR & Payroll"),
@@ -160,6 +162,17 @@ DEPARTMENT_PORTAL_MENUS: dict[str, list[dict]] = {
         {"endpoint": "boq_management", "label": "BOQ Management", "icon": "fa-table-list", "active_endpoints": ["boq_management", "boq_multiple_entry", "boq_print"]},
         {"endpoint": "project_expenses", "label": "Project Expenses", "icon": "fa-receipt", "active_endpoints": ["project_expenses"]},
         {"endpoint": "reports", "label": "Planning Reports", "icon": "fa-chart-pie", "active_endpoints": ["reports", "download_report"]},
+    ],
+    "boq": [
+        {"endpoint": "boq_management", "label": "BOQ Management", "icon": "fa-table-list", "active_endpoints": ["boq_management", "boq_multiple_entry", "boq_print"]},
+        {"endpoint": "boq_multiple_entry", "label": "Multiple BOQ Entry", "icon": "fa-table-cells", "active_endpoints": ["boq_multiple_entry"]},
+        {"endpoint": "cost_planning", "label": "Rate Analysis", "icon": "fa-calculator", "active_endpoints": ["cost_planning", "cost_planning_reports"]},
+        {"endpoint": "reports", "label": "BOQ Reports", "icon": "fa-chart-pie", "active_endpoints": ["reports", "download_report"]},
+    ],
+    "dpr": [
+        {"endpoint": "dpr_entry", "label": "DPR Entry", "icon": "fa-clipboard-list", "active_endpoints": ["dpr_entry", "dpr_entry_legacy"]},
+        {"endpoint": "dpr_client_bill_pending", "label": "Measurement Book", "icon": "fa-book", "active_endpoints": ["dpr_client_bill_pending", "dpr_client_bill_print"]},
+        {"endpoint": "reports", "label": "DPR Reports", "icon": "fa-chart-pie", "active_endpoints": ["reports", "download_report"]},
     ],
     "subcontract": [
         {"endpoint": "subcontract_dashboard", "label": "Subcontract Dashboard", "icon": "fa-gauge-high", "active_endpoints": ["subcontract_dashboard"]},
@@ -323,6 +336,30 @@ MAIN_DASHBOARD_BOTTOM_WIDGETS: list[dict[str, str]] = [
 
 # Sidebar favorites on the main dashboard shell (optional shortcuts above nav groups).
 DASHBOARD_SHELL_FAVORITES: list[dict[str, str]] = []
+
+# Flat Command Centre sidebar (/dashboard) — no module drill-down here.
+DASHBOARD_SHELL_COMMAND_CENTRE_ITEMS: list[dict] = [
+    {
+        "endpoint": "dashboard",
+        "label": "Departments",
+        "icon": "fa-th-large",
+        "anchor": "pro-dash-dept-heading",
+        "active_endpoints": ["dashboard", "dashboard_choice_b"],
+    },
+    {
+        "endpoint": "department_portal",
+        "label": "Reports",
+        "icon": "fa-chart-pie",
+        "query": {"slug": "reports"},
+        "active_endpoints": ["reports", "download_report", "accounts_reports", "cost_planning_reports"],
+    },
+    {
+        "endpoint": "corporate_dms",
+        "label": "Company Files",
+        "icon": "fa-folder-tree",
+        "active_endpoints": ["corporate_dms", "corporate_dms_file", "corporate_dms_download"],
+    },
+]
 
 # Settings link pinned to sidebar footer on the main dashboard shell.
 DASHBOARD_SHELL_SETTINGS: dict[str, str] = {
@@ -513,17 +550,14 @@ DASHBOARD_SHELL_ERP_ADMIN_NAV_GROUP: dict = DASHBOARD_SHELL_CUSTOMERS_LICENSES_N
 
 
 def build_dashboard_shell_nav_groups(*, super_admin: bool = False) -> list[dict]:
-    """Pro dashboard sidebar groups; platform tools are super-admin only."""
-    groups = list(DASHBOARD_SHELL_NAV_GROUPS)
+    """Platform nav groups for super admin; tenant Command Centre uses flat items only."""
     if super_admin:
-        groups.extend(
-            [
-                DASHBOARD_SHELL_PLATFORM_NAV_GROUP,
-                DASHBOARD_SHELL_CUSTOMERS_LICENSES_NAV_GROUP,
-                DASHBOARD_SHELL_PLATFORM_OPS_NAV_GROUP,
-            ]
-        )
-    return groups
+        return [
+            DASHBOARD_SHELL_PLATFORM_NAV_GROUP,
+            DASHBOARD_SHELL_CUSTOMERS_LICENSES_NAV_GROUP,
+            DASHBOARD_SHELL_PLATFORM_OPS_NAV_GROUP,
+        ]
+    return []
 
 
 # Overview tab quick links (mockup bottom-right panel).
@@ -538,6 +572,10 @@ DASHBOARD_OVERVIEW_QUICK_LINKS: list[dict[str, str]] = [
 DEPARTMENT_PORTAL_SLUG_ALIASES: dict[str, str] = {
     "project-management": "projects",
     "projects": "projects",
+    "boq": "boq",
+    "boq-management": "boq",
+    "dpr": "dpr",
+    "dpr-entry": "dpr",
     "accounts-finance": "accounts",
     "accounts": "accounts",
     "store-procurement": "store",
@@ -582,6 +620,8 @@ DEPARTMENT_PORTAL_SLUG_ALIASES: dict[str, str] = {
 DEPARTMENT_PORTAL_ACCENTS: dict[str, str] = {
     "accounts": "#3b82f6",
     "projects": "#6366f1",
+    "boq": "#8b5cf6",
+    "dpr": "#22c55e",
     "store": "#0ea5e9",
     "hr-payroll": "#818cf8",
     "vehicle": "#38bdf8",
@@ -612,6 +652,8 @@ def get_department_portal_accent(slug: str) -> str | None:
 MAIN_DASHBOARD_PORTAL_ALIASES: dict[str, str] = {
     "accounts-finance": "accounts",
     "project-management": "projects",
+    "boq-management": "boq",
+    "dpr-entry": "dpr",
     "store-procurement": "store",
     "hr": "hr-payroll",
     "workforce": "hr-payroll",

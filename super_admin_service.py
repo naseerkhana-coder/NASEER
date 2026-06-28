@@ -1280,22 +1280,63 @@ def create_customer_admin_user(
 def get_platform_dashboard_data(db) -> dict[str, Any]:
     """Metrics and lists for the Super Admin platform dashboard."""
     ensure_super_admin_schema(db)
-    customer_count = db.execute(
+    total_companies = db.execute(
         "SELECT COUNT(*) AS c FROM erp_customers WHERE COALESCE(is_platform, 0)=0"
     ).fetchone()["c"]
+    active_companies = db.execute(
+        "SELECT COUNT(*) AS c FROM erp_customers WHERE COALESCE(is_platform, 0)=0 AND status='Active'"
+    ).fetchone()["c"]
+    active_users = db.execute(
+        "SELECT COUNT(*) AS c FROM users WHERE status='Active'"
+    ).fetchone()["c"]
+    active_projects = 0
+    try:
+        active_projects = db.execute(
+            "SELECT COUNT(*) AS c FROM projects WHERE status='Active'"
+        ).fetchone()["c"]
+    except Exception:
+        pass
+    pending_approvals = 0
+    try:
+        pending_approvals = db.execute(
+            "SELECT COUNT(*) AS c FROM approval_requests "
+            "WHERE workflow_status NOT IN ('approved', 'rejected')"
+        ).fetchone()["c"]
+    except Exception:
+        pass
     active_licenses = db.execute(
         "SELECT COUNT(*) AS c FROM erp_licenses WHERE status='Active'"
     ).fetchone()["c"]
-    active_subscriptions = db.execute(
-        """
-        SELECT COUNT(*) AS c FROM erp_subscriptions s
-        JOIN erp_customers c ON c.id = s.customer_id
-        WHERE COALESCE(c.is_platform, 0)=0 AND s.status='Active'
-        """
-    ).fetchone()["c"]
+    total_licenses = db.execute("SELECT COUNT(*) AS c FROM erp_licenses").fetchone()["c"]
     open_tickets = db.execute(
         "SELECT COUNT(*) AS c FROM erp_support_tickets WHERE status IN ('Open','In Progress')"
     ).fetchone()["c"]
+    storage_used_mb = 0.0
+    storage_allowed_mb = 0
+    try:
+        usage_row = db.execute(
+            "SELECT COALESCE(SUM(current_usage_mb), 0) AS used, "
+            "COALESCE(SUM(storage_allowed_mb), 0) AS allowed FROM erp_storage_limits"
+        ).fetchone()
+        storage_used_mb = round(float(usage_row["used"] if usage_row else 0), 1)
+        storage_allowed_mb = int(usage_row["allowed"] if usage_row else 0)
+    except Exception:
+        pass
+    db_path = os.environ.get("DATABASE_PATH") or os.environ.get("MAXEK_DB_PATH") or "maxek_erp.db"
+    db_size_mb = round(os.path.getsize(db_path) / (1024 * 1024), 1) if os.path.isfile(db_path) else 0.0
+    system_health = "Healthy" if os.path.isfile(db_path) else "Check DB"
+    if open_tickets > 5:
+        system_health = "Attention"
+    license_status = f"{active_licenses}/{total_licenses} active" if total_licenses else "No licenses"
+    backup_status = "Configured"
+    try:
+        backup_row = db.execute(
+            "SELECT value FROM erp_settings WHERE key='last_backup_at' LIMIT 1"
+        ).fetchone()
+        backup_status = backup_row["value"] if backup_row and backup_row["value"] else "Not recorded"
+    except Exception:
+        backup_status = "Not recorded"
+    server_status = "Online"
     recent_rows = db.execute(
         """
         SELECT customer_code, company_name, country, plan, status, created_at
@@ -1305,13 +1346,37 @@ def get_platform_dashboard_data(db) -> dict[str, Any]:
         LIMIT 8
         """
     ).fetchall()
+    metric_cards = [
+        {"label": "Total Companies", "value": total_companies},
+        {"label": "Active Companies", "value": active_companies},
+        {"label": "Active Users", "value": active_users},
+        {"label": "Active Projects", "value": active_projects},
+        {"label": "Pending Approvals", "value": pending_approvals, "warn": pending_approvals > 0},
+        {"label": "System Health", "value": system_health},
+        {"label": "License Status", "value": license_status},
+        {
+            "label": "Storage Used",
+            "value": f"{storage_used_mb:.0f} MB" + (f" / {storage_allowed_mb} MB" if storage_allowed_mb else ""),
+        },
+        {"label": "Backup Status", "value": backup_status},
+        {"label": "Server Status", "value": server_status},
+    ]
     return {
         "metrics": {
-            "customers": customer_count,
-            "active_licenses": active_licenses,
-            "active_subscriptions": active_subscriptions,
+            "total_companies": total_companies,
+            "active_companies": active_companies,
+            "active_users": active_users,
+            "active_projects": active_projects,
+            "pending_approvals": pending_approvals,
+            "system_health": system_health,
+            "license_status": license_status,
+            "storage_used_mb": storage_used_mb,
+            "database_mb": db_size_mb,
             "open_tickets": open_tickets,
+            "backup_status": backup_status,
+            "server_status": server_status,
         },
+        "metric_cards": metric_cards,
         "recent_customers": [_row_to_dict(row) for row in recent_rows],
     }
 
