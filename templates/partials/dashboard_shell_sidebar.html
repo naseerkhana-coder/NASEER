@@ -2,7 +2,7 @@
 {% set dept_shell_slug = department_portal_slug|default(request.view_args.get('slug', active_toolbar_slug)) %}
 <aside class="pro-dash-sidebar pro-dash-sidebar--executive{% if pro_shell_department_portal|default(false) %} pro-dash-sidebar--department{% endif %}" data-pro-dash-sidebar aria-label="Main navigation"{% if dept_portal_accent %} style="--dept-accent: {{ dept_portal_accent }};"{% endif %}>
   <div class="pro-dash-sidebar-top">
-    <a class="pro-dash-brand" href="{{ url_for(primary_dashboard_endpoint|default('dashboard')) }}">
+    <a class="pro-dash-brand" href="{{ url_for('dashboard') }}">
       <img
         src="{{ url_for('static', filename='images/maxek-logo.png') }}"
         alt=""
@@ -58,10 +58,9 @@
     </a>
     {% endfor %}
     {% else %}
-    {% set home_endpoint = primary_dashboard_endpoint|default('dashboard') %}
-    <a class="pro-dash-nav-item{% if request.endpoint in [home_endpoint, 'dashboard', 'dashboard_choice_b', 'super_admin_platform_dashboard'] %} is-active{% endif %}" href="{{ url_for(home_endpoint) }}">
+    <a class="pro-dash-nav-item{% if request.endpoint in ['dashboard', 'dashboard_choice_b'] %} is-active{% endif %}" href="{{ url_for('dashboard') }}">
       <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
-      <span class="pro-dash-nav-label">{% if home_endpoint == 'super_admin_platform_dashboard' %}Platform{% else %}Dashboard{% endif %}</span>
+      <span class="pro-dash-nav-label">Dashboard</span>
     </a>
 
     {% for group in dashboard_shell_nav_groups|default([]) %}
