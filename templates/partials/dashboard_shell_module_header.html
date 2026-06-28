@@ -50,10 +50,10 @@
       <span class="pro-dash-profile-avatar">{{ admin_initial }}</span>
       <span class="pro-dash-profile-name">{{ session.get('employee_name') or session.get('username') or 'Admin' }}</span>
     </a>
-
-    <a class="pro-dash-header-link pro-dash-logout-link" href="{{ url_for('logout') }}" title="Sign out" aria-label="Sign out">
-      <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
-      <span>Sign out</span>
-    </a>
   </div>
+
+  <a class="pro-dash-header-link pro-dash-logout-link pro-dash-header-logout" href="{{ url_for('logout') }}" title="Sign out" aria-label="Sign out">
+    <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+    <span class="pro-dash-logout-label">Sign out</span>
+  </a>
 </header>
