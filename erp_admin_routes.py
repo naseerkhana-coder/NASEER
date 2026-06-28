@@ -110,6 +110,7 @@ def register_erp_admin_routes(
     support_uploads_dir,
     hash_password,
     timezone_options=None,
+    build_company_erp_section=None,
 ):
     @app.route("/super-admin/dashboard")
     @login_required
@@ -137,28 +138,35 @@ def register_erp_admin_routes(
                 "description": "Manage platform and tenant login accounts",
             },
             {
-                "endpoint": "erp_admin_user_limits",
-                "label": "User Limits",
-                "icon": "fa-users-gear",
-                "description": "Adjust licensed user capacity per customer",
-            },
-            {
-                "endpoint": "erp_admin_subscriptions",
-                "label": "Subscriptions",
-                "icon": "fa-credit-card",
-                "description": "Billing plans and renewal dates",
-            },
-            {
                 "endpoint": "erp_admin_system_health",
                 "label": "System Health",
                 "icon": "fa-heart-pulse",
                 "description": "Database size and platform status checks",
             },
+            {
+                "endpoint": "treasury_backup_system",
+                "label": "Backup & Restore",
+                "icon": "fa-database",
+                "description": "Scheduled backups, download, restore, and retention",
+            },
+            {
+                "endpoint": "erp_admin_audit_logs",
+                "label": "Audit Logs",
+                "icon": "fa-list-check",
+                "description": "Platform-wide audit trail and compliance history",
+            },
         ]
+        company_erp = None
+        if build_company_erp_section:
+            try:
+                company_erp = build_company_erp_section(db)
+            except Exception:
+                logging.exception("Failed to build company ERP section for platform dashboard")
         return render_template(
             "erp_admin/platform_dashboard.html",
             platform_data=platform_data,
             quick_links=quick_links,
+            company_erp=company_erp,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
             sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )

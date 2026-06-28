@@ -141,6 +141,7 @@ REQUIRED_PY = (
     "store_service.py",
     "workflow_service.py",
     "erp_admin_routes.py",
+    "erp_platform_routes.py",
     "api_routes.py",
     "tenant_isolation.py",
     "auth_jwt.py",

@@ -29,7 +29,46 @@
     {% endfor %}
   </div>
 
-  {{ erp_module_grid(quick_links, 'Quick Links') }}
+  {{ erp_module_grid(quick_links, 'Platform Administration') }}
+
+  {% if company_erp %}
+  <section class="erp-platform-company-erp" id="company-erp-section" aria-labelledby="company-erp-heading">
+    <div class="erp-platform-company-erp-head">
+      <div>
+        <p class="erp-platform-eyebrow">Level 2 · Company ERP</p>
+        <h2 id="company-erp-heading" class="erp-module-section-title">Company ERP Command Centre</h2>
+        <p class="erp-platform-subtitle">
+          Viewing <strong>{{ company_erp.company_name }}</strong>
+          · {{ company_erp.branch_label }}
+          · {{ company_erp.project_label }}
+          · {{ company_erp.dept_count }} department workspaces
+        </p>
+      </div>
+      <div class="erp-platform-hero-actions">
+        <a href="{{ company_erp.dashboard_url }}" class="erp-btn erp-btn-primary">
+          <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+          Open Full Dashboard
+        </a>
+        <a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost">
+          <i class="fa-solid fa-gear" aria-hidden="true"></i>
+          Settings
+        </a>
+      </div>
+    </div>
+    <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid pro-dash-dept-tile-grid--mockup">
+      {% set command_centre_cards = company_erp.command_centre_cards %}
+      {% include 'partials/command_centre_dept_tiles.html' %}
+    </div>
+  </section>
+  {% else %}
+  <section class="erp-platform-company-erp erp-platform-company-erp--empty" aria-labelledby="company-erp-prompt">
+    <div class="erp-form-card">
+      <h2 id="company-erp-prompt" class="erp-form-title">Company ERP Command Centre</h2>
+      <p>Select a <strong>company</strong> from the header dropdown (e.g. Chennai Site) to unlock tenant-style department workspaces below. Branch and project filters apply to the same context.</p>
+      <p class="erp-form-hint">Platform tools above remain available at all times. Department tickets reuse the same backend as tenant users on <code>/dashboard</code>.</p>
+    </div>
+  </section>
+  {% endif %}
 
   <div class="erp-table-panel">
     <div class="erp-table-toolbar">

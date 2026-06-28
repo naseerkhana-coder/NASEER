@@ -119,18 +119,36 @@ def api_erp_context():
         match = next((b for b in branches if b["id"] == branch_id), None)
         if match:
             branch_name = match["name"]
+    ctx_kwargs: dict = {
+        "updated_by": session.get("username") or "",
+    }
+    if "company_id" in data:
+        ctx_kwargs["company_id"] = company_id
+        ctx_kwargs["company_code"] = company_code or None
+    elif company_id:
+        ctx_kwargs["company_id"] = company_id
+        if company_code:
+            ctx_kwargs["company_code"] = company_code
+    if branch_id is not None or branch_name:
+        ctx_kwargs["branch_id"] = branch_id
+        ctx_kwargs["branch_name"] = branch_name or None
+    if "project_id" in data:
+        ctx_kwargs["project_id"] = project_id
     payload = save_user_context(
         db,
         user_id,
         customer_id=session.get("customer_id"),
-        company_id=company_id or session.get("company_id"),
-        company_code=company_code or None,
-        branch_id=branch_id,
-        branch_name=branch_name or None,
-        project_id=project_id,
-        updated_by=session.get("username") or "",
+        **ctx_kwargs,
     )
-    if company_id:
+    if "company_id" in data:
+        if company_id:
+            session["company_id"] = company_id
+            if company_code:
+                session["company_code"] = company_code
+        else:
+            session.pop("company_id", None)
+            session.pop("company_code", None)
+    elif company_id:
         session["company_id"] = company_id
     if company_code:
         session["company_code"] = company_code

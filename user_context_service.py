@@ -7,6 +7,15 @@ from typing import Any
 
 from company_master_service import list_branches, list_companies
 
+_UNSET = object()
+
+
+def is_platform_super_admin(db, user_row) -> bool:
+    """Re-export: strict Platform Super Admin check (MAXEK platform tenant only)."""
+    from super_admin_service import is_platform_super_admin as _check_platform_super_admin
+
+    return _check_platform_super_admin(db, user_row)
+
 
 def _table_exists(db, table: str) -> bool:
     row = db.execute(
@@ -68,23 +77,23 @@ def save_user_context(
     db,
     user_id: int,
     *,
-    customer_id: int | None = None,
-    company_id: int | None = None,
-    company_code: str | None = None,
-    branch_id: int | None = None,
-    branch_name: str | None = None,
-    project_id: int | None = None,
+    customer_id: int | None | object = _UNSET,
+    company_id: int | None | object = _UNSET,
+    company_code: str | None | object = _UNSET,
+    branch_id: int | None | object = _UNSET,
+    branch_name: str | None | object = _UNSET,
+    project_id: int | None | object = _UNSET,
     updated_by: str = "",
 ) -> dict[str, Any]:
     ensure_user_context_schema(db)
     existing = load_user_context(db, user_id) or {}
     payload = {
-        "customer_id": customer_id if customer_id is not None else existing.get("customer_id"),
-        "company_id": company_id if company_id is not None else existing.get("company_id"),
-        "company_code": company_code if company_code is not None else existing.get("company_code"),
-        "branch_id": branch_id if branch_id is not None else existing.get("branch_id"),
-        "branch_name": branch_name if branch_name is not None else existing.get("branch_name"),
-        "project_id": project_id if project_id is not None else existing.get("project_id"),
+        "customer_id": customer_id if customer_id is not _UNSET else existing.get("customer_id"),
+        "company_id": company_id if company_id is not _UNSET else existing.get("company_id"),
+        "company_code": company_code if company_code is not _UNSET else existing.get("company_code"),
+        "branch_id": branch_id if branch_id is not _UNSET else existing.get("branch_id"),
+        "branch_name": branch_name if branch_name is not _UNSET else existing.get("branch_name"),
+        "project_id": project_id if project_id is not _UNSET else existing.get("project_id"),
     }
     from datetime import datetime
 

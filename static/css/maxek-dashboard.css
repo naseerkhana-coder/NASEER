@@ -2653,6 +2653,24 @@
   color: #475569;
 }
 
+.maxek-layout .erp-platform-company-erp {
+  margin: 1.75rem 0 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.maxek-layout .erp-platform-company-erp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.maxek-layout .erp-platform-company-erp--empty {
+  border-top: 1px solid #e2e8f0;
+}
+
 .maxek-layout .erp-sub-toolbar-stack {
   display: flex;
   flex-direction: column;
