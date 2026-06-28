@@ -7736,7 +7736,7 @@ def module_sub_toolbar_for_request(endpoint):
     if endpoint == "plant_qc" and request.args.get("source") == "Precast":
         return PRECAST_YARD_SUBTOOLBAR, "Precast Yard"
     if endpoint in ERP_ADMIN_ACTIVE_ENDPOINTS:
-        return ERP_ADMIN_SUBTOOLBAR, "ERP Administration"
+        return None, None
     return None, None
 
 

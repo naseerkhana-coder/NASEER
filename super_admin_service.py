@@ -1027,6 +1027,50 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
     return customer_id
 
 
+def delete_customer(db, customer_id: int) -> None:
+    """Remove a tenant customer and related platform rows when safe to do so."""
+    customer = get_customer_by_id(db, customer_id)
+    if not customer:
+        raise ValueError("Customer not found.")
+    if int(customer.get("is_platform") or 0):
+        raise ValueError("Cannot delete the platform customer.")
+    code = str(customer.get("customer_code") or "").strip()
+
+    user_count = db.execute(
+        "SELECT COUNT(*) AS c FROM users WHERE customer_id=?",
+        (customer_id,),
+    ).fetchone()["c"]
+    if user_count:
+        raise ValueError(
+            f"Cannot delete {code} — {user_count} user account(s) exist. "
+            "Set status to Inactive instead."
+        )
+
+    license_count = db.execute(
+        "SELECT COUNT(*) AS c FROM erp_licenses WHERE customer_id=?",
+        (customer_id,),
+    ).fetchone()["c"]
+    if license_count:
+        raise ValueError(
+            f"Cannot delete {code} — {license_count} license(s) exist. "
+            "Remove licenses first or set status to Inactive."
+        )
+
+    for table in (
+        "erp_user_limits",
+        "erp_branch_limits",
+        "erp_storage_limits",
+        "erp_subscriptions",
+        "erp_support_tickets",
+        "erp_change_requests",
+    ):
+        if _table_exists(db, table):
+            db.execute(f"DELETE FROM {table} WHERE customer_id=?", (customer_id,))
+
+    db.execute("DELETE FROM erp_customers WHERE id=? AND is_platform=0", (customer_id,))
+    log_audit(db, None, None, "Delete", "Customer Master", f"Deleted customer {code}")
+
+
 def create_customer_admin_user(
     db,
     customer_id: int,

@@ -22,6 +22,7 @@ from super_admin_service import (
     SUBSCRIPTION_STATUSES,
     TICKET_STATUSES,
     create_customer_admin_user,
+    delete_customer,
     get_customer_enabled_departments,
     get_platform_dashboard_data,
     get_system_health,
@@ -181,36 +182,50 @@ def register_erp_admin_routes(
             if edit_record:
                 selected_departments = get_customer_enabled_departments(db, edit_id)
         if request.method == "POST":
-            try:
-                record_id = request.form.get("record_id", type=int)
-                admin_username = request.form.get("admin_username", "").strip()
-                admin_password = request.form.get("admin_password", "").strip()
-                if not record_id and admin_password and not admin_username:
-                    raise ValueError("Admin username is required when setting a password.")
-                form_data = request.form.to_dict(flat=True)
-                form_data["enabled_departments"] = request.form.getlist("enabled_departments")
-                customer_id = save_customer(db, form_data, record_id=record_id)
-                if not record_id and admin_username:
-                    create_customer_admin_user(
-                        db,
-                        customer_id,
-                        username=admin_username,
-                        password=request.form.get("admin_password", ""),
-                        confirm_password=request.form.get("admin_confirm_password", ""),
-                        display_name=request.form.get("admin_display_name", ""),
-                        hash_password_fn=hash_password,
-                    )
-                    flash("Customer and first admin account created successfully.")
-                else:
-                    flash("Customer saved successfully.")
-                db.commit()
-                return redirect(url_for("erp_admin_customers"))
-            except ValueError as exc:
-                db.rollback()
-                flash(str(exc))
-            except sqlite3.IntegrityError:
-                db.rollback()
-                flash("Username already exists for this customer. Choose a different login ID.")
+            form_action = (request.form.get("form_action") or "").strip()
+            if form_action == "delete":
+                try:
+                    record_id = request.form.get("record_id", type=int)
+                    if not record_id:
+                        raise ValueError("Invalid customer.")
+                    delete_customer(db, record_id)
+                    db.commit()
+                    flash("Customer deleted successfully.")
+                    return redirect(url_for("erp_admin_customers"))
+                except ValueError as exc:
+                    db.rollback()
+                    flash(str(exc))
+            else:
+                try:
+                    record_id = request.form.get("record_id", type=int)
+                    admin_username = request.form.get("admin_username", "").strip()
+                    admin_password = request.form.get("admin_password", "").strip()
+                    if not record_id and admin_password and not admin_username:
+                        raise ValueError("Admin username is required when setting a password.")
+                    form_data = request.form.to_dict(flat=True)
+                    form_data["enabled_departments"] = request.form.getlist("enabled_departments")
+                    customer_id = save_customer(db, form_data, record_id=record_id)
+                    if not record_id and admin_username:
+                        create_customer_admin_user(
+                            db,
+                            customer_id,
+                            username=admin_username,
+                            password=request.form.get("admin_password", ""),
+                            confirm_password=request.form.get("admin_confirm_password", ""),
+                            display_name=request.form.get("admin_display_name", ""),
+                            hash_password_fn=hash_password,
+                        )
+                        flash("Customer and first admin account created successfully.")
+                    else:
+                        flash("Customer saved successfully.")
+                    db.commit()
+                    return redirect(url_for("erp_admin_customers"))
+                except ValueError as exc:
+                    db.rollback()
+                    flash(str(exc))
+                except sqlite3.IntegrityError:
+                    db.rollback()
+                    flash("Username already exists for this customer. Choose a different login ID.")
         search = request.args.get("q", "")
         rows = list_customers(db, search=search)
         for row in rows:
@@ -231,8 +246,6 @@ def register_erp_admin_routes(
             department_labels=DEPARTMENT_SLUG_LABELS,
             selected_departments=selected_departments,
             statuses=CUSTOMER_STATUSES,
-            sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
-                sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )
 
     @app.route("/erp-admin/licenses", methods=["GET", "POST"])

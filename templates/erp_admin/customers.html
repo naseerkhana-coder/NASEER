@@ -8,9 +8,7 @@
 
 {% block content %}
 
-{% include 'erp_admin/_subtoolbar.html' %}
-
-<div class="erp-module-layout">
+<div class="erp-module-layout{% if not edit_record %} module-layout--list-only{% endif %}">
 
   {{ erp_module_toolbar(
     search_placeholder='Search customers...',
@@ -20,11 +18,17 @@
     print_target='#customer-records'
   ) }}
 
-  {% call erp_module_form_panel(id='add-customer', title=('Edit Customer' if edit_record else 'Register Customer')) %}
+  {% call erp_module_form_panel(
+    id='add-customer',
+    title=('Edit Customer' if edit_record else 'Register Customer'),
+    hidden=(not edit_record),
+    list_anchor='customer-records',
+    back_url=url_for('erp_admin_customers') if edit_record else ''
+  ) %}
     <form method="post" class="erp-form-grid" id="customer-master-form">
       {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
 
-      <div class="erp-field"><input name="customer_code" placeholder=" " required value="{{ edit_record.customer_code if edit_record else next_customer_code }}"><label>Customer Code</label></div>
+      <div class="erp-field"><input name="customer_code" placeholder=" " required{% if edit_record %} readonly{% endif %} value="{{ edit_record.customer_code if edit_record else next_customer_code }}"><label>Customer Code</label></div>
       <div class="erp-field span-2"><input name="company_name" placeholder=" " required value="{{ edit_record.company_name if edit_record else '' }}"><label>Company Name</label></div>
       <div class="erp-field"><select name="country"><option value="">Select country</option>{% for c in countries %}<option{% if edit_record and edit_record.country == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select><label>Country</label></div>
       <div class="erp-field"><input name="contact_person" placeholder=" " value="{{ edit_record.contact_person if edit_record else '' }}"><label>Contact Person</label></div>
@@ -93,7 +97,7 @@
   {% call erp_module_table_panel(id='customer-records', title='Customer List') %}
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">
-        <thead><tr><th>Code</th><th>Company</th><th>Country</th><th>Contact</th><th>Mobile</th><th>Email</th><th>Package</th><th>Depts</th><th>Branches</th><th>Users</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Code</th><th>Company</th><th>Country</th><th>Contact</th><th>Mobile</th><th>Email</th><th>Package</th><th>Depts</th><th>Branches</th><th>Users</th><th>Status</th><th class="erp-table-col-actions">Actions</th></tr></thead>
         <tbody>
           {% for row in rows %}
           <tr>
@@ -103,7 +107,16 @@
             <td>{{ row.enabled_department_count }}</td>
             <td>{{ row.num_branches }}</td><td>{{ row.num_users }}</td>
             <td>{{ approval_badge(row.status) }}</td>
-            <td><a href="{{ url_for('erp_admin_customers', edit=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a></td>
+            <td class="erp-table-col-actions">
+              <div class="erp-table-row-actions">
+                <a href="{{ url_for('erp_admin_customers', edit=row.id, q=search or none) }}#add-customer" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit</a>
+                <form method="post" class="erp-inline-form" onsubmit="return confirm('Delete customer {{ row.customer_code }}? This cannot be undone.');">
+                  <input type="hidden" name="form_action" value="delete">
+                  <input type="hidden" name="record_id" value="{{ row.id }}">
+                  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm erp-btn-danger"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Delete</button>
+                </form>
+              </div>
+            </td>
           </tr>
           {% else %}<tr><td colspan="12">No customers found.</td></tr>{% endfor %}
         </tbody>
@@ -115,6 +128,11 @@
 </div>
 
 <style>
+  .erp-table-col-actions { width: 1%; white-space: nowrap; }
+  .erp-table-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+  .erp-inline-form { display: inline; margin: 0; }
+  .erp-btn-danger { color: #b91c1c; }
+  .erp-btn-danger:hover { color: #991b1b; background: #fef2f2; }
   .erp-dept-package-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
   .erp-dept-checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--erp-border, #dbeafe); border-radius: 0.5rem; background: var(--erp-surface-muted, #f8fafc); }
   .erp-dept-checkbox { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; border-radius: 0.375rem; background: #fff; border: 1px solid transparent; }
@@ -173,6 +191,19 @@
     grid.addEventListener('change', updateTags);
     updateTags();
   })();
+
+  {% if edit_record %}
+  (function () {
+    const panel = document.getElementById('add-customer');
+    if (panel && window.MaxekDataEntryPanels) {
+      window.MaxekDataEntryPanels.show(panel);
+    } else if (panel) {
+      panel.removeAttribute('hidden');
+      const layout = panel.closest('.erp-module-layout');
+      if (layout) layout.classList.remove('module-layout--list-only');
+    }
+  })();
+  {% endif %}
 </script>
 
 {% endblock %}
