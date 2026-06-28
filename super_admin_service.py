@@ -1470,6 +1470,27 @@ def save_license(db, data: dict[str, Any], record_id: int | None = None) -> int:
     return int(cur.lastrowid)
 
 
+def delete_license(db, license_id: int | None) -> None:
+    ensure_super_admin_schema(db)
+    if not license_id:
+        raise ValueError("Invalid license.")
+    row = db.execute(
+        "SELECT license_no FROM erp_licenses WHERE id=?",
+        (license_id,),
+    ).fetchone()
+    if not row:
+        raise ValueError("License not found.")
+    db.execute("DELETE FROM erp_licenses WHERE id=?", (license_id,))
+    log_audit(
+        db,
+        None,
+        None,
+        "Delete",
+        "License Master",
+        f"Deleted license {row['license_no']}",
+    )
+
+
 def list_subscriptions(db) -> list[dict[str, Any]]:
     rows = db.execute(
         """

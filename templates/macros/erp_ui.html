@@ -411,11 +411,14 @@
   new_url='',
   reports_url='',
   settings_url='',
-  delete_confirm_message='Delete this record?'
+  delete_confirm_message='Delete this record?',
+  allow_delete=none
 ) %}
 {% if mode == 'standard' %}
+{% set _allow_delete = allow_delete if allow_delete is not none else (is_platform_super_admin|default(false)) %}
 <div class="erp-module-toolbar erp-module-toolbar--standard" role="toolbar" aria-label="Module actions"
      data-erp-standard-toolbar
+     data-allow-delete="{{ 'true' if _allow_delete and (show_delete or delete_form_id) else 'false' }}"
      {% if form_panel_id %}data-form-panel="{{ form_panel_id }}"{% endif %}
      {% if table_panel_id %}data-table-panel="{{ table_panel_id }}"{% endif %}
      {% if print_target %}data-print-target="{{ print_target }}"{% endif %}
@@ -440,9 +443,7 @@
     <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-action="open" disabled><i class="fa-solid fa-folder-open" aria-hidden="true"></i> Open</button>
     <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-action="view" disabled><i class="fa-solid fa-eye" aria-hidden="true"></i> View</button>
     <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-action="edit" disabled><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit</button>
-    {% if show_delete %}
     <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm erp-btn-danger" data-erp-action="delete" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Delete</button>
-    {% endif %}
     <span class="erp-toolbar-divider" aria-hidden="true"></span>
     <label class="erp-toolbar-select-wrap">
       <span class="visually-hidden">Filter by status</span>

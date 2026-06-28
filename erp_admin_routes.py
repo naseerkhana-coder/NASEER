@@ -24,6 +24,7 @@ from super_admin_service import (
     TICKET_STATUSES,
     create_customer_admin_user,
     delete_customer,
+    delete_license,
     get_customer_by_id,
     get_customer_enabled_departments,
     get_platform_dashboard_data,
@@ -488,22 +489,53 @@ def register_erp_admin_routes(
             db.commit()
         except Exception:
             logger.exception("erp_admin_licenses schema ensure failed")
+        edit_id = request.args.get("edit", type=int)
+        view_only = request.args.get("view") == "1"
+        edit_record = None
+        if edit_id:
+            row = db.execute(
+                """
+                SELECT l.*, c.customer_code, c.company_name
+                FROM erp_licenses l
+                JOIN erp_customers c ON c.id = l.customer_id
+                WHERE l.id=?
+                """,
+                (edit_id,),
+            ).fetchone()
+            edit_record = dict(row) if row else None
         if request.method == "POST":
-            try:
-                save_license(db, request.form)
-                db.commit()
-                flash("License saved successfully.")
-                return redirect(url_for("erp_admin_licenses"))
-            except ValueError as exc:
-                db.rollback()
-                flash(str(exc))
-            except (sqlite3.Error, KeyError, TypeError):
-                db.rollback()
-                logger.exception("erp_admin_licenses save failed")
-                flash(
-                    "Unable to save license. "
-                    "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
-                )
+            form_action = (request.form.get("form_action") or "").strip()
+            if form_action == "delete":
+                try:
+                    record_id = request.form.get("record_id", type=int)
+                    delete_license(db, record_id)
+                    db.commit()
+                    flash("License deleted successfully.")
+                    return redirect(url_for("erp_admin_licenses"))
+                except ValueError as exc:
+                    db.rollback()
+                    flash(str(exc))
+                except sqlite3.Error:
+                    db.rollback()
+                    logger.exception("erp_admin_licenses delete failed")
+                    flash("Unable to delete license.")
+            else:
+                try:
+                    record_id = request.form.get("record_id", type=int)
+                    save_license(db, request.form, record_id=record_id)
+                    db.commit()
+                    flash("License saved successfully.")
+                    return redirect(url_for("erp_admin_licenses"))
+                except ValueError as exc:
+                    db.rollback()
+                    flash(str(exc))
+                except (sqlite3.Error, KeyError, TypeError):
+                    db.rollback()
+                    logger.exception("erp_admin_licenses save failed")
+                    flash(
+                        "Unable to save license. "
+                        "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+                    )
         return render_template(
             "erp_admin/licenses.html",
             rows=list_licenses(db),
@@ -511,6 +543,8 @@ def register_erp_admin_routes(
             products=LICENSE_PRODUCTS,
             plans=CUSTOMER_PLANS,
             statuses=LICENSE_STATUSES,
+            edit_record=edit_record,
+            view_only=view_only,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
             sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )

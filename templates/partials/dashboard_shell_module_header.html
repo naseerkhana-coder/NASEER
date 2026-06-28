@@ -1,10 +1,12 @@
 {% from 'macros/erp_ui.html' import erp_breadcrumb %}
-<header class="pro-dash-header pro-dash-header--module">
+<header class="pro-dash-header pro-dash-header--module pro-dash-header--streamlined">
   <div class="pro-dash-module-head">
+    {% if request.endpoint != 'super_admin_platform_dashboard' %}
     <button type="button" class="pro-dash-back-btn" data-pro-back data-fallback-url="{{ url_for(primary_dashboard_endpoint|default('dashboard')) }}" title="Back" aria-label="Go back">
       <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
       <span>Back</span>
     </button>
+    {% endif %}
     <h1 class="pro-dash-module-title">{{ page_title|default(current_nav_group.label|default('Module')) }}</h1>
     {% if breadcrumb_items is defined and breadcrumb_items %}
     {{ erp_breadcrumb(breadcrumb_items) }}
@@ -13,12 +15,7 @@
     {% endif %}
   </div>
 
-  <div class="pro-dash-header-actions">
-    {% if company_display_name and company_display_name != 'MAXEK Technologies' %}
-    <span class="pro-dash-company-name" title="Tenant company">{{ company_display_name }}</span>
-    {% elif session.get('customer_name') %}
-    <span class="pro-dash-company-name" title="Tenant company">{{ session.get('customer_name') }}</span>
-    {% endif %}
+  <div class="pro-dash-header-actions pro-dash-header-actions--streamlined">
     {% if context_companies %}
     <select class="pro-dash-context-select company-select" name="company" aria-label="Company" data-company-select>
       <option value="">Company</option>
@@ -26,39 +23,35 @@
       <option value="{{ company.id }}" data-code="{{ company.code or '' }}"{% if company.id == selected_company_id %} selected{% endif %}>{{ company.name }}</option>
       {% endfor %}
     </select>
+    {% elif company_display_name and company_display_name != 'MAXEK Technologies' %}
+    <span class="pro-dash-company-name" title="Tenant company">{{ company_display_name }}</span>
+    {% elif session.get('customer_name') %}
+    <span class="pro-dash-company-name" title="Tenant company">{{ session.get('customer_name') }}</span>
     {% endif %}
 
-    <select class="pro-dash-context-select branch-select" name="branch" aria-label="Branch" data-branch-select>
-      {% for branch in branches %}
-      <option value="{{ branch }}"{% if branch == selected_branch %} selected{% endif %}>{{ branch }}</option>
-      {% endfor %}
-    </select>
+    <a class="pro-dash-header-link pro-dash-header-link--text" href="{{ url_for(primary_dashboard_endpoint|default('dashboard')) }}" title="Dashboard">
+      <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <a class="pro-dash-header-link pro-dash-header-link--text" href="{{ url_for('settings') }}" title="Settings">
+      <i class="fa-solid fa-gear" aria-hidden="true"></i>
+      <span>Settings</span>
+    </a>
 
     <a class="pro-dash-header-link" href="{{ url_for('notifications') }}" title="Notifications">
       <i class="fa-regular fa-bell" aria-hidden="true"></i>
       {% if notification_count %}<span class="pro-dash-header-badge">{{ notification_count }}</span>{% endif %}
     </a>
 
-    <a class="pro-dash-header-link" href="{{ url_for('approvals') }}" title="Pending Approvals">
-      <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
-      {% if approval_total %}<span class="pro-dash-header-badge">{{ approval_total }}</span>{% endif %}
-    </a>
-
-    <a class="pro-dash-header-link" href="{{ url_for('help_desk') }}">
-      <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
-      Help
-    </a>
-
-    {% include 'partials/dashboard_shell_theme_switcher.html' %}
-
-    <a class="pro-dash-profile" href="{{ url_for('settings') }}" title="Settings">
+    <a class="pro-dash-profile" href="{{ url_for('settings') }}" title="Profile">
       <span class="pro-dash-profile-avatar">{{ admin_initial }}</span>
       <span class="pro-dash-profile-name">{{ session.get('employee_name') or session.get('username') or 'Admin' }}</span>
     </a>
   </div>
 
-  <a class="pro-dash-header-link pro-dash-logout-link pro-dash-header-logout" href="{{ url_for('logout') }}" title="Sign out" aria-label="Sign out">
+  <a class="pro-dash-header-link pro-dash-logout-link pro-dash-header-logout" href="{{ url_for('logout') }}" title="Logout" aria-label="Logout">
     <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
-    <span class="pro-dash-logout-label">Sign out</span>
+    <span class="pro-dash-logout-label">Logout</span>
   </a>
 </header>

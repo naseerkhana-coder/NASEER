@@ -1,7 +1,10 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, erp_btn_back %}
 {% set page_title = 'TDS Register' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; TDS Register' %}
+{% block page_actions %}
+{{ erp_btn_back(url_for('accounts_hub'), 'Back to Accounts') }}
+{% endblock %}
 {% block content %}
 <div class="erp-module-layout">
   {{ erp_module_toolbar(

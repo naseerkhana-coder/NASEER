@@ -1,10 +1,12 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_module_toolbar, entity_status_badge, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, entity_status_badge, erp_pagination, erp_module_form_panel, erp_module_table_panel %}
+
 {% set page_title = 'License Master' %}
-{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Main Dashboard</a> &gt; ERP Administration &gt; License Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a> &gt; License Master' %}
+
 {% block content %}
-{% include 'erp_admin/_subtoolbar.html' %}
-<div class="erp-module-layout">
+<div class="erp-module-layout{% if not edit_record %} module-layout--list-only{% endif %}">
+
   {{ erp_module_toolbar(
     mode='standard',
     search_placeholder='Search licenses...',
@@ -12,31 +14,70 @@
     print_target='#license-records',
     form_panel_id='license-form',
     table_panel_id='license-records',
-    new_url=url_for('erp_admin_licenses') ~ 'license-form',
+    delete_form_id='license-delete-form',
+    show_delete=true,
+    delete_confirm_message='Delete this license record? This cannot be undone.'
   ) }}
 
-  <div class="erp-form-card">
-    <h3 class="erp-form-title">License Registration</h3>
-    <form method="post" class="erp-form-grid">
-      <div class="erp-field"><input name="license_no" placeholder=" " required value="LIC-2026-"><label>License No</label></div>
-      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes"><label>Customer Code</label></div>
+  <form id="license-delete-form" method="post" class="erp-hidden-form" hidden>
+    <input type="hidden" name="form_action" value="delete">
+    <input type="hidden" name="record_id" id="license-delete-id" value="">
+  </form>
+
+  {% call erp_module_form_panel(
+    id='license-form',
+    title=('View License' if view_only else ('Edit License' if edit_record else 'License Registration')),
+    hidden=(not edit_record),
+    list_anchor='license-records',
+    back_url=url_for('erp_admin_licenses') if edit_record else ''
+  ) %}
+    <form method="post" class="erp-form-grid{% if view_only %} is-readonly{% endif %}" id="license-master-form">
+      {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
+      <div class="erp-field"><input name="license_no" placeholder=" " required{% if edit_record %} readonly{% endif %} value="{{ edit_record.license_no if edit_record else 'LIC-2026-' }}"><label>License No</label></div>
+      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes" value="{{ edit_record.customer_code if edit_record else '' }}"><label>Customer Code</label></div>
       <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
-      <div class="erp-field"><select name="product">{% for p in products %}<option>{{ p }}</option>{% endfor %}</select><label>Product</label></div>
-      <div class="erp-field"><select name="plan">{% for p in plans %}<option>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
-      <div class="erp-field"><input type="date" name="start_date" placeholder=" "><label>Start Date</label></div>
-      <div class="erp-field"><input type="date" name="expiry_date" placeholder=" "><label>Expiry Date</label></div>
-      <div class="erp-field"><select name="status">{% for s in statuses %}<option>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
-      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save License</button></div>
+      <div class="erp-field"><select name="product">{% for p in products %}<option{% if edit_record and edit_record.product == p %} selected{% endif %}>{{ p }}</option>{% endfor %}</select><label>Product</label></div>
+      <div class="erp-field"><select name="plan">{% for p in plans %}<option{% if edit_record and edit_record.plan == p %} selected{% endif %}>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
+      <div class="erp-field"><input type="date" name="start_date" placeholder=" " value="{{ edit_record.start_date if edit_record else '' }}"><label>Start Date</label></div>
+      <div class="erp-field"><input type="date" name="expiry_date" placeholder=" " value="{{ edit_record.expiry_date if edit_record else '' }}"><label>Expiry Date</label></div>
+      <div class="erp-field"><select name="status">{% for s in statuses %}<option{% if edit_record and edit_record.status == s %} selected{% endif %}>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+      <div class="erp-form-actions">
+        {% if not view_only %}<button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save License</button>{% endif %}
+        {% if edit_record %}<a href="{{ url_for('erp_admin_licenses') }}" class="erp-btn erp-btn-ghost">{% if view_only %}Close{% else %}Cancel{% endif %}</a>{% endif %}
+      </div>
     </form>
-  </div>
-  <div class="erp-table-panel" id="license-records" data-erp-table data-erp-table>
-    <div class="erp-table-toolbar"><h3 class="erp-table-title">License Register</h3></div>
+  {% endcall %}
+
+  {% call erp_module_table_panel(id='license-records', title='License Register') %}
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">
         <thead><tr><th>License No</th><th>Customer</th><th>Company</th><th>Product</th><th>Plan</th><th>Start</th><th>Expiry</th><th>Status</th></tr></thead>
-        <tbody>{% for row in rows %}<tr><td>{{ row.license_no }}</td><td>{{ row.customer_code }}</td><td>{{ row.company_name }}</td><td>{{ row.product }}</td><td>{{ row.plan }}</td><td>{{ row.start_date or '—' }}</td><td>{{ row.expiry_date or '—' }}</td><td>{{ entity_status_badge(row.status) }}</td></tr>{% else %}<tr><td colspan="8">No licenses yet.</td></tr>{% endfor %}</tbody>
+        <tbody>
+          {% for row in rows %}
+          <tr class="erp-selectable-row" data-record-id="{{ row.id }}" data-status="{{ row.status or '' }}" data-created-at="{{ row.created_at or '' }}" data-edit-url="{{ url_for('erp_admin_licenses', edit=row.id) }}#license-form" tabindex="0">
+            <td>{{ row.license_no }}</td>
+            <td>{{ row.customer_code }}</td>
+            <td>{{ row.company_name }}</td>
+            <td>{{ row.product }}</td>
+            <td>{{ row.plan }}</td>
+            <td>{{ row.start_date or '—' }}</td>
+            <td>{{ row.expiry_date or '—' }}</td>
+            <td>{{ entity_status_badge(row.status) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8">No licenses yet.</td></tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
-  </div>
+    {{ erp_pagination(rows|length) }}
+  {% endcall %}
+
 </div>
+
+<style>
+  .erp-hidden-form { display: none; }
+  .erp-selectable-row { cursor: pointer; }
+  .erp-selectable-row.is-selected { background: rgba(59, 130, 246, 0.12); outline: 1px solid rgba(59, 130, 246, 0.35); }
+</style>
 {% endblock %}

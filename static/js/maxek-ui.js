@@ -608,6 +608,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const deleteForm = deleteFormId ? document.getElementById(deleteFormId) : null;
     const tbody = tablePanel ? tablePanel.querySelector('tbody') : null;
     const masterForm = formPanel ? formPanel.querySelector('form') : null;
+    const allowDelete = toolbar.getAttribute('data-allow-delete') === 'true';
     let selectedRow = null;
 
     function actionButtons() {
@@ -620,7 +621,12 @@ document.addEventListener('DOMContentLoaded', function () {
       if (selectedRow) selectedRow.classList.add('is-selected');
       const hasSelection = !!selectedRow;
       actionButtons().forEach(function (btn) {
-        btn.disabled = !hasSelection;
+        const action = btn.getAttribute('data-erp-action');
+        if (action === 'delete') {
+          btn.disabled = !hasSelection || !allowDelete;
+        } else {
+          btn.disabled = !hasSelection;
+        }
       });
     }
 
@@ -661,8 +667,16 @@ document.addEventListener('DOMContentLoaded', function () {
         ) || tbody.querySelector(
           '.erp-selectable-row[data-customer-id="' + preselectedId + '"]'
         );
-        if (initialRow) setSelectedRow(initialRow);
+        if (initialRow) {
+          setSelectedRow(initialRow);
+        } else {
+          setSelectedRow(null);
+        }
+      } else {
+        setSelectedRow(null);
       }
+    } else {
+      setSelectedRow(null);
     }
 
     toolbar.querySelectorAll('[data-erp-action]').forEach(function (button) {
@@ -705,6 +719,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const codeLabel = codeCell ? codeCell.textContent.trim() : recordId;
 
         if (action === 'delete') {
+          if (!allowDelete) return;
           const rowDeleteBtn = selectedRow.querySelector('.js-delete-record');
           if (rowDeleteBtn) {
             rowDeleteBtn.click();

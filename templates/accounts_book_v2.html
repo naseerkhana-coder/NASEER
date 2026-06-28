@@ -8,9 +8,7 @@
     search_placeholder='Search journal entries...',
     export_name='accounts_book_v2',
     print_target='#journal-records',
-    form_panel_id='journal-form',
     table_panel_id='journal-records',
-    new_url=url_for('accounts_book_v2', new=1) ~ 'journal-form',
   ) }}
 <form method="get" class="erp-form-card" style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:end;">
   {% if chart_heads is defined %}

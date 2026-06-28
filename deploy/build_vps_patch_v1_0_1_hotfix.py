@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build deploy/dist/vps-patch-v1.0.1-hotfix.zip — platform admin security + workflow exempt."""
+"""Build deploy/dist/vps-patch-v1.0.1-hotfix.zip — UAT hotfix bundle."""
 from __future__ import annotations
 
 import zipfile
@@ -24,6 +24,10 @@ HOTFIX_FILES = [
     "dashboard_prefs_service.py",
     "standard_boq_library_service.py",
     "templates/settings.html",
+    "templates/accounts_receipt_voucher.html",
+    "templates/accounts_book.html",
+    "templates/accounts_book_v2.html",
+    "templates/accounts_tds_register.html",
     "templates/erp_admin/customers.html",
     "templates/erp_admin/licenses.html",
     "templates/erp_admin/subscriptions.html",
@@ -33,10 +37,12 @@ HOTFIX_FILES = [
     "templates/erp_admin/customer_settings.html",
     "templates/macros/erp_ui.html",
     "templates/partials/dashboard_shell_sidebar.html",
+    "templates/partials/dashboard_shell_header.html",
+    "templates/partials/dashboard_shell_module_header.html",
+    "templates/partials/command_centre_dept_tiles.html",
     "templates/dashboard.html",
     "templates/dashboard_theme_executive.html",
     "templates/dashboard_theme_compact.html",
-    "templates/partials/command_centre_dept_tiles.html",
     "static/css/maxek-dashboard.css",
     "static/js/maxek-ui.js",
 ]
@@ -56,16 +62,20 @@ def build() -> None:
             zf.write(ROOT / rel, rel)
 
     lines = [
-        "MAXEK ERP — VPS Patch v1.0.1 Hotfix (platform admin security)",
+        "MAXEK ERP — VPS Patch v1.0.1 Hotfix (UAT fixes)",
         f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         f"Archive: deploy/dist/vps-patch-v1.0.1-hotfix.zip",
         "",
         "Purpose",
         "-------",
-        "  1. Platform menu + /erp-admin/* + /super-admin/* restricted to Platform Super Admin (403 otherwise)",
-        "  2. Platform admin modules save immediately — no maker/checker/approver workflow",
-        "  3. Super Admin platform dashboard Level 2 department tiles (company context + erp_platform_routes)",
-        "  4. Dashboard theme + department tiles fixes from prior hotfix retained",
+        "  1. Fix Accounts module 500 errors (broken url_for in book/receipt templates)",
+        "  2. Fix License Registration page (toolbar URL, form panel, edit/delete)",
+        "  3. Shared toolbar: disable Open/View/Edit/Delete until row selected;",
+        "     Delete enabled for Platform Super Admin only",
+        "  4. TDS register back button → Accounts dashboard",
+        "  5. Customer Master package panel dark theme",
+        "  6. Remove header progress bar; platform dashboard UI refresh",
+        "  7. Platform admin security + workflow exempt (prior hotfix retained)",
         "",
         "Files in archive",
         "----------------",

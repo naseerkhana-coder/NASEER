@@ -7760,3 +7760,191 @@
 .pro-dash-dept-tile--locked .erp-module-tile-open {
   color: var(--erp-muted, #94a3b8);
 }
+
+/* ── v1.0.1 UAT: hide legacy dashboard progress bar ── */
+.maxek-layout.dashboard-mode .dash-progress-wrap {
+  display: none !important;
+}
+
+/* Department tile accents — dark mode contrast */
+.pro-dash-dept-tile[data-dept-slug="projects"],
+.dept-module-tile[data-dept-slug="projects"] { --dept-accent: #2563eb; }
+.pro-dash-dept-tile[data-dept-slug="planning-wbs"],
+.dept-module-tile[data-dept-slug="planning-wbs"],
+.pro-dash-dept-tile[data-dept-slug="engineering"],
+.dept-module-tile[data-dept-slug="engineering"] { --dept-accent: #22c55e; }
+.pro-dash-dept-tile[data-dept-slug="boq"],
+.dept-module-tile[data-dept-slug="boq"] { --dept-accent: #9333ea; }
+.pro-dash-dept-tile[data-dept-slug="dpr"],
+.dept-module-tile[data-dept-slug="dpr"] { --dept-accent: #10b981; }
+.pro-dash-dept-tile[data-dept-slug="procurement"],
+.dept-module-tile[data-dept-slug="procurement"] { --dept-accent: #f97316; }
+.pro-dash-dept-tile[data-dept-slug="store"],
+.dept-module-tile[data-dept-slug="store"] { --dept-accent: #06b6d4; }
+.pro-dash-dept-tile[data-dept-slug="hr-payroll"],
+.dept-module-tile[data-dept-slug="hr-payroll"] { --dept-accent: #ec4899; }
+.pro-dash-dept-tile[data-dept-slug="accounts"],
+.dept-module-tile[data-dept-slug="accounts"] { --dept-accent: #6366f1; }
+.pro-dash-dept-tile[data-dept-slug="qc"],
+.dept-module-tile[data-dept-slug="qc"] { --dept-accent: #8b5cf6; }
+.pro-dash-dept-tile[data-dept-slug="vehicle"],
+.dept-module-tile[data-dept-slug="vehicle"] { --dept-accent: #14b8a6; }
+.pro-dash-dept-tile[data-dept-slug="plant-operations"],
+.dept-module-tile[data-dept-slug="plant-operations"],
+.pro-dash-dept-tile[data-dept-slug="mechanical"],
+.dept-module-tile[data-dept-slug="mechanical"] { --dept-accent: #166534; }
+.pro-dash-dept-tile[data-dept-slug="subcontract"],
+.dept-module-tile[data-dept-slug="subcontract"] { --dept-accent: #ef4444; }
+.pro-dash-dept-tile[data-dept-slug="reports"],
+.dept-module-tile[data-dept-slug="reports"] { --dept-accent: #a855f7; }
+.pro-dash-dept-tile[data-dept-slug="administration"],
+.dept-module-tile[data-dept-slug="administration"] { --dept-accent: #84cc16; }
+
+/* Platform Command Centre layout */
+.erp-platform-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: min(100%, 1280px);
+}
+
+.erp-platform-kpi-grid {
+  margin-bottom: 0;
+}
+
+.erp-platform-quick-actions {
+  margin: 0;
+}
+
+.erp-platform-quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.75rem;
+}
+
+.erp-platform-quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+  min-height: 92px;
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: var(--bg-card-dark, #1e293b);
+  color: var(--text-main, #e2e8f0);
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.erp-platform-quick-action i {
+  font-size: 1.1rem;
+  color: #93c5fd;
+}
+
+.erp-platform-quick-action span {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.erp-platform-quick-action:hover {
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 8px 24px -12px rgba(15, 23, 42, 0.45);
+  transform: translateY(-1px);
+}
+
+.erp-platform-dept-grid {
+  gap: 0.85rem;
+}
+
+.erp-platform-dept-grid .pro-dash-dept-tile--mockup {
+  min-height: 112px;
+}
+
+.erp-platform-company-erp {
+  margin: 0;
+  padding-top: 0.5rem;
+}
+
+.erp-platform-empty-card {
+  background: var(--bg-card-dark, #1e293b);
+  border-color: var(--border-subtle, rgba(148, 163, 184, 0.22));
+  color: var(--text-main, #e2e8f0);
+}
+
+.erp-platform-recent-customers {
+  margin-top: 0.25rem;
+}
+
+.erp-platform-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.erp-platform-recent-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  border-radius: 12px;
+  background: var(--bg-card-dark, #1e293b);
+}
+
+.erp-platform-recent-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.erp-platform-recent-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #94a3b8);
+  background: rgba(15, 23, 42, 0.96);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.erp-platform-recent-table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  color: var(--text-main, #e2e8f0);
+}
+
+.erp-platform-recent-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.erp-platform-recent-table tbody tr:hover td {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.erp-platform-recent-empty {
+  text-align: center;
+  color: var(--text-muted, #94a3b8);
+}
+
+.erp-platform-recent-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.875rem;
+}
+
+.maxek-layout.erp-admin-page .erp-platform-subtitle,
+.maxek-layout.erp-admin-page .erp-platform-title,
+.maxek-layout.erp-admin-page .erp-module-section-title {
+  color: var(--text-main, #e2e8f0);
+}
+
+.maxek-layout.erp-admin-page .erp-platform-eyebrow {
+  color: var(--text-muted, #94a3b8);
+}

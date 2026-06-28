@@ -24,7 +24,7 @@
     print_target='#receipt-records',
     form_panel_id='receipt-form',
     table_panel_id='receipt-records',
-    new_url=url_for('accounts_receipt_voucher', new=1) ~ 'receipt-form',
+    new_url=url_for('accounts_receipts', new=1) ~ '#receipt-form',
     filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver'],
   ) }}
 {% endif %}

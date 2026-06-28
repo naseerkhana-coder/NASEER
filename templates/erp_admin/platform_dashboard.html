@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import entity_status_badge, erp_module_grid %}
+{% from 'macros/erp_ui.html' import entity_status_badge %}
 
 {% set page_title = 'Platform Command Centre' %}
 {% set breadcrumbs = '<a href="' ~ safe_url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a>' %}
@@ -12,15 +12,9 @@
       <h1 class="erp-platform-title">Platform Command Centre</h1>
       <p class="erp-platform-subtitle">Customer overview, licensing, and platform operations in one place.</p>
     </div>
-    <div class="erp-platform-hero-actions">
-      <a href="{{ url_for('erp_admin_customers') }}#add-customer" class="erp-btn erp-btn-primary">
-        <i class="fa-solid fa-building-circle-check" aria-hidden="true"></i>
-        Register Customer
-      </a>
-    </div>
   </header>
 
-  <div class="erp-kpi-grid">
+  <div class="erp-kpi-grid erp-platform-kpi-grid">
     {% for card in platform_data.metric_cards %}
     <div class="erp-kpi-card">
       <div class="erp-kpi-label">{{ card.label }}</div>
@@ -29,7 +23,35 @@
     {% endfor %}
   </div>
 
-  {{ erp_module_grid(quick_links, 'Platform Administration') }}
+  <section class="erp-platform-quick-actions" aria-labelledby="platform-quick-actions-heading">
+    <h2 id="platform-quick-actions-heading" class="erp-module-section-title">Platform Quick Actions</h2>
+    <div class="erp-platform-quick-actions-grid">
+      <a href="{{ url_for('erp_admin_customers') }}#add-customer" class="erp-platform-quick-action">
+        <i class="fa-solid fa-building-circle-check" aria-hidden="true"></i>
+        <span>Register Customer</span>
+      </a>
+      <a href="{{ url_for('erp_admin_licenses') }}" class="erp-platform-quick-action">
+        <i class="fa-solid fa-key" aria-hidden="true"></i>
+        <span>Issue License</span>
+      </a>
+      <a href="{{ url_for('user_management') }}" class="erp-platform-quick-action">
+        <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+        <span>Create Platform User</span>
+      </a>
+      <a href="{{ url_for('erp_admin_system_health') }}" class="erp-platform-quick-action">
+        <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
+        <span>System Health</span>
+      </a>
+      <a href="{{ url_for('treasury_backup_system') }}" class="erp-platform-quick-action">
+        <i class="fa-solid fa-database" aria-hidden="true"></i>
+        <span>Backup</span>
+      </a>
+      <a href="{{ url_for('settings') }}" class="erp-platform-quick-action">
+        <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        <span>Settings</span>
+      </a>
+    </div>
+  </section>
 
   {% if company_erp %}
   <section class="erp-platform-company-erp" id="company-erp-section" aria-labelledby="company-erp-heading">
@@ -49,20 +71,16 @@
           <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
           Open Full Dashboard
         </a>
-        <a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost">
-          <i class="fa-solid fa-gear" aria-hidden="true"></i>
-          Settings
-        </a>
       </div>
     </div>
-    <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid pro-dash-dept-tile-grid--mockup">
+    <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid pro-dash-dept-tile-grid--mockup erp-platform-dept-grid">
       {% set command_centre_cards = company_erp.command_centre_cards %}
       {% include 'partials/command_centre_dept_tiles.html' %}
     </div>
   </section>
   {% else %}
   <section class="erp-platform-company-erp erp-platform-company-erp--empty" aria-labelledby="company-erp-prompt">
-    <div class="erp-form-card">
+    <div class="erp-form-card erp-platform-empty-card">
       <h2 id="company-erp-prompt" class="erp-form-title">Company ERP Command Centre</h2>
       <p>Select a <strong>company</strong> from the header dropdown to switch tenant context. When companies exist, the first company is selected automatically so department workspaces appear below.</p>
       <p class="erp-form-hint">Platform tools above remain available at all times. Department tickets reuse the same backend as tenant users on <code>/dashboard</code>.</p>
@@ -70,13 +88,13 @@
   </section>
   {% endif %}
 
-  <div class="erp-table-panel">
-    <div class="erp-table-toolbar">
-      <h3 class="erp-table-title">Recent Customers</h3>
+  <section class="erp-platform-recent-customers" aria-labelledby="platform-recent-customers-heading">
+    <div class="erp-platform-recent-head">
+      <h2 id="platform-recent-customers-heading" class="erp-module-section-title">Recent Customers</h2>
       <a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost erp-btn-sm">View all</a>
     </div>
-    <div class="erp-table-scroll">
-      <table class="erp-table erp-table-module">
+    <div class="erp-platform-recent-table-wrap">
+      <table class="erp-platform-recent-table" data-platform-recent-table>
         <thead>
           <tr>
             <th>Code</th>
@@ -98,11 +116,55 @@
             <td>{{ row.created_at or '—' }}</td>
           </tr>
           {% else %}
-          <tr><td colspan="6">No customers registered yet.</td></tr>
+          <tr><td colspan="6" class="erp-platform-recent-empty">No customers registered yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  </div>
+    {% if platform_data.recent_customers|length > 8 %}
+    <nav class="erp-platform-recent-pagination" aria-label="Recent customers pagination" data-platform-recent-pagination hidden>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-platform-recent-prev disabled>Previous</button>
+      <span data-platform-recent-page-label>Page 1</span>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-platform-recent-next>Next</button>
+    </nav>
+    {% endif %}
+  </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var table = document.querySelector('[data-platform-recent-table]');
+  var pager = document.querySelector('[data-platform-recent-pagination]');
+  if (!table || !pager) return;
+  var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr')).filter(function (row) {
+    return !row.querySelector('.erp-platform-recent-empty');
+  });
+  if (rows.length <= 8) return;
+  pager.hidden = false;
+  var pageSize = 8;
+  var page = 0;
+  var prevBtn = pager.querySelector('[data-platform-recent-prev]');
+  var nextBtn = pager.querySelector('[data-platform-recent-next]');
+  var label = pager.querySelector('[data-platform-recent-page-label]');
+  function renderPage() {
+    var totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    rows.forEach(function (row, index) {
+      var show = index >= page * pageSize && index < (page + 1) * pageSize;
+      row.style.display = show ? '' : 'none';
+    });
+    if (label) label.textContent = 'Page ' + (page + 1) + ' of ' + totalPages;
+    if (prevBtn) prevBtn.disabled = page <= 0;
+    if (nextBtn) nextBtn.disabled = page >= totalPages - 1;
+  }
+  prevBtn && prevBtn.addEventListener('click', function () { page = Math.max(0, page - 1); renderPage(); });
+  nextBtn && nextBtn.addEventListener('click', function () {
+    var totalPages = Math.ceil(rows.length / pageSize);
+    page = Math.min(totalPages - 1, page + 1);
+    renderPage();
+  });
+  renderPage();
+})();
+</script>
 {% endblock %}
