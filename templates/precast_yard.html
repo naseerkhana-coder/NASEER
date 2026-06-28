@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Precast Yard' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('plant_dashboard') ~ '">Plant</a> &gt; Precast Yard' %}
 {% block page_actions %}
@@ -6,6 +7,14 @@
 <a href="{{ url_for('plant_precast_production', new=1) }}#record-form" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-border-all"></i> Production</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search precast yard...',
+    export_name='precast_yard',
+    print_target='#precast-yard-records',
+    table_panel_id='precast-yard-records',
+  ) }}
 
 <div class="erp-summary-grid erp-summary-grid--compact" style="margin: 0.75rem 0 1rem;">
   <div class="erp-stat-card"><span>Total Yards</span><strong>{{ stats.total_yards }}</strong></div>
@@ -18,7 +27,7 @@
 
 <div class="erp-form-card erp-form-card--compact">
   <h3 class="erp-form-title">Registered Precast Yards</h3>
-  <div class="erp-table-scroll">
+  <div id="precast-yard-records" data-erp-table><div class="erp-table-scroll">
     <table class="erp-table erp-table-compact">
       <thead>
         <tr><th>Code</th><th>Yard Name</th><th>Location</th><th>Linked Plant</th><th>In-charge</th><th>Status</th><th></th></tr>

@@ -1,6 +1,6 @@
 {% extends 'base_maxek.html' %}
 
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, workflow_modals, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, maker_row_actions, workflow_modals, erp_pagination %}
 
 {% set subcontractor_nav = subcontractor_nav|default(false) %}
 
@@ -29,6 +29,19 @@
 {% endblock %}
 
 {% block content %}
+<div class="erp-module-layout">
+{% if not view_record %}
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search timesheets...',
+    export_name='timesheets',
+    print_target='#timesheet-records',
+    form_panel_id='add-attendance',
+    table_panel_id='timesheet-records',
+    new_url=url_for('timesheet') ~ 'add-attendance',
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver'],
+  ) }}
+{% endif %}
 
 {% if view_record %}
 
@@ -66,7 +79,7 @@
 
 
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="timesheet-records" data-erp-table data-erp-table>
 
   <div class="erp-table-toolbar">
 

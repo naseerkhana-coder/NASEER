@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Diesel Stock' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('fleet_dashboard') ~ '">Fleet</a> &gt; Diesel Stock' %}
 {% block page_actions %}
@@ -6,13 +7,21 @@
 <a href="{{ url_for('fleet_diesel_issue', new=1) }}" class="erp-btn erp-btn-ghost">Issue</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search diesel stock...',
+    export_name='diesel_stock',
+    print_target='#diesel-stock-records',
+    table_panel_id='diesel-stock-records',
+  ) }}
 <div class="erp-summary-grid" style="margin-bottom:1.5rem;">
   <div class="erp-stat-card"><span>Current Balance</span><strong>{{ '%.2f'|format(stock_balance) }} L</strong></div>
   <div class="erp-stat-card"><span>Recent Purchases</span><strong>{{ purchases|length }}</strong></div>
   <div class="erp-stat-card"><span>Recent Issues</span><strong>{{ issues|length }}</strong></div>
 </div>
 
-<div class="erp-table-panel" data-erp-table style="margin-bottom:1.5rem;">
+<div class="erp-table-panel" id="diesel-stock-records" data-erp-table data-erp-table style="margin-bottom:1.5rem;">
   <div class="erp-table-toolbar"><h3 class="erp-table-title">Stock Ledger</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table">

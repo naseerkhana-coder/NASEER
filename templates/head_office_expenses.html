@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
 {% from 'macros/inline_create.html' import chart_head_create_button, new_chart_head_modal %}
 {% set page_title = 'Daily Expenses' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; Daily Expenses' %}
@@ -30,7 +30,15 @@
 </div>
 {% endif %}
 
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search HO expenses...',
+    export_name='ho_expenses',
+    print_target='#ho-expense-records',
+    table_panel_id='ho-expense-records',
+  ) }}
+
   {% if not view_record %}
   <div class="erp-form-card" id="head-office-expenses-form">
     <h3 class="erp-form-title">
@@ -88,7 +96,7 @@
   </div>
   {% endif %}
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="ho-expense-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">Daily Expense Register</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">

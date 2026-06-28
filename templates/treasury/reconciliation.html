@@ -1,7 +1,16 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Bank Reconciliation' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Reconciliation' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search reconciliation...',
+    export_name='reconciliation',
+    print_target='#reconciliation-records',
+    table_panel_id='reconciliation-records',
+  ) }}
 <div class="erp-form-card" style="margin-bottom:1rem;padding:1rem;">
   <p><i class="fa-solid fa-file-csv"></i> <strong>CSV Import:</strong> Bank statement import will be available in Phase 2. Use manual reconciliation entries below.</p>
 </div>
@@ -20,7 +29,7 @@
   <div class="erp-stat-card"><span>Unmatched</span><strong>{{ counts.unmatched }}</strong></div>
   <div class="erp-stat-card"><span>Pending</span><strong>{{ counts.pending }}</strong></div>
 </div>
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="reconciliation-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>Date</th><th>Account</th><th>Stmt Ref</th><th>ERP Txn</th><th>Amount</th><th>Status</th></tr></thead>

@@ -1,7 +1,17 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Financial Reports' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; Reports' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search reports...',
+    export_name='accounts_reports',
+    print_target='#accounts-reports',
+    table_panel_id='accounts-reports',
+    show_run_report=true,
+  ) }}
 <form method="get" class="erp-form-card" style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:end;">
   <div class="erp-field">
     <select name="report">
@@ -32,7 +42,7 @@
 </form>
 
 {% if report == 'trial_balance' %}
-<div class="erp-table-panel"><div class="erp-table-scroll">
+<div class="erp-table-panel" id="accounts-reports" data-erp-table><div class="erp-table-scroll">
   <table class="erp-table">
     <thead><tr><th>Code</th><th>Account</th><th>Type</th><th>Debit</th><th>Credit</th></tr></thead>
     <tbody>

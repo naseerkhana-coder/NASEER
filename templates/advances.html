@@ -1,11 +1,21 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge, erp_pagination %}
 {% set page_title = 'Subcontractor Advances' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Finance &gt; Advances' %}
 {% block page_actions %}
 <a href="#add-advance" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Advance</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search advances...',
+    export_name='advances',
+    print_target='#advance-records',
+    form_panel_id='advance-form',
+    table_panel_id='advance-records',
+    new_url=url_for('advances', new=1) ~ 'advance-form',
+  ) }}
 <div class="module-stack">
   <div class="erp-form-card" id="add-advance">
     <h3 class="erp-form-title">Record Advance</h3>
@@ -17,7 +27,7 @@
     </form>
   </div>
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="advance-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Advance Ledger</h3>
       <div class="erp-table-controls">

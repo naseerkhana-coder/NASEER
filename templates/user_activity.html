@@ -1,9 +1,18 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'User Activity Monitor' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; User Activity Monitor' %}
 
 {% block content %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search activity log...',
+    export_name='user_activity',
+    print_target='#activity-records',
+    table_panel_id='activity-records',
+  ) }}
+
   <form method="get" class="erp-form-card" style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
     <input type="hidden" name="tab" value="{{ active_tab }}">
     <div class="erp-field">
@@ -54,7 +63,7 @@
     </p>
   </div>
   {% elif active_tab == 'login' %}
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="activity-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Login / Logout Sessions</h3>
       <div class="erp-table-controls">

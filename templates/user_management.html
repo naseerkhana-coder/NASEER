@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import workflow_badge, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, workflow_badge, erp_pagination %}
 {% set page_title = 'User Management' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; User Management' %}
 {% block page_actions %}
@@ -12,7 +12,17 @@
   <a href="{{ url_for('user_settings') }}">User Access Settings</a>.
 </div>
 
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search users...',
+    export_name='user_management',
+    print_target='#user-mgmt-records',
+    form_panel_id='user-mgmt-form',
+    table_panel_id='user-mgmt-records',
+    new_url=url_for('user_management') ~ 'user-mgmt-form',
+  ) }}
+
   <div class="erp-form-card" style="margin-bottom: 1rem;">
     <div class="erp-form-actions" style="margin-bottom: 0; gap: 0.5rem;">
       <a href="{{ url_for('user_management', tab='create') }}"
@@ -85,7 +95,7 @@
     </form>
   </div>
   {% else %}
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="user-mgmt-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">All Users</h3>
       <div class="erp-table-controls">

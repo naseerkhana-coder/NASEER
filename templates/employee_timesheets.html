@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge, maker_row_actions %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge, maker_row_actions %}
 {% set page_title = 'Monthly Timesheets' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; HR &gt; Monthly Timesheets' %}
 {% block page_actions %}
@@ -7,6 +7,14 @@
 <a href="{{ url_for('timesheet') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-clock"></i> Daily View</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search employee timesheets...',
+    export_name='employee_timesheets',
+    print_target='#emp-timesheet-records',
+    table_panel_id='emp-timesheet-records',
+  ) }}
 <form method="get" class="erp-table-toolbar" style="margin-bottom:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
   <input name="q" value="{{ search }}" placeholder="Search employee, ref…">
   <input name="year_month" type="month" value="{{ year_month_filter }}">
@@ -18,7 +26,7 @@
   </select>
   <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
 </form>
-<div class="erp-table-wrap">
+<div class="erp-table-wrap" id="emp-timesheet-records" data-erp-table>
   <table class="erp-table">
     <thead>
       <tr>

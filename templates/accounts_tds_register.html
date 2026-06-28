@@ -1,9 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'TDS Register' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; TDS Register' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search TDS entries...',
+    export_name='tds_register',
+    print_target='#tds-records',
+    table_panel_id='tds-records',
+    reports_url=url_for('accounts_reports'),
+  ) }}
 <div class="erp-validation" style="margin-bottom:1rem;">TDS from expenses and payment vouchers. Alerts: 7 / 3 / 1 day before due (7th of following month).</div>
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="tds-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar"><h3 class="erp-table-title">TDS Register</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table">

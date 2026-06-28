@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Project Photo Register' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('project_photos_register') ~ '">Project Photos</a> &gt; Gallery' %}
 {% block page_actions %}
@@ -7,6 +8,14 @@
 <button type="button" class="erp-btn erp-btn-primary" onclick="document.getElementById('photo-upload-panel').classList.toggle('is-open')"><i class="fa-solid fa-camera"></i> Upload</button>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search photo albums...',
+    export_name='project_photos',
+    print_target='#photo-records',
+    table_panel_id='photo-records',
+  ) }}
 <style>
   .photo-upload-panel { display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--erp-border, #e5e7eb); border-radius: 8px; background: #fafafa; }
   .photo-upload-panel.is-open { display: block; }

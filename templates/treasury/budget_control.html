@@ -1,7 +1,16 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Budget Control' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Budget Control' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search budget control...',
+    export_name='budget_control',
+    print_target='#budget-control-records',
+    table_panel_id='budget-control-records',
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Track approved budget vs committed and actual costs by project. Integrated with Purchase, Store, Payroll, Subcontract, and Equipment modules where data exists.
 </p>
@@ -29,7 +38,7 @@
   <a href="{{ url_for('treasury_budget_control') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Reset</a>
 </form>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="budget-control-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

@@ -1,7 +1,16 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Tally XML Export' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; Tally Export' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Filter export batches...',
+    export_name='tally_export',
+    print_target='#tally-export-records',
+    table_panel_id='tally-export-records',
+  ) }}
 <div class="erp-form-card">
   <p>Export approved journal entries as Tally-importable XML (common voucher format).</p>
   <p><strong>{{ journal_count }}</strong> journal entries in system.</p>

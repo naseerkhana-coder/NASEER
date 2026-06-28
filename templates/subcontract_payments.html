@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
 {% set page_title = 'Subcontract Payments' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Subcontract &gt; Payments Ledger' %}
 {% block page_actions %}
@@ -7,6 +7,14 @@
 <a href="{{ url_for('subcontract_payments', new_pay=1) }}#pay-form" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-money-bill-transfer"></i> Record Payment</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search subcontract payments...',
+    export_name='subcontract_payments',
+    print_target='#sub-payments-records',
+    table_panel_id='sub-payments-records',
+  ) }}
 <div class="erp-stats-grid" style="margin-bottom:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;">
   <div class="erp-stat-card"><span class="erp-stat-label">WO Value</span><strong>{{ '%.2f'|format(summary.total_wo_value) }}</strong></div>
   <div class="erp-stat-card"><span class="erp-stat-label">Certified</span><strong>{{ '%.2f'|format(summary.total_certified) }}</strong></div>
@@ -174,7 +182,7 @@
 </div>
 {% endif %}
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="sub-payments-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar">
     <h3 class="erp-table-title">Subcontract Ledger</h3>
     <form method="get" class="erp-table-search" style="display:flex;gap:0.5rem;">

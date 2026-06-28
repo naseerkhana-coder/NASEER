@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'PO Register' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('office_admin') ~ '">Office</a> &gt; PO Register' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search PO register...',
+    export_name='office_po',
+    print_target='#po-records',
+    table_panel_id='po-records',
+  ) }}
 <p style="margin-bottom:1rem;color:#64748b;">Read-only register of purchase orders from Store & Procurement. Create or edit POs in <a href="{{ url_for('purchase_orders') }}">Purchase Orders</a>.</p>
 <form method="get" style="margin-bottom:0.75rem;"><input name="q" value="{{ search }}" placeholder="Search PO, vendor, project…" style="max-width:320px;"> <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Search</button></form>
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="po-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>PO No</th><th>Date</th><th>Vendor</th><th>Project</th><th>Total</th><th>Status</th><th></th></tr></thead>

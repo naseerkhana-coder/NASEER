@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, erp_pagination %}
 {% set page_title = 'Staff Bonus' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; HR &gt; Staff Bonus' %}
 {% block page_actions %}
@@ -11,6 +11,14 @@
 </style>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search bonus records...',
+    export_name='staff_bonus',
+    print_target='#bonus-records',
+    table_panel_id='bonus-records',
+  ) }}
 <div class="module-layout staff-bonus-module">
   <div class="erp-tab-bar" role="tablist">
     <a class="erp-tab{% if active_tab == 'calculation' %} active{% endif %}" href="{{ url_for('staff_bonus', tab='calculation') }}">
@@ -98,7 +106,7 @@
     </form>
   </div>
   {% else %}
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="bonus-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Bonus Payment Queue</h3>
       <div class="erp-table-controls">

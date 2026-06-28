@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Security Deposits' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Security Deposits' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_security_deposits', new=1) }}#record-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Deposit</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search security deposits...',
+    export_name='security_deposits',
+    print_target='#sd-records',
+    table_panel_id='sd-records',
+  ) }}
 {% if show_form %}
 <div class="erp-form-card" id="record-form" style="margin-bottom:1rem;">
   <h3 class="erp-form-title">{% if edit_record %}Edit Security Deposit{% else %}New Security Deposit{% endif %}</h3>
@@ -24,7 +33,7 @@
   </form>
 </div>
 {% endif %}
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="sd-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>Project</th><th>Bank</th><th>Type</th><th>Amount</th><th>Status</th><th></th></tr></thead>

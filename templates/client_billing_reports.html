@@ -1,7 +1,17 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Client Billing Reports' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('client_billing_register') ~ '">Client Billing</a> &gt; Reports' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search billing reports...',
+    export_name='client_billing_reports',
+    print_target='#billing-reports',
+    table_panel_id='billing-reports',
+    show_run_report=true,
+  ) }}
 <div class="erp-tabs" style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
   {% for tab in report_tabs %}
   <a href="{{ url_for('client_billing_reports', report=tab.key, project_id=project_filter or '', client_id=client_filter or '') }}"
@@ -27,7 +37,7 @@
 </form>
 
 {% if report_type == 'ledger' %}
-<div class="erp-table-wrap">
+<div class="erp-table-wrap" id="billing-reports" data-erp-table>
   <table class="erp-table">
     <thead>
       <tr><th>Date</th><th>Bill No.</th><th>RA No.</th><th>Project</th><th>Client</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr>

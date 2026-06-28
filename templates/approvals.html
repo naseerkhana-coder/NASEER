@@ -1,8 +1,16 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import workflow_badge, role_status_badge, checker_row_actions, approver_row_actions, maker_row_actions, reject_modal %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, workflow_badge, role_status_badge, checker_row_actions, approver_row_actions, maker_row_actions, reject_modal %}
 {% set page_title = 'Pending Approvals' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Approvals' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search approvals...',
+    export_name='approvals',
+    print_target='#approval-records',
+    table_panel_id='approval-records',
+  ) }}
 <div class="approval-widgets">
   <a class="approval-widget" href="{{ url_for('approvals', role='maker') }}">
     <h4>Maker</h4>
@@ -18,7 +26,7 @@
   </a>
 </div>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="approval-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar">
     <h3 class="erp-table-title">
       {% if role == 'maker' %}My Transactions

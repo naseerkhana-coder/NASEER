@@ -1,10 +1,20 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Project Photo Reports' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('project_photos_register') ~ '">Project Photos</a> &gt; Reports' %}
 {% block page_actions %}
 <a href="{{ url_for('project_photos_register') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-images"></i> Gallery</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search photo reports...',
+    export_name='project_photos_reports',
+    print_target='#photo-reports',
+    table_panel_id='photo-reports',
+    show_run_report=true,
+  ) }}
 <div class="erp-card" style="max-width:640px;padding:1rem;">
   <h3 style="margin-top:0;">Generate photo album / report</h3>
   <p style="color:#6b7280;font-size:0.9rem;">Opens a print-friendly page — use browser Print → Save as PDF.</p>

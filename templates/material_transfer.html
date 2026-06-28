@@ -1,11 +1,21 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
 {% set page_title = 'Material Transfer' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('store') ~ '">Store</a> &gt; Material Transfer' %}
 {% block page_actions %}
 <a href="{{ url_for('material_transfer', new=1) }}#transfer-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Transfer</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search transfers...',
+    export_name='material_transfer',
+    print_target='#transfer-records',
+    form_panel_id='transfer-form',
+    table_panel_id='transfer-records',
+    new_url=url_for('material_transfer', new=1) ~ 'transfer-form',
+  ) }}
 <div class="erp-validation" style="margin-bottom:1rem;">
   Transfer stock between central store, stores, and sites. Stock posts on final approval (out from source, in to destination).
 </div>
@@ -80,7 +90,7 @@
         <label>Remarks</label>
       </div>
     </div>
-    <div class="erp-table-panel" style="margin-top:1rem;">
+    <div class="erp-table-panel" id="transfer-records" data-erp-table style="margin-top:1rem;">
       <div class="erp-table-toolbar">
         <h3 class="erp-table-title">Transfer Lines</h3>
         <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-add-line>Add Line</button>

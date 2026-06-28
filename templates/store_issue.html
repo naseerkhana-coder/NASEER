@@ -1,11 +1,21 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
 {% set page_title = 'Store Issue' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('store') ~ '">Store</a> &gt; Store Issue' %}
 {% block page_actions %}
 <a href="{{ url_for('store_issue', new=1) }}#issue-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Issue</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search issue notes...',
+    export_name='store_issue',
+    print_target='#issue-records',
+    form_panel_id='issue-form',
+    table_panel_id='issue-records',
+    new_url=url_for('store_issue', new=1) ~ 'issue-form',
+  ) }}
 <div class="erp-validation" style="margin-bottom:1rem;">
   Stock is validated against available balance when saving. Stock posts to ledger on final approval.
 </div>
@@ -82,7 +92,7 @@
 </div>
 {% endif %}
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="issue-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar"><h3 class="erp-table-title">Issue Register</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table">

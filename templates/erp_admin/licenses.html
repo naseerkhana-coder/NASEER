@@ -1,10 +1,20 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge, erp_pagination %}
 {% set page_title = 'License Master' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Main Dashboard</a> &gt; ERP Administration &gt; License Master' %}
 {% block content %}
 {% include 'erp_admin/_subtoolbar.html' %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search licenses...',
+    export_name='licenses',
+    print_target='#license-records',
+    form_panel_id='license-form',
+    table_panel_id='license-records',
+    new_url=url_for('erp_admin_licenses') ~ 'license-form',
+  ) }}
+
   <div class="erp-form-card">
     <h3 class="erp-form-title">License Registration</h3>
     <form method="post" class="erp-form-grid">
@@ -19,7 +29,7 @@
       <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save License</button></div>
     </form>
   </div>
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="license-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">License Register</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">

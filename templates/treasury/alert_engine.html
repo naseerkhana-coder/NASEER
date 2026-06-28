@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_btn_close %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, erp_btn_close %}
 {% set page_title = 'Alert Engine' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Alert Engine' %}
 {% block page_actions %}
@@ -11,6 +11,14 @@
 {{ erp_btn_close() }}
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search alerts...',
+    export_name='alert_engine',
+    print_target='#alert-records',
+    table_panel_id='alert-records',
+  ) }}
 <p class="erp-form-hint" style="margin-top:0;">
   Unified alert inbox across treasury, budget, workflow, fleet, and ops modules. Email and WhatsApp dispatch are stubbed (log-only).
 </p>
@@ -46,7 +54,7 @@
 </form>
 
 <div class="erp-table-panel erp-alert-table-panel" data-erp-table>
-  <div class="erp-table-scroll">
+  <div id="alert-records" data-erp-table><div class="erp-table-scroll">
     <table class="erp-table erp-table-module">
       <thead>
         <tr>

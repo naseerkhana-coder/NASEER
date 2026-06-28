@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Project Documents Register' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Projects &gt; Project Documents' %}
 {% block page_actions %}
 <a href="{{ url_for('projects') }}#add-project" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-folder-plus"></i> Upload via Project Form</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search project documents...',
+    export_name='project_documents',
+    print_target='#project-doc-records',
+    table_panel_id='project-doc-records',
+  ) }}
 <div class="erp-validation" style="margin-bottom:1rem;">
   Read-only register of project-attached documents (agreement, work order, bank guarantee, security deposit). Upload and replace files from the project create/edit screen.
 </div>
@@ -12,7 +21,7 @@
   <input name="q" value="{{ search }}" placeholder="Search project code, name, WO no…" style="max-width:260px;">
   <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Search</button>
 </form>
-<div class="erp-table-wrap">
+<div class="erp-table-wrap" id="project-doc-records" data-erp-table>
   <table class="erp-table">
     <thead>
       <tr>

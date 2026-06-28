@@ -1,11 +1,22 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Corporate DMS' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Corporate DMS' %}
 {% block page_actions %}
-<button type="button" class="erp-btn erp-btn-primary" onclick="document.getElementById('dms-upload-panel').classList.add('is-open')"><i class="fa-solid fa-file-arrow-up"></i> Upload Document</button>
+<button type="button" class="erp-btn erp-btn-primary" id="dms-upload-trigger" onclick="document.getElementById('dms-upload-panel').classList.add('is-open')"><i class="fa-solid fa-file-arrow-up"></i> Upload Document</button>
 <a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search documents...',
+    search_name='q',
+    export_name='corporate_dms',
+    print_target='#dms-records',
+    table_panel_id='dms-records',
+    add_trigger_selector='#dms-upload-trigger',
+  ) }}
 <style>
   .dms-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; align-items: start; }
   @media (max-width: 900px) { .dms-layout { grid-template-columns: 1fr; } }
@@ -153,7 +164,7 @@
       {% endfor %}
     </div>
 
-    <div class="erp-table-panel" data-erp-table>
+    <div class="erp-table-panel" id="dms-records" data-erp-table data-erp-table>
       <div class="erp-table-scroll">
         <table class="erp-table">
           <thead>

@@ -1,6 +1,17 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; ' ~ page_title %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search journal entries...',
+    export_name='accounts_book_v2',
+    print_target='#journal-records',
+    form_panel_id='journal-form',
+    table_panel_id='journal-records',
+    new_url=url_for('accounts_book_v2', new=1) ~ 'journal-form',
+  ) }}
 <form method="get" class="erp-form-card" style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:end;">
   {% if chart_heads is defined %}
   <div class="erp-field">
@@ -34,7 +45,7 @@
   <div class="erp-stat-card"><span>Net ({{ account_label }})</span><strong>{{ '%.2f'|format(balance) }}</strong></div>
 </div>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="journal-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar"><h3 class="erp-table-title">{{ page_title }}</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table">

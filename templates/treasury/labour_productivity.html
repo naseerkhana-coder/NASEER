@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Labour Productivity' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Labour Productivity' %}
 {% block page_actions %}
@@ -6,6 +7,14 @@
 <a href="{{ url_for('treasury_equipment_costing') }}" class="erp-btn erp-btn-ghost">Equipment Costing</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search productivity...',
+    export_name='labour_productivity',
+    print_target='#productivity-records',
+    table_panel_id='productivity-records',
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Track planned vs actual output and labour hours by project and trade. Productivity rate = actual quantity ÷ labour hours.
 </p>
@@ -24,7 +33,7 @@
 
 {% if trade_summary %}
 <h3 style="margin-bottom:0.75rem;">Trade Summary</h3>
-<div class="erp-table-panel" style="margin-bottom:1.5rem;">
+<div class="erp-table-panel" id="productivity-records" data-erp-table style="margin-bottom:1.5rem;">
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

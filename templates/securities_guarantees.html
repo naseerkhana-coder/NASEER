@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, erp_pagination %}
 {% set page_title = 'Securities & Guarantees' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Accounts &gt; Securities & Guarantees' %}
 {% block page_actions %}
@@ -13,6 +13,14 @@
 <a href="{{ url_for('securities_guarantees_export') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-file-excel"></i> Export Excel</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search securities...',
+    export_name='securities',
+    print_target='#securities-records',
+    table_panel_id='securities-records',
+  ) }}
 {% if filter_project and not show_new and not view_record and not edit_record %}
 <div class="erp-validation" style="margin-bottom: 1rem; display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
   <span>Showing securities for selected project.</span>
@@ -296,7 +304,7 @@
 </div>
 {% endif %}
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="securities-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar">
     <h3 class="erp-table-title">Security Register</h3>
     <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">

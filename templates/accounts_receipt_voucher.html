@@ -1,6 +1,6 @@
 {% extends 'base_maxek.html' %}
 
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
 
 {% from 'macros/inline_create.html' import chart_head_create_button, new_chart_head_modal %}
 
@@ -15,6 +15,19 @@
 {% endblock %}
 
 {% block content %}
+<div class="erp-module-layout">
+{% if not view_record %}
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search receipts...',
+    export_name='receipt_vouchers',
+    print_target='#receipt-records',
+    form_panel_id='receipt-form',
+    table_panel_id='receipt-records',
+    new_url=url_for('accounts_receipt_voucher', new=1) ~ 'receipt-form',
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver'],
+  ) }}
+{% endif %}
 
 {% if view_record %}
 
@@ -297,7 +310,7 @@
 
 
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="receipt-records" data-erp-table data-erp-table>
 
   <div class="erp-table-toolbar"><h3 class="erp-table-title">Receipt Register</h3></div>
 

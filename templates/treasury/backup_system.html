@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Backup System' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Backup System' %}
 {% block page_actions %}
@@ -11,6 +12,14 @@
 <a href="{{ url_for('treasury_hub') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Treasury Hub</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search backups...',
+    export_name='backup_system',
+    print_target='#backup-records',
+    table_panel_id='backup-records',
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Automatic daily, weekly, and monthly database backups with server storage.
   OneDrive and external targets are <strong>stubs</strong> until cloud sync is configured.
@@ -52,7 +61,7 @@
   </p>
 </div>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="backup-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar">
     <h3 class="erp-table-title">Backup Register</h3>
   </div>

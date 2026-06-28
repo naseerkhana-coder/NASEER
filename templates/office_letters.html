@@ -1,10 +1,21 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Letter Management' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('office_admin') ~ '">Office</a> &gt; Letters' %}
 {% block page_actions %}
 <a href="{{ url_for('office_letters', new=1) }}#record-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Letter</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search letters...',
+    export_name='office_letters',
+    print_target='#letters-records',
+    form_panel_id='letter-form',
+    table_panel_id='letters-records',
+    new_url=url_for('office_letters', new=1) ~ 'letter-form',
+  ) }}
 {% if view_record %}
 <div class="erp-form-card" style="margin-bottom:1rem;">
   <h3 class="erp-form-title">{{ view_record.letter_number }} — {{ view_record.letter_type }}</h3>
@@ -40,7 +51,7 @@
 {% endif %}
 
 <form method="get" style="margin-bottom:0.75rem;"><input name="q" value="{{ search }}" placeholder="Search letters…" style="max-width:280px;"> <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Search</button></form>
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="letters-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>Letter No</th><th>Date</th><th>Type</th><th>To</th><th>Subject</th><th></th></tr></thead>

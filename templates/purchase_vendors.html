@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Vendor Master' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Masters &gt; Vendor Master' %}
 {% set form_vendor = editing_vendor %}
@@ -8,7 +9,18 @@
 {% if form_vendor %}<a href="{{ url_for('purchase_vendors') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel Edit</a>{% endif %}
 {% endblock %}
 {% block content %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search vendors...',
+    export_name='vendors',
+    print_target='#vendor-records',
+    form_panel_id='add-vendor',
+    table_panel_id='vendor-records',
+    new_url=url_for('purchase_vendors') ~ '#add-vendor',
+    settings_url=url_for('subcontractors'),
+  ) }}
+
   <div class="erp-form-card" id="add-vendor">
     <h3 class="erp-form-title">{{ 'Edit Vendor' if form_vendor else 'Create Vendor' }}</h3>
     <p class="erp-hint" style="margin-top:0;">Single master record for suppliers, subcontractors, labour contractors, and other external parties. Vendor code is assigned automatically (VEN101+).</p>
@@ -97,7 +109,7 @@
     </form>
   </div>
 
-  <div class="erp-table-panel" id="vendor-list" data-erp-table>
+  <div class="erp-table-panel" id="vendor-records" data-erp-table id="vendor-list" data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">Vendor List</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table">

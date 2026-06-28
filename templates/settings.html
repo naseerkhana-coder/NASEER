@@ -1,8 +1,18 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set _tenant_label = session.get('customer_name') or (tenant_settings.company_name if tenant_settings else '') %}
 {% set page_title = 'Settings' ~ ((' — ' ~ _tenant_label) if _tenant_label else '') %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Settings' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search settings modules...',
+    export_name='settings',
+    print_target='#settings-modules',
+    table_panel_id='settings-modules',
+    print_enabled=false,
+  ) }}
 <div class="module-layout settings-module-layout">
   <div class="erp-form-card">
     <h3 class="erp-form-title">Workflow Administration</h3>
@@ -145,7 +155,7 @@
     </form>
   </div>
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="settings-modules" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Department List</h3>
       <div class="erp-table-controls">

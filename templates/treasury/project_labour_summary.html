@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Labour Productivity — ' ~ project.project_name %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_labour_productivity') ~ '">Labour Productivity</a> &gt; ' ~ project.project_name %}
 {% block page_actions %}
@@ -7,6 +8,15 @@
 <a href="{{ url_for('treasury_labour_productivity') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> All Projects</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search labour summary...',
+    export_name='labour_summary',
+    print_target='#labour-summary-records',
+    table_panel_id='labour-summary-records',
+    show_run_report=true,
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Project-wise labour productivity — {{ project.location or '' }}{% if project.status %} · {{ project.status }}{% endif %}
 </p>
@@ -23,7 +33,7 @@
 {% endif %}
 
 <h3>Trade-wise Summary</h3>
-<div class="erp-table-panel" style="margin-bottom:1.5rem;">
+<div class="erp-table-panel" id="labour-summary-records" data-erp-table style="margin-bottom:1.5rem;">
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

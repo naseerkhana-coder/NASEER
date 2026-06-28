@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge, maker_row_actions %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge, maker_row_actions %}
 {% set page_title = 'Client Billing Register' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Client Billing' %}
 {% block page_actions %}
@@ -7,6 +7,18 @@
 <a href="{{ url_for('client_billing_reports') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-chart-column"></i> Reports</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search client bills...',
+    search_name='q',
+    export_name='client_billing',
+    print_target='#client-billing-records',
+    table_panel_id='client-billing-records',
+    new_url=url_for('client_billing_form', new=1),
+    reports_url=url_for('client_billing_reports'),
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver'],
+  ) }}
 <form method="get" class="erp-table-toolbar" style="margin-bottom:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
   <input name="q" value="{{ search }}" placeholder="Search bill no., project…" style="max-width:220px;">
   <select name="project_id" style="max-width:200px;">
@@ -17,7 +29,7 @@
   </select>
   <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
 </form>
-<div class="erp-table-wrap">
+<div class="erp-table-wrap" id="client-billing-records" data-erp-table>
   <table class="erp-table">
     <thead>
       <tr>

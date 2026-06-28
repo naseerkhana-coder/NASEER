@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Contracts — ' ~ project.project_name %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_contract_management') ~ '">Contract Management</a> &gt; ' ~ project.project_name %}
 {% block page_actions %}
@@ -6,6 +7,14 @@
 <a href="{{ url_for('treasury_contract_management') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> All Contracts</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search project contracts...',
+    export_name='project_contracts',
+    print_target='#project-contract-records',
+    table_panel_id='project-contract-records',
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Contract history for <strong>{{ project.project_name }}</strong>
   {% if project.location %} · {{ project.location }}{% endif %}
@@ -27,7 +36,7 @@
   · <a href="{{ url_for('treasury_project_profitability_detail', project_id=project.id) }}">View profitability</a>
 </p>
 
-<div class="erp-table-panel">
+<div class="erp-table-panel" id="project-contract-records" data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

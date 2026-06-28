@@ -1,15 +1,24 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'System Health' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; System Health' %}
 {% block content %}
 {% include 'erp_admin/_subtoolbar.html' %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Filter health checks...',
+    export_name='system_health',
+    print_target='#health-records',
+    table_panel_id='health-records',
+  ) }}
+
   <div class="erp-kpi-grid">
     {% for key, val in health.metrics.items() %}
     <div class="erp-kpi-card"><div class="erp-kpi-label">{{ key|replace('_', ' ')|title }}</div><div class="erp-kpi-value">{{ val }}</div></div>
     {% endfor %}
   </div>
-  <div class="erp-table-panel">
+  <div class="erp-table-panel" id="health-records" data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">Health Checks</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">

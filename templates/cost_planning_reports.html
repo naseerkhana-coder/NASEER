@@ -1,15 +1,25 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Cost Planning Reports' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Projects &gt; <a href="' ~ url_for('cost_planning') ~ '">Cost Planning</a> &gt; Reports' %}
 {% block page_actions %}
 <a href="{{ url_for('cost_planning') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
 {% endblock %}
 {% block content %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search cost reports...',
+    export_name='cost_planning_reports',
+    print_target='#cost-reports',
+    table_panel_id='cost-reports',
+    show_run_report=true,
+  ) }}
+
   <div class="erp-form-card">
     <h3 class="erp-form-title">Cost Planning Reports</h3>
     <p style="margin-bottom:1rem;">MVP report routes — Excel export available for the cost plan register. Additional reports are listed for future implementation.</p>
-    <div class="erp-table-scroll">
+    <div id="cost-reports" data-erp-table><div class="erp-table-scroll">
       <table class="erp-table erp-table-module">
         <thead><tr><th>Report</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>
@@ -28,7 +38,7 @@
           {% endfor %}
         </tbody>
       </table>
-    </div>
+    </div></div>
   </div>
 </div>
 {% endblock %}

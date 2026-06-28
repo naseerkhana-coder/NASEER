@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Letters of Credit' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; LC Management' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_letters_of_credit', new=1) }}#record-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New LC</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search letters of credit...',
+    export_name='letters_of_credit',
+    print_target='#lc-records',
+    table_panel_id='lc-records',
+  ) }}
 {% if show_form %}
 <div class="erp-form-card" id="record-form" style="margin-bottom:1rem;">
   <h3 class="erp-form-title">{% if edit_record %}Edit LC{% else %}New Letter of Credit{% endif %}</h3>
@@ -24,7 +33,7 @@
   </form>
 </div>
 {% endif %}
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="lc-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>LC No</th><th>Bank</th><th>Vendor</th><th>Amount</th><th>Utilized</th><th>Expiry</th><th>Status</th><th></th></tr></thead>

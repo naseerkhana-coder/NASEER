@@ -1,10 +1,21 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Quotations' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('office_admin') ~ '">Office</a> &gt; Quotations' %}
 {% block page_actions %}
 <a href="{{ url_for('office_quotations', new=1) }}#record-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Quotation</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search quotations...',
+    export_name='office_quotations',
+    print_target='#quotations-records',
+    form_panel_id='quotation-form',
+    table_panel_id='quotations-records',
+    new_url=url_for('office_quotations', new=1) ~ 'quotation-form',
+  ) }}
 {% if view_record %}
 <div class="erp-form-card" style="margin-bottom:1rem;">
   <h3 class="erp-form-title">{{ view_record.quotation_number }}</h3>
@@ -40,7 +51,7 @@
       <div class="erp-field span-2"><input name="subject" placeholder=" " value="{{ edit_record.subject if edit_record else '' }}"><label>Subject</label></div>
       <div class="erp-field span-2"><textarea name="terms" placeholder=" ">{{ edit_record.terms if edit_record else '' }}</textarea><label>Terms</label></div>
     </div>
-    <div class="erp-table-panel" style="margin-top:1rem;">
+    <div class="erp-table-panel" id="quotations-records" data-erp-table style="margin-top:1rem;">
       <div class="erp-table-toolbar"><h3 class="erp-table-title">Line Items</h3><button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-add-line>Add Line</button></div>
       <div class="erp-table-scroll">
         <table class="erp-table" data-lines-table>

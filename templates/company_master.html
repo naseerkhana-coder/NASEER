@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Company Master' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Company Master' %}
 {% block page_actions %}
@@ -6,6 +7,10 @@
 <a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
 {% endblock %}
 {% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Legal registration, GST/PAN/CIN, addresses, bank accounts, branches, and compliance documents.
+  Logo and UI theme are configured per tenant under <strong>Customer Settings</strong> (Platform Command Centre), not here.
+</p>
 {% if expiry_alerts.total_alerts %}
 <div class="erp-alert erp-alert-warning" style="margin-bottom:1rem;">
   <strong><i class="fa-solid fa-triangle-exclamation"></i> Document expiry alerts ({{ expiry_alerts.total_alerts }})</strong>
@@ -22,8 +27,20 @@
 </div>
 {% endif %}
 
-<div class="module-layout">
-  <div class="erp-table-panel" data-erp-table style="margin-bottom:1rem;">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search companies...',
+    search_name='q',
+    export_name='companies',
+    print_target='#company-records',
+    form_panel_id='company-form',
+    table_panel_id='company-records',
+    new_url=url_for('company_master', new=1) ~ 'company-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="company-records" data-erp-table style="margin-bottom:1rem;">
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Registered Companies</h3>
       <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;">

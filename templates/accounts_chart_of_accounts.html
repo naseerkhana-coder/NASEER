@@ -1,11 +1,21 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_table_toolbar %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, erp_table_toolbar %}
 {% set page_title = 'Chart of Accounts' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; Chart of Accounts' %}
 {% block page_actions %}
 <button type="button" class="erp-btn erp-btn-primary" data-coa-open="new"><i class="fa-solid fa-plus"></i> Add Head</button>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search chart of accounts...',
+    export_name='chart_of_accounts',
+    print_target='#coa-records',
+    form_panel_id='coa-form',
+    table_panel_id='coa-records',
+    new_url=url_for('accounts_chart_of_accounts') ~ 'coa-form',
+  ) }}
 <div class="erp-form-card coa-entry-panel" id="coa-form-panel" hidden style="margin-bottom: 1.25rem; border: 1px solid var(--erp-primary, #2563eb);">
   <div class="coa-form-header" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
     <h3 class="erp-form-title" id="coa-modal-title" style="margin:0;">Add Head of Account</h3>
@@ -56,7 +66,7 @@
 
 {% for acct_type, heads in grouped.items() %}
 {% if heads %}
-<div class="erp-table-panel" data-erp-table style="margin-bottom: 1.25rem;">
+<div class="erp-table-panel" id="coa-records" data-erp-table data-erp-table style="margin-bottom: 1.25rem;">
   <div class="erp-table-toolbar">
     <h3 class="erp-table-title">{{ acct_type }}</h3>
   </div>

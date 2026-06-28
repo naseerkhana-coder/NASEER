@@ -1,11 +1,19 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge, maker_row_actions, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge, maker_row_actions, transaction_view_tabs %}
 {% set page_title = 'Bank Guarantees' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; BG Management' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_bank_guarantees', new=1) }}#record-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New BG</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search bank guarantees...',
+    export_name='bank_guarantees',
+    print_target='#bg-records',
+    table_panel_id='bg-records',
+  ) }}
 {% if alerts %}
 <div class="erp-form-card" style="margin-bottom:1rem;border-left:4px solid #f59e0b;">
   <h3 class="erp-form-title" style="color:#b45309;"><i class="fa-solid fa-triangle-exclamation"></i> Expiry Alerts</h3>
@@ -44,7 +52,7 @@
   </form>
 </div>
 {% endif %}
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="bg-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>BG No</th><th>Type</th><th>Project</th><th>Amount</th><th>Expiry</th><th>Status</th><th></th></tr></thead>

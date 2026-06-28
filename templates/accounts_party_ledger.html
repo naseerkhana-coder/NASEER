@@ -1,6 +1,16 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; ' ~ page_title %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search party ledger...',
+    export_name='party_ledger',
+    print_target='#party-ledger',
+    table_panel_id='party-ledger',
+    show_run_report=true,
+  ) }}
 <form method="get" class="erp-form-card" style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:end;">
   <div class="erp-field">
     <select name="{{ 'vendor' if party_label == 'Vendor' else 'client' }}" required>
@@ -17,7 +27,7 @@
 </form>
 
 {% if party_name %}
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="party-ledger" data-erp-table data-erp-table>
   <div class="erp-table-toolbar"><h3 class="erp-table-title">{{ party_label }}: {{ party_name }}</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table">

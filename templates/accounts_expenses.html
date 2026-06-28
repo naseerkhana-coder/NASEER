@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
 {% from 'macros/inline_create.html' import chart_head_create_button, new_chart_head_modal %}
 {% set page_title = 'Expense / Purchase Entry' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; Expenses' %}
@@ -53,6 +53,20 @@
 </div>
 {% endif %}
 
+<div class="erp-module-layout">
+{% if not view_record %}
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search expenses...',
+    export_name='accounts_expenses',
+    print_target='#expense-records',
+    form_panel_id='expense-form',
+    table_panel_id='expense-records',
+    new_url=url_for('accounts_expenses', new=1) ~ 'expense-form',
+    reports_url=url_for('accounts_reports'),
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver'],
+  ) }}
+{% endif %}
 {% if show_form %}
 <div class="erp-form-card" id="expense-form" style="margin-bottom: 1rem;">
   <h3 class="erp-form-title">{% if edit_record %}Edit Expense #{{ edit_record.id }}{% else %}New Expense / Purchase{% endif %}</h3>
@@ -237,7 +251,7 @@
 </div>
 {% endif %}
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="expense-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar"><h3 class="erp-table-title">Expense Register</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table erp-table-module">

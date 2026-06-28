@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs, erp_pagination %}
 {% set page_title = 'HR & Payroll' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; HR &gt; Payroll' %}
 {% block page_actions %}
@@ -19,7 +19,16 @@
 </div>
 {% endif %}
 
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search salary records...',
+    export_name='salary',
+    print_target='#salary-records',
+    table_panel_id='salary-records',
+    reports_url=url_for('payroll'),
+  ) }}
+
   {% if not view_record %}
   <div class="erp-form-card" id="add-salary">
     <h3 class="erp-form-title">{% if edit_record %}Edit Payroll #{{ edit_record.id }}{% if edit_role %} ({{ edit_role|title }}){% endif %}{% else %}Add Salary Record{% endif %}</h3>
@@ -39,7 +48,7 @@
   </div>
   {% endif %}
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="salary-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Salary Records</h3>
       <div class="erp-table-controls">

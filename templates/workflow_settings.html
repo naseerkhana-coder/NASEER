@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Workflow Assignment Matrix' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Workflow Assignment Matrix' %}
 {% block content %}
@@ -7,7 +8,15 @@
   Maker only (auto-approve), Maker + Checker, full 3-step, or strict Checker + Approver.
 </div>
 
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search workflow modules...',
+    export_name='workflow_settings',
+    print_target='#workflow-modules',
+    table_panel_id='workflow-modules',
+  ) }}
+
   <div class="erp-form-card" id="configure-form">
     <h3 class="erp-form-title">Configure Assignment</h3>
     <form method="post" class="erp-form-grid">
@@ -81,7 +90,7 @@
     </form>
   </div>
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="workflow-modules" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Workflow Assignment Matrix</h3>
     </div>

@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Audit Logs' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Audit Logs' %}
 {% block content %}
 {% include 'erp_admin/_subtoolbar.html' %}
-<div class="module-layout">
-  <div class="erp-table-panel">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search audit logs...',
+    export_name='audit_logs',
+    print_target='#audit-records',
+    table_panel_id='audit-records',
+  ) }}
+
+  <div class="erp-table-panel" id="audit-records" data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">Platform Audit Trail</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">

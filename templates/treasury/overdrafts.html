@@ -1,8 +1,17 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Overdraft Management' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; OD Management' %}
 {% block content %}
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search overdrafts...',
+    export_name='overdrafts',
+    print_target='#od-records',
+    table_panel_id='od-records',
+  ) }}
+<div class="erp-table-panel" id="od-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>Bank Account</th><th>OD Limit</th><th>Utilized</th><th>Available</th><th>Interest %</th><th>Balance</th></tr></thead>

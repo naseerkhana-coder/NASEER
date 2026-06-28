@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Project Budget — ' ~ project.project_name %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_budget_control') ~ '">Budget Control</a> &gt; ' ~ project.project_name %}
 {% block page_actions %}
@@ -6,6 +7,14 @@
 <a href="{{ url_for('treasury_budget_control') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> All Projects</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search project budgets...',
+    export_name='project_budget',
+    print_target='#project-budget-records',
+    table_panel_id='project-budget-records',
+  ) }}
 {% if summary.has_alert %}
 <div class="erp-alert erp-alert-warning" style="margin-bottom:1rem;padding:0.75rem 1rem;border-radius:0.5rem;background:#fef2f2;border:1px solid #ef4444;">
   <strong><i class="fa-solid fa-triangle-exclamation"></i> Budget alert</strong>
@@ -28,7 +37,7 @@
   {% if fiscal_year %} · Fiscal year: {{ fiscal_year }}{% endif %}
 </p>
 
-<div class="erp-table-panel">
+<div class="erp-table-panel" id="project-budget-records" data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

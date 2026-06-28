@@ -1,13 +1,22 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Inventory Stock' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('store') ~ '">Store</a> &gt; Inventory' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search inventory...',
+    export_name='store_inventory',
+    print_target='#inventory-records',
+    table_panel_id='inventory-records',
+  ) }}
 <div class="erp-summary-grid" style="margin-bottom:1.25rem;">
   <div class="erp-stat-card"><span>Active Materials</span><strong>{{ rows|length }}</strong></div>
   <div class="erp-stat-card"><span>Low Stock Items</span><strong>{{ low_stock_count }}</strong></div>
 </div>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="inventory-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar"><h3 class="erp-table-title">Stock Balances</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table">

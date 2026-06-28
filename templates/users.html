@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import workflow_badge, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, workflow_badge, erp_pagination %}
 {% set page_title = 'User Settings' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Users' %}
 {% block page_actions %}
@@ -10,7 +10,18 @@
   <strong>Workflow Access:</strong> Maker · Checker · Approver · Administrator (full access)
 </div>
 
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search users...',
+    export_name='users',
+    print_target='#user-records',
+    form_panel_id='user-form',
+    table_panel_id='user-records',
+    new_url=url_for('user_settings') ~ 'user-form',
+    settings_url=url_for('settings'),
+  ) }}
+
   <div class="erp-form-card" id="user-form">
     <h3 class="erp-form-title">{% if edit_user %}Edit User{% else %}Create User{% endif %}</h3>
     <form method="post" class="erp-form-grid" data-master-form="user">
@@ -216,7 +227,7 @@
     </form>
   </div>
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="user-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">System Users</h3>
       <div class="erp-table-controls">

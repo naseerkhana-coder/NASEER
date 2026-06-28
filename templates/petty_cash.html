@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, erp_pagination, approval_history_panel, rejection_notice, workflow_modals, transaction_view_tabs, erp_workflow_progress, erp_btn_back, erp_btn_close %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, role_status_badge, erp_pagination, approval_history_panel, rejection_notice, workflow_modals, transaction_view_tabs, erp_workflow_progress, erp_btn_back, erp_btn_close %}
 {% set page_title = 'Petty Cash' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Accounts &gt; Petty Cash' %}
 {% block page_actions %}
@@ -260,6 +260,19 @@
 </div>
 {% endif %}
 
+<div class="erp-module-layout">
+{% if not view_record %}
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search petty cash requests...',
+    export_name='petty_cash',
+    print_target='#petty-cash-records',
+    form_panel_id='new-request',
+    table_panel_id='petty-cash-records',
+    new_url=url_for('petty_cash', new=1) ~ 'new-request',
+    filter_status_options=['Draft', 'Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver'],
+  ) }}
+{% endif %}
 <div class="module-layout module-layout--full">
   {% if show_new or edit_record %}
   <div class="erp-form-card" id="new-request">

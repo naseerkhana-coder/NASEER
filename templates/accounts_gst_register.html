@@ -1,10 +1,20 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 
 {% set page_title = 'GST Register' %}
 
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; GST Register' %}
 
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search GST entries...',
+    export_name='gst_register',
+    print_target='#gst-records',
+    table_panel_id='gst-records',
+    reports_url=url_for('accounts_reports'),
+  ) }}
 
 <form method="get" class="erp-form-card" style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:end;">
 
@@ -46,7 +56,7 @@
 
 <h3 style="margin:1rem 0 0.5rem;">GST Filing Periods</h3>
 
-<div class="erp-table-panel" style="margin-bottom:1.5rem;">
+<div class="erp-table-panel" id="gst-records" data-erp-table style="margin-bottom:1.5rem;">
 
   <div class="erp-table-scroll">
 

@@ -1,9 +1,18 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = limit_title %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; ' ~ limit_title %}
 {% block content %}
 {% include 'erp_admin/_subtoolbar.html' %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search limits...',
+    export_name='limits',
+    print_target='#limits-records',
+    table_panel_id='limits-records',
+  ) }}
+
   {% if limit_type == 'user' %}
   <div class="erp-form-card">
     <h3 class="erp-form-title">Update User Limit</h3>
@@ -39,7 +48,7 @@
     </form>
   </div>
   {% endif %}
-  <div class="erp-table-panel">
+  <div class="erp-table-panel" id="limits-records" data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">{{ limit_title }}</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">

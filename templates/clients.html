@@ -7,11 +7,14 @@
 {% endblock %}
 {% block content %}
 <div class="erp-module-layout">
-  {{ erp_module_toolbar(
+    {{ erp_module_toolbar(
+    mode='standard',
     search_placeholder='Search clients...',
-    add_url='#add-client',
     export_name='clients',
-    print_target='#client-records'
+    print_target='#client-records',
+    form_panel_id='add-client',
+    table_panel_id='client-records',
+    new_url=url_for('clients') ~ '#add-client',
   ) }}
 
   {% call erp_module_form_panel(id='add-client', title='Client Registration', list_anchor='client-records') %}
@@ -30,12 +33,12 @@
   {% endcall %}
 
   {% call erp_module_table_panel(id='client-records', title='Client List') %}
-    <div class="erp-table-scroll">
+    <div id="client-records" data-erp-table><div class="erp-table-scroll">
       <table class="erp-table erp-table-module">
         <thead><tr><th>ID</th><th>Code</th><th>Company</th><th>Contact</th><th>Mobile</th><th>GST</th><th>Status</th></tr></thead>
         <tbody>
           {% for row in rows %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0" data-record-id="{{ row.id }}">
             <td>{{ row.id }}</td>
             <td>{{ row.client_code or '—' }}</td>
             <td>{{ row.company_name or row.client_name }}</td>
@@ -49,7 +52,7 @@
           {% endfor %}
         </tbody>
       </table>
-    </div>
+    </div></div>
     {{ erp_pagination(rows|length) }}
   {% endcall %}
 </div>

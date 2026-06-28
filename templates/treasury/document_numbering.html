@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Document Numbering' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Document Numbering' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_hub') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Treasury Hub</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search numbering rules...',
+    export_name='document_numbering',
+    print_target='#numbering-records',
+    table_panel_id='numbering-records',
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Central master numbering for tenders, projects, BOQ, DPR, purchase documents, store transactions, bills, vouchers, and bank guarantees.
   Numbers are unique per document type and fiscal year (April–March).
@@ -17,7 +26,7 @@
   <a href="{{ url_for('treasury_document_numbering') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Current FY</a>
 </form>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="numbering-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

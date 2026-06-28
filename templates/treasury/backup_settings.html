@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Backup Settings' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_backup_system') ~ '">Backup System</a> &gt; Settings' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_backup_system') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to Backups</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search backup settings...',
+    export_name='backup_settings',
+    print_target='#backup-settings-records',
+    table_panel_id='backup-settings-records',
+  ) }}
 <div class="erp-form-card" style="max-width:720px;">
   <p style="color:#64748b;margin-top:0;">
     Configure automatic backup schedules and retention. Server backups are stored under

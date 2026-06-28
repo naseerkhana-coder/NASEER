@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Project Photo Timeline' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('project_photos_register') ~ '">Project Photos</a> &gt; Timeline' %}
 {% block page_actions %}
@@ -6,6 +7,14 @@
 <a href="{{ url_for('project_photos_reports') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-file-pdf"></i> Reports</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Filter timeline...',
+    export_name='project_photos_timeline',
+    print_target='#photo-timeline',
+    table_panel_id='photo-timeline',
+  ) }}
 <style>
   .timeline-day { margin-bottom: 1.5rem; }
   .timeline-day h3 { margin: 0 0 0.75rem; font-size: 1rem; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.35rem; }

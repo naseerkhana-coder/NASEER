@@ -1,7 +1,17 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Project Profitability' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Project Profitability' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search profitability...',
+    export_name='project_profitability',
+    print_target='#profitability-records',
+    table_panel_id='profitability-records',
+    show_run_report=true,
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Contract value, client billing, and receipts vs direct costs and overheads — project-wise P&amp;L from budget actuals and billing modules.
 </p>
@@ -26,7 +36,7 @@
 </div>
 {% endif %}
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="profitability-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

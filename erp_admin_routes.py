@@ -346,11 +346,6 @@ def register_erp_admin_routes(
                         "company_name": request.form.get("company_name"),
                         "logo_path": logo_path,
                         "theme": request.form.get("theme"),
-                        "address": request.form.get("address"),
-                        "vat_gst_number": request.form.get("vat_gst_number"),
-                        "financial_year": request.form.get("financial_year"),
-                        "currency": request.form.get("currency"),
-                        "timezone": request.form.get("timezone"),
                         "email_settings": request.form.get("email_settings"),
                     },
                 )

@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Claims Management' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Claims Management' %}
 {% block page_actions %}
@@ -8,6 +9,14 @@
 {% endif %}
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search claims...',
+    export_name='claims',
+    print_target='#claim-records',
+    table_panel_id='claim-records',
+  ) }}
 {% if project %}
 <p style="color:#64748b;margin-top:0;">
   Claims for <strong>{{ project.project_name }}</strong>
@@ -50,7 +59,7 @@
 </form>
 {% endif %}
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="claim-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

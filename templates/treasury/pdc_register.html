@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'PDC Register' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; PDC Register' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_pdc_new') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New PDC</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search PDC register...',
+    export_name='pdc_register',
+    print_target='#pdc-records',
+    table_panel_id='pdc-records',
+  ) }}
 {% if due_alerts %}
 <div class="erp-alert erp-alert-warning" style="margin-bottom:1rem;padding:0.75rem 1rem;border-radius:0.5rem;background:#fef3c7;border:1px solid #f59e0b;">
   <strong><i class="fa-solid fa-bell"></i> {{ due_alerts|length }} PDC(s) due within 7 days</strong>
@@ -61,7 +70,7 @@
   <div class="erp-stat-card"><span>{{ s }}</span><strong>{{ status_counts.get(s, 0) }}</strong></div>
   {% endfor %}
 </div>
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="pdc-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

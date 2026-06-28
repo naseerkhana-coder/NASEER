@@ -11,28 +11,34 @@
 <div class="erp-module-layout module-layout--list-only">
   {% call erp_module_form_panel(
     id='customer-settings',
-    title='Tenant Settings — ' ~ (customer.company_name or customer.customer_code),
+    title='Tenant Branding &amp; Display — ' ~ (customer.company_name or customer.customer_code),
     hidden=false,
     list_anchor='',
     back_url=url_for('erp_admin_customers'),
     show_nav=true
   ) %}
-    <form method="post" enctype="multipart/form-data" class="erp-form-grid" id="customer-settings-form">
-      <div class="erp-field span-2">
-        <p class="erp-form-section-help">Customer code: <strong>{{ customer.customer_code }}</strong></p>
-      </div>
+    <p class="erp-form-section-help span-2">
+      Customer code: <strong>{{ customer.customer_code }}</strong>.
+      Registration, GST/PAN, bank details, and legal company data belong in
+      <strong>Company Master</strong> (<code>/settings/company-master</code>) inside the tenant ERP.
+      This screen is for logo, theme, display name, and email/branding only.
+    </p>
 
+    <form method="post" enctype="multipart/form-data" class="erp-form-grid" id="customer-settings-form">
       <div class="erp-field span-2">
         <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif">
         <label>Company Logo</label>
         {% if customer.logo_path %}
-        <p class="erp-form-section-help">Current: {{ customer.logo_path }}</p>
+        <p class="erp-form-section-help">Current logo: {{ customer.logo_path }}</p>
+        {% else %}
+        <p class="erp-form-section-help">Upload PNG, JPEG, WebP, or GIF. Shown on login and sidebar for this tenant.</p>
         {% endif %}
       </div>
 
       <div class="erp-field span-2">
         <input name="company_name" placeholder=" " required value="{{ customer.company_name or '' }}">
         <label>Company Display Name</label>
+        <p class="erp-form-section-help">Shown in the UI header and login screen (not the legal registered name).</p>
       </div>
 
       <div class="erp-field">
@@ -41,49 +47,17 @@
           <option value="pro-light"{% if customer.theme == 'pro-light' %} selected{% endif %}>Pro Light</option>
           <option value="ultra-color"{% if customer.theme == 'ultra-color' %} selected{% endif %}>Ultra Color</option>
         </select>
-        <label>Theme Color / UI Theme</label>
-      </div>
-
-      <div class="erp-field span-2">
-        <textarea name="address" placeholder=" ">{{ customer.address or '' }}</textarea>
-        <label>Address</label>
-      </div>
-
-      <div class="erp-field">
-        <input name="vat_gst_number" placeholder=" " value="{{ customer.vat_gst_number or '' }}">
-        <label>GST / VAT Details</label>
-      </div>
-
-      <div class="erp-field">
-        <input name="financial_year" placeholder=" " value="{{ customer.financial_year or '' }}">
-        <label>Financial Year (e.g. 2025-26)</label>
-      </div>
-
-      <div class="erp-field">
-        <select name="currency" class="has-value">
-          {% for code in ['INR', 'SAR', 'AED', 'USD', 'EUR', 'GBP'] %}
-          <option value="{{ code }}"{% if (customer.currency or 'INR') == code %} selected{% endif %}>{{ code }}</option>
-          {% endfor %}
-        </select>
-        <label>Currency</label>
-      </div>
-
-      <div class="erp-field">
-        <select name="timezone" class="has-value">
-          {% for tz, label in timezone_options %}
-          <option value="{{ tz }}"{% if (customer.timezone or 'Asia/Kolkata') == tz %} selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-        <label>Time Zone</label>
+        <label>UI Theme</label>
       </div>
 
       <div class="erp-field span-2">
         <textarea name="email_settings" placeholder=" ">{{ customer.email_settings or '' }}</textarea>
-        <label>Email Settings (SMTP host, port, from address — one per line or JSON)</label>
+        <label>Email Settings</label>
+        <p class="erp-form-section-help">SMTP host, port, from address — one per line or JSON. Used for tenant-branded outbound mail.</p>
       </div>
 
       <div class="erp-form-actions span-2">
-        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button>
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Branding Settings</button>
         <a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost">Back to Customer List</a>
       </div>
     </form>

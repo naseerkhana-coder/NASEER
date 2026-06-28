@@ -1,10 +1,18 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge %}
 {% set page_title = 'Support Tickets' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Support Tickets' %}
 {% block content %}
 {% if sub_toolbar %}{% include 'erp_admin/_subtoolbar.html' %}{% endif %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search support tickets...',
+    export_name='support_tickets',
+    print_target='#ticket-records',
+    table_panel_id='ticket-records',
+  ) }}
+
   <div class="erp-form-card">
     <h3 class="erp-form-title">Log Support Ticket</h3>
     <form method="post" enctype="multipart/form-data" class="erp-form-grid">
@@ -18,7 +26,7 @@
       <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Submit Ticket</button></div>
     </form>
   </div>
-  <div class="erp-table-panel">
+  <div class="erp-table-panel" id="ticket-records" data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">Support Ticket Register</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">

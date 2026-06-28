@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Contract Management' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Contract Management' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_contract_management_new') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Contract</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search contracts...',
+    export_name='contracts',
+    print_target='#contract-records',
+    table_panel_id='contract-records',
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Register contract agreements, work orders, amendments, and variation orders. Track original vs revised contract value, extra items, and claims — linked to projects and profitability.
 </p>
@@ -37,7 +46,7 @@
   <a href="{{ url_for('treasury_contract_management') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Reset</a>
 </form>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="contract-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

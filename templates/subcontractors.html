@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge, erp_pagination %}
 {% set page_title = 'Subcontract' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Operations &gt; Subcontract' %}
 {% set form_sub = editing_subcontractor %}
@@ -8,7 +8,18 @@
 {% if form_sub %}<a href="{{ url_for('subcontractors') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel Edit</a>{% endif %}
 {% endblock %}
 {% block content %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search subcontractors...',
+    export_name='subcontractors',
+    print_target='#subcontractor-records',
+    form_panel_id='add-subcontractor',
+    table_panel_id='subcontractor-records',
+    new_url=url_for('subcontractors') ~ 'add-subcontractor',
+    reports_url=url_for('sub_billing_register'),
+  ) }}
+
   <div class="erp-form-card" id="add-subcontractor">
     <h3 class="erp-form-title">{{ 'Edit Subcontract Work Setup' if form_sub else 'Subcontractor Creation' }}</h3>
     <p class="erp-hint" style="margin-top:0;">Select an existing vendor from <a href="{{ url_for('purchase_vendors') }}#add-vendor">Vendor Master</a>. Personal and bank details are read-only here.</p>
@@ -265,7 +276,7 @@
     </form>
   </div>
 
-  <div class="erp-table-panel" data-erp-table id="subcontractor-list">
+  <div class="erp-table-panel" id="subcontractor-records" data-erp-table data-erp-table id="subcontractor-list">
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Sub Contractor List</h3>
       <div class="erp-table-controls">

@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Equipment Costing' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Equipment Costing' %}
 {% block page_actions %}
@@ -6,6 +7,14 @@
 <a href="{{ url_for('treasury_budget_control') }}" class="erp-btn erp-btn-ghost">Budget Control</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search equipment costing...',
+    export_name='equipment_costing',
+    print_target='#equipment-cost-records',
+    table_panel_id='equipment-cost-records',
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Machine-wise costing: fuel, operator, maintenance, tyre, and spare parts. Computes cost per hour, km, and day. Optional project allocation syncs to budget Equipment category.
 </p>
@@ -37,7 +46,7 @@
   <a href="{{ url_for('treasury_equipment_costing') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Reset</a>
 </form>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="equipment-cost-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

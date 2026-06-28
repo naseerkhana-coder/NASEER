@@ -1,10 +1,18 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge %}
 {% set page_title = 'Subscription Management' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; ERP Administration &gt; Subscriptions' %}
 {% block content %}
 {% include 'erp_admin/_subtoolbar.html' %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search subscriptions...',
+    export_name='subscriptions',
+    print_target='#subscription-records',
+    table_panel_id='subscription-records',
+  ) }}
+
   <div class="erp-form-card">
     <h3 class="erp-form-title">Add Subscription</h3>
     <form method="post" class="erp-form-grid">
@@ -20,7 +28,7 @@
       <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit">Save</button></div>
     </form>
   </div>
-  <div class="erp-table-panel">
+  <div class="erp-table-panel" id="subscription-records" data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">Active Subscriptions</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">

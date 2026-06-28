@@ -1,11 +1,20 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_pagination, role_status_badge %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, erp_pagination, role_status_badge %}
 {% set page_title = 'Workflow Audit Report' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('reports') ~ '">Reports</a> &gt; Workflow Audit' %}
 {% block page_actions %}
 <a href="{{ url_for('workflow_audit_report', module_id=selected_module, status=selected_status, export='xlsx') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-file-export"></i> Export Excel</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search audit entries...',
+    export_name='workflow_audit',
+    print_target='#workflow-audit-records',
+    table_panel_id='workflow-audit-records',
+    show_run_report=true,
+  ) }}
 <div class="erp-form-card" style="margin-bottom: 1rem;">
   <h3 class="erp-form-title">Filter Audit Report</h3>
   <form method="get" class="erp-form-grid">
@@ -35,7 +44,7 @@
   </form>
 </div>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="workflow-audit-records" data-erp-table data-erp-table>
   <div class="erp-table-toolbar"><h3 class="erp-table-title">Workflow Audit Report</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table erp-table-module">

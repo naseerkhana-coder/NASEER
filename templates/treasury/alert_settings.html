@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Alert Notification Settings' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; <a href="' ~ url_for('treasury_alert_engine') ~ '">Alert Engine</a> &gt; Settings' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_alert_engine') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to Inbox</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search alert settings...',
+    export_name='alert_settings',
+    print_target='#alert-settings-records',
+    table_panel_id='alert-settings-records',
+  ) }}
 <div class="erp-form-card" style="max-width:640px;">
   <p style="color:#64748b;margin-top:0;">
     Configure notification channels. Email and WhatsApp delivery are <strong>stubs</strong> — alerts are logged only until external APIs are wired in Phase 2+.

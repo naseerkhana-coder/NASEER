@@ -1,12 +1,20 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, erp_pagination %}
 {% set page_title = 'Salary Payments' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; HR &gt; Payments' %}
 {% block page_actions %}
 <a href="{{ url_for('payroll') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-calculator"></i> Payroll</a>
 {% endblock %}
 {% block content %}
-<div class="module-layout">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search payroll payments...',
+    export_name='payroll_payments',
+    print_target='#payment-records',
+    table_panel_id='payment-records',
+  ) }}
+
   <div class="erp-form-card" id="record-payment">
     <h3 class="erp-form-title">Record Salary Payment</h3>
     <form method="post" class="erp-form-grid" data-payroll-payment-form>
@@ -39,7 +47,7 @@
     </form>
   </div>
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="payment-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar"><h3 class="erp-table-title">Payment History</h3></div>
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">

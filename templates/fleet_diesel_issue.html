@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Diesel Issue' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('fleet_dashboard') ~ '">Fleet</a> &gt; Diesel Issue' %}
 {% block page_actions %}
@@ -6,6 +7,16 @@
 <a href="{{ url_for('fleet_diesel_stock') }}" class="erp-btn erp-btn-ghost">Stock: {{ '%.2f'|format(stock_balance) }} L</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search diesel issues...',
+    export_name='diesel_issue',
+    print_target='#diesel-issue-records',
+    form_panel_id='diesel-issue-form',
+    table_panel_id='diesel-issue-records',
+    new_url=url_for('fleet_diesel_issue', new=1) ~ 'diesel-issue-form',
+  ) }}
 {% if show_form %}
 <div class="erp-form-card" id="record-form" style="margin-bottom:1rem;">
   <h3 class="erp-form-title">Issue Diesel to Vehicle</h3>
@@ -25,7 +36,7 @@
 </div>
 {% endif %}
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="diesel-issue-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>Issue No</th><th>Date</th><th>Vehicle</th><th>Qty (L)</th><th>Odometer</th><th>Issued To</th></tr></thead>

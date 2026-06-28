@@ -3,6 +3,16 @@
 {% set page_title = 'Corporate Template Master' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Corporate Template Master' %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search templates...',
+    export_name='corporate_templates',
+    print_target='#template-records',
+    form_panel_id='template-form',
+    table_panel_id='template-records',
+    new_url=url_for('corporate_template_master') ~ 'template-form',
+  ) }}
 <div class="module-layout settings-module-layout">
   <div class="erp-form-card">
     <h3 class="erp-form-title"><i class="fa-solid fa-palette"></i> Corporate Template Master</h3>
@@ -14,7 +24,7 @@
     </div>
   </div>
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="template-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Templates</h3>
     </div>

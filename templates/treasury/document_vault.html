@@ -1,10 +1,19 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Digital Document Vault' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('treasury_hub') ~ '">Treasury</a> &gt; Document Vault' %}
 {% block page_actions %}
 <a href="{{ url_for('treasury_document_vault_upload') }}" class="erp-btn erp-btn-primary"><i class="fa-solid fa-upload"></i> Upload Document</a>
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search document vault...',
+    export_name='document_vault',
+    print_target='#vault-records',
+    table_panel_id='vault-records',
+  ) }}
 <p style="color:#64748b;margin-top:0;">
   Store bank account opening forms, BG copies, FD receipts, security deposit receipts, treasury documents, and loan documents.
   Allowed formats: {{ allowed_extensions }}.
@@ -36,7 +45,7 @@
   <a href="{{ url_for('treasury_document_vault') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Reset</a>
 </form>
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="vault-records" data-erp-table data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>

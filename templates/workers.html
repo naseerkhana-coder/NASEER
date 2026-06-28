@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import approval_badge, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, approval_badge, erp_pagination %}
 {% set page_title = 'Subcontractor Workers' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Subcontract &gt; Workers' %}
 {% set form_worker = editing_worker %}
@@ -9,6 +9,16 @@
 {% if form_worker %}<a href="{{ url_for('workers') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-xmark"></i> Cancel Edit</a>{% endif %}
 {% endblock %}
 {% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search workers...',
+    export_name='workers',
+    print_target='#worker-records',
+    form_panel_id='add-worker',
+    table_panel_id='worker-records',
+    new_url=url_for('workers') ~ 'add-worker',
+  ) }}
 <div class="module-layout worker-module-layout">
   <div class="erp-form-card worker-form-card" id="add-worker">
     <h3 class="erp-form-title">{{ 'Edit Subcontractor Worker' if form_worker else 'Add Subcontractor Worker' }}</h3>
@@ -114,7 +124,7 @@
     </form>
   </div>
 
-  <div class="erp-table-panel" data-erp-table>
+  <div class="erp-table-panel" id="worker-records" data-erp-table data-erp-table>
     <div class="erp-table-toolbar">
       <h3 class="erp-table-title">Subcontractor Worker List</h3>
       <div class="erp-table-controls">
