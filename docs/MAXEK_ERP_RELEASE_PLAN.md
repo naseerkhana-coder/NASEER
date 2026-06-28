@@ -1,4 +1,4 @@
-﻿# MAXEK ERP Release Plan
+# MAXEK ERP Release Plan
 
 **Document owner:** MAXEK ERP product / engineering  
 **Last updated:** 2026-06-28  
@@ -166,6 +166,14 @@ Organize execution and sign-off by these **release-plan areas**:
 
 - **Overall:** checklist §8 Sign-off  
 - **Baseline reference:** commit `2e10ed5` — Final Stabilization patch — bulk import excluded  
+
+
+## Change freeze policy (during v1.0 UAT)
+
+- No new features
+- No UI redesign
+- No database schema changes (except emergency production fixes for verified defects)
+- Only approved v1.0.1 maintenance fixes
 
 ---
 
