@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Build deploy/dist/vps-patch-latest.zip with all app.py root imports + MR/PR UI files."""
 from __future__ import annotations
 
 import re
+import subprocess
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,50 @@ DIST = ROOT / "deploy" / "dist"
 ZIP_PATH = DIST / "vps-patch-latest.zip"
 MANIFEST_PATH = DIST / "VPS-PATCH-LATEST-MANIFEST.txt"
 VPS_APP = "/var/www/maxek-erp-flask"
+
+# Last VPS bundle doc commit; auto-include template/static changes since then.
+STABILIZATION_BASELINE_COMMIT = "1edd62e"
+
+
+def stabilization_bundle_paths() -> list[str]:
+    """Production templates/static changed since last deploy bundle (final stabilization)."""
+    import subprocess
+
+    try:
+        out = subprocess.check_output(
+            [
+                "git",
+                "diff",
+                f"{STABILIZATION_BASELINE_COMMIT}..HEAD",
+                "--name-only",
+            ],
+            cwd=ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return []
+
+    rels: list[str] = []
+    for line in out.splitlines():
+        line = line.strip().replace("\\", "/")
+        if not line.startswith(("templates/", "static/")):
+            continue
+        if line.startswith(("tests/", "scripts/")):
+            continue
+        p = ROOT / line
+        if p.is_file():
+            rels.append(line)
+    return rels
+
+
+# Final Stabilization Bundle (excludes aborted bulk import 410b68f5 — not in repo)
+STABILIZATION_COMMITS = (
+    "32788c9",  # Standard Toolbar Rollout
+    "a4ca636",  # Dashboard Themes
+    "2e10ed5",  # User Permission Management
+)
+STABILIZATION_BASE = "114de03"
 
 FROM_IMPORT_RE = re.compile(r"^from ([a-z_][a-z0-9_]*) import", re.M)
 
@@ -46,6 +91,10 @@ PATCH_UI = [
     "templates/erp_admin/customers.html",
     "templates/erp_admin/customer_settings.html",
     "templates/erp_admin/platform_dashboard.html",
+    "templates/settings.html",
+    "templates/user_management.html",
+    "templates/dashboard_theme_compact.html",
+    "templates/dashboard_theme_executive.html",
     "static/css/maxek-login.css",
     "static/js/login.js",
     "static/css/maxek-table-standards.css",
@@ -63,6 +112,8 @@ PATCH_UI = [
     "static/js/maxek-ui.js",
     "deploy/migrate_production.py",
     "deploy/VPS_PATCH_maxek-erp-flask.txt",
+    "docs/PRODUCTION_UAT_CHECKLIST.md",
+    "docs/DASHBOARD_THEMES.md",
 ]
 
 REQUIRED_PY = (
@@ -75,7 +126,38 @@ REQUIRED_PY = (
     "api_routes.py",
     "tenant_isolation.py",
     "auth_jwt.py",
+    "user_permission_service.py",
+    "user_context_service.py",
+    "dashboard_prefs_service.py",
 )
+
+
+def git_diff_paths(base: str, head: str = "HEAD") -> list[str]:
+    try:
+        out = subprocess.check_output(
+            ["git", "diff", "--name-only", f"{base}..{head}"],
+            cwd=ROOT,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    return [line.strip().replace("\\", "/") for line in out.splitlines() if line.strip()]
+
+
+def stabilization_deploy_paths() -> set[str]:
+    """Deployable paths from stabilization commits; skip dev-only trees."""
+    skip_prefixes = ("scripts/", "tests/", "docs/COMPANY")
+    paths: set[str] = set()
+    for rel in git_diff_paths(STABILIZATION_BASE):
+        if rel.startswith(skip_prefixes):
+            continue
+        if rel.endswith(".py") and "/" not in rel:
+            paths.add(rel)
+            continue
+        if rel.startswith(("templates/", "static/")):
+            paths.add(rel)
+    return paths
 
 
 def app_direct_root_modules() -> set[str]:
@@ -97,12 +179,15 @@ def collect_files() -> list[str]:
     for name in REQUIRED_PY:
         if (ROOT / name).is_file():
             files.add(name)
+    files |= stabilization_deploy_paths()
     for rel in PATCH_UI:
         path = ROOT / rel
         if path.is_file():
             files.add(rel.replace("\\", "/"))
         else:
             print(f"WARN: patch UI file missing (skipped): {rel}")
+    for rel in stabilization_bundle_paths():
+        files.add(rel)
     return sorted(files)
 
 
@@ -124,13 +209,15 @@ def build() -> None:
     size = ZIP_PATH.stat().st_size
     lines = [
         "MAXEK ERP VPS patch (vps-patch-latest)",
+        "Bundle: Final Stabilization (toolbar + themes + permissions)",
+        f"Commits: {', '.join(STABILIZATION_COMMITS)}",
+        "Excluded: bulk import 410b68f5 (ABORTED — not in repository)",
         f"Generated: {datetime.now().isoformat()}",
         f"Production files: {len(files)}",
         f"Zip: {ZIP_PATH}",
         f"Size bytes: {size}",
         "",
-        "Includes ALL app.py root imports (super_admin_service, store_service, etc.)",
-        "plus MR/PR templates and store/vendor UI.",
+        "Includes ALL app.py root imports plus stabilization templates/static.",
         "",
         "LOCAL -> VPS",
         "-" * 80,
