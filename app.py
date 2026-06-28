@@ -405,9 +405,11 @@ from user_permission_service import (
     build_department_tab_catalog,
     ensure_user_tab_permissions_schema,
     filter_portal_menu_for_user,
+    get_granted_tab_keys_for_department,
     get_user_department_tab_state,
     nav_slug_to_permission_department,
     save_user_department_tab_permissions,
+    user_has_tab_restrictions,
 )
 from badge_counts_service import badge_for_endpoint, get_live_badge_counts
 from attachment_service import ensure_attachment_schema
@@ -8261,7 +8263,7 @@ COMMAND_CENTRE_CARD_META = [
     },
     {
         "slug": "vehicle",
-        "card_label": "Vehicle",
+        "card_label": "Fleet",
         "category": "FLEET",
         "description": "Vehicle master, running log, fuel & document tracking",
         "icon": "fa-truck",
@@ -8325,7 +8327,7 @@ COMMAND_CENTRE_CARD_META = [
     },
     {
         "slug": "qc",
-        "card_label": "QA / QC",
+        "card_label": "QA/QC",
         "category": "QUALITY",
         "description": "Material testing, plant QC, inspections & NCR",
         "icon": "fa-flask",
@@ -8333,11 +8335,27 @@ COMMAND_CENTRE_CARD_META = [
     },
     {
         "slug": "subcontract",
-        "card_label": "Subcontractor",
+        "card_label": "Subcontract",
         "category": "CONTRACTS",
         "description": "Subcontractors, worker billing & payments",
         "icon": "fa-people-group",
         "accent": "#ef4444",
+    },
+    {
+        "slug": "procurement",
+        "card_label": "Procurement",
+        "category": "PROCUREMENT",
+        "description": "Purchase requests, POs, GRN & vendor bills",
+        "icon": "fa-cart-shopping",
+        "accent": "#2563eb",
+    },
+    {
+        "slug": "reports",
+        "card_label": "Reports",
+        "category": "ANALYTICS",
+        "description": "Operational, financial & project reports",
+        "icon": "fa-chart-pie",
+        "accent": "#6366f1",
     },
 ]
 
@@ -8726,7 +8744,275 @@ def get_department_portal(slug):
     return None
 
 
+def _user_can_view_accounts_department_stats(db, user_id, *, full_access: bool) -> bool:
+    if full_access or not user_id:
+        return True
+    if not user_has_tab_restrictions(db, user_id):
+        return True
+    has_dept_rows = bool(
+        db.execute(
+            "SELECT 1 FROM user_tab_permissions WHERE user_id=? AND department_slug=? LIMIT 1",
+            (user_id, "accounts"),
+        ).fetchone()
+    )
+    if not has_dept_rows:
+        return True
+    return bool(get_granted_tab_keys_for_department(db, user_id, "accounts"))
+
+
+def _accounts_petty_cash_balance(db) -> float:
+    if not _table_exists(db, "petty_cash_requests"):
+        return 0.0
+    try:
+        row = db.execute(
+            "SELECT COALESCE(SUM(COALESCE(transferred_amount, 0) - COALESCE(expenses_total, 0)), 0) AS total "
+            "FROM petty_cash_requests "
+            "WHERE approval_status IN ('Approved', 'Settled', 'Released')"
+        ).fetchone()
+        return round(float(row["total"] if row else 0), 2)
+    except Exception:
+        return 0.0
+
+
+def _accounts_bank_balance(db) -> float:
+    total = 0.0
+    for table in ("bank_accounts", "treasury_bank_accounts"):
+        if not _table_exists(db, table):
+            continue
+        try:
+            row = db.execute(
+                f"SELECT COALESCE(SUM(current_balance), 0) AS total FROM {table} "
+                "WHERE COALESCE(is_active, 1)=1"
+            ).fetchone()
+            total += float(row["total"] if row else 0)
+        except Exception:
+            continue
+    return round(total, 2)
+
+
+def _accounts_cash_balance(db) -> float:
+    if _table_exists(db, "journal_lines") and _table_exists(db, "chart_of_accounts"):
+        try:
+            row = db.execute(
+                """
+                SELECT COALESCE(SUM(jl.debit - jl.credit), 0) AS balance
+                FROM journal_lines jl
+                JOIN chart_of_accounts coa ON coa.id = jl.account_id
+                WHERE UPPER(coa.code) = 'A001' OR LOWER(coa.name) = 'cash'
+                """
+            ).fetchone()
+            balance = float(row["balance"] if row else 0)
+            if balance != 0:
+                return round(balance, 2)
+        except Exception:
+            pass
+    return round(_accounts_petty_cash_balance(db), 2)
+
+
+def _accounts_outstanding_receivables(db) -> float:
+    if not _table_exists(db, "client_bills"):
+        return 0.0
+    try:
+        row = db.execute(
+            """
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN (net_payable - COALESCE(paid_amount, 0)) > 0
+                    THEN (net_payable - COALESCE(paid_amount, 0))
+                    ELSE 0
+                END
+            ), 0) AS total
+            FROM client_bills
+            WHERE approval_status = 'Approved'
+              AND COALESCE(bill_status, '') != 'Paid'
+            """
+        ).fetchone()
+        return round(float(row["total"] if row else 0), 2)
+    except Exception:
+        return 0.0
+
+
+def _accounts_outstanding_payables(db) -> float:
+    total = 0.0
+    if _table_exists(db, "bank_payments"):
+        try:
+            row = db.execute(
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM bank_payments "
+                "WHERE approval_status != 'Approved'"
+            ).fetchone()
+            total += float(row["total"] if row else 0)
+        except Exception:
+            pass
+    if _table_exists(db, "account_expenses"):
+        try:
+            row = db.execute(
+                """
+                SELECT COALESCE(SUM(grand_total), 0) AS total
+                FROM account_expenses
+                WHERE COALESCE(payment_status, '') IN ('Unpaid', 'Partially Paid', 'Draft')
+                  AND approval_status = 'Approved'
+                """
+            ).fetchone()
+            total += float(row["total"] if row else 0)
+        except Exception:
+            pass
+    return round(total, 2)
+
+
+def _accounts_today_voucher_total(db, table: str) -> float:
+    if not _table_exists(db, table):
+        return 0.0
+    try:
+        row = db.execute(
+            f"SELECT COALESCE(SUM(COALESCE(grand_total, amount)), 0) AS total FROM {table} "
+            "WHERE entry_date=date('now') AND approval_status='Approved'"
+        ).fetchone()
+        return round(float(row["total"] if row else 0), 2)
+    except Exception:
+        return 0.0
+
+
+def get_accounts_department_stat_cards(db):
+    _prepare_accounts_db(db)
+    gst = get_gstr_summary(db)
+    gst_net = round(
+        abs(gst.get("net_cgst", 0))
+        + abs(gst.get("net_sgst", 0))
+        + abs(gst.get("net_igst", 0)),
+        2,
+    )
+    hub = accounts_hub_stats(db)
+    tds_pending = hub.get("tds_pending", 0)
+    trial_rows = get_trial_balance(db)
+    trial_total = round(
+        sum(float(r.get("debit") or 0) + float(r.get("credit") or 0) for r in trial_rows),
+        2,
+    )
+    pl = get_profit_and_loss(db)
+    bs = get_balance_sheet(db)
+    return [
+        {"label": "Cash Balance", "value": _format_dashboard_currency(_accounts_cash_balance(db))},
+        {"label": "Bank Balance", "value": _format_dashboard_currency(_accounts_bank_balance(db))},
+        {"label": "Petty Cash", "value": _format_dashboard_currency(_accounts_petty_cash_balance(db))},
+        {"label": "Receivables", "value": _format_dashboard_currency(_accounts_outstanding_receivables(db))},
+        {"label": "Payables", "value": _format_dashboard_currency(_accounts_outstanding_payables(db))},
+        {"label": "Today's Receipts", "value": _format_dashboard_currency(_accounts_today_voucher_total(db, "receipt_vouchers"))},
+        {"label": "Today's Payments", "value": _format_dashboard_currency(_accounts_today_voucher_total(db, "payment_vouchers"))},
+        {"label": "GST Summary", "value": _format_dashboard_currency(gst_net)},
+        {"label": "TDS Summary", "value": tds_pending, "warn": tds_pending > 0},
+        {"label": "Trial Balance", "value": _format_dashboard_currency(trial_total)},
+        {"label": "Profit & Loss", "value": _format_dashboard_currency(pl.get("net_profit", 0))},
+        {"label": "Balance Sheet", "value": _format_dashboard_currency(bs.get("total_assets", 0))},
+    ]
+
+
 def department_portal_stat_cards(slug, db):
+    slug = resolve_department_portal_slug(slug)
+    if slug == "accounts":
+        try:
+            return get_accounts_department_stat_cards(db)
+        except Exception:
+            app.logger.exception("Accounts department stat cards failed")
+            return []
+    if slug == "projects":
+        return [
+            {"label": "Total Projects", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects")},
+            {"label": "Active Projects", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")},
+            {"label": "Open BOQs", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM boq_master WHERE COALESCE(is_deleted, 0)=0 AND approval_status NOT IN ('Approved', 'approved')")},
+            {"label": "DPR Today", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM dpr_measurements WHERE report_date=date('now')")},
+        ]
+    if slug == "store":
+        try:
+            _prepare_store_db(db)
+            stats = store_dashboard_stats(db)
+            return [
+                {"label": "Materials", "value": stats.get("materials", 0)},
+                {"label": "Pending MR", "value": stats.get("pending_material_requests", 0)},
+                {"label": "Pending PR", "value": stats.get("pending_purchase_requests", 0)},
+                {"label": "Low Stock", "value": stats.get("low_stock_count", 0), "warn": stats.get("low_stock_count", 0) > 0},
+            ]
+        except Exception:
+            return []
+    if slug == "hr-payroll":
+        return [
+            {"label": "Active Staff", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM staff WHERE status='Active'")},
+            {"label": "Present Today", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM attendance WHERE attendance_date=date('now') AND status='Present'")},
+            {"label": "Pending Leave", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM leave_requests WHERE approval_status IN ('Pending', 'Pending Checker', 'Pending Approval')")},
+            {"label": "Open Payroll", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM payroll_runs WHERE status IN ('Draft', 'Pending Checker', 'Pending Approval')")},
+        ]
+    if slug == "plant-operations":
+        try:
+            _prepare_plant_db(db)
+            stats = plant_dashboard_stats(db)
+            return [
+                {"label": "Active Plants", "value": stats.get("active_plants", 0)},
+                {"label": "Open Maintenance", "value": stats.get("open_maintenance_jobs", 0), "warn": stats.get("open_maintenance_jobs", 0) > 0},
+                {"label": "QC Today", "value": stats.get("today_qc_count", 0)},
+                {"label": "Low Stock Alerts", "value": stats.get("low_stock_alerts", 0)},
+            ]
+        except Exception:
+            return []
+    if slug == "procurement":
+        return [
+            {"label": "Pending PR", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM purchase_requests WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
+            {"label": "Pending PO", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM purchase_orders WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
+            {"label": "Pending GRN", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM store_receipts WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
+            {"label": "Vendors", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM vendors WHERE status='Active'")},
+        ]
+    if slug == "qc":
+        return [
+            {"label": "QC Tests", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM qc_tests")},
+            {"label": "Active Tests", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM qc_tests WHERE status='Active'")},
+            {"label": "Plant QC Today", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM plant_qc_records WHERE test_date=date('now')")},
+            {"label": "QC Records", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM plant_qc_records")},
+        ]
+    if slug == "reports":
+        pending_approvals = 0
+        if _table_exists(db, "approval_requests"):
+            pending_approvals = _safe_scalar_count(
+                db,
+                "SELECT COUNT(*) AS c FROM approval_requests "
+                "WHERE workflow_status NOT IN ('approved', 'rejected')",
+            )
+        return [
+            {"label": "Projects", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects")},
+            {"label": "Employees", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM staff WHERE status='Active'")},
+            {"label": "Pending Approvals", "value": pending_approvals, "warn": pending_approvals > 0},
+            {"label": "Active Vendors", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM vendors WHERE status='Active'")},
+        ]
+    if slug in ("engineering", "planning-wbs"):
+        return [
+            {"label": "Active BOQs", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM boq_master WHERE COALESCE(is_deleted, 0)=0")},
+            {"label": "Open BOQs", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM boq_master WHERE COALESCE(is_deleted, 0)=0 AND approval_status NOT IN ('Approved', 'approved')")},
+            {"label": "Active Projects", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")},
+            {"label": "Drawings", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM project_documents") if _table_exists(db, "project_documents") else 0},
+        ]
+    if slug == "subcontract":
+        return [
+            {"label": "Subcontractors", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM subcontractors")},
+            {"label": "Active Workers", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM workers WHERE status='Active'")},
+            {"label": "Pending Bills", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM subcontractor_bills WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')") if _table_exists(db, "subcontractor_bills") else 0},
+            {"label": "Open Payments", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM subcontract_payments WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')") if _table_exists(db, "subcontract_payments") else 0},
+        ]
+    if slug == "vehicle":
+        return [
+            {"label": "Active Vehicles", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM fleet_vehicles WHERE status='Active'") if _table_exists(db, "fleet_vehicles") else 0},
+            {"label": "Running Logs", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM fleet_running_logs WHERE log_date=date('now')") if _table_exists(db, "fleet_running_logs") else 0},
+            {"label": "Diesel Issues", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM fleet_diesel_issues WHERE issue_date=date('now')") if _table_exists(db, "fleet_diesel_issues") else 0},
+            {"label": "Doc Expiry Alerts", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM fleet_vehicle_documents WHERE expiry_date IS NOT NULL AND expiry_date <= date('now', '+30 days')") if _table_exists(db, "fleet_vehicle_documents") else 0},
+        ]
+    if slug == "administration":
+        try:
+            _prepare_office_fleet_db(db)
+            stats = office_dashboard_stats(db)
+            return [
+                {"label": "Inward Register", "value": stats.get("inward_count", 0)},
+                {"label": "Outward Register", "value": stats.get("outward_count", 0)},
+                {"label": "Expiry Alerts", "value": stats.get("expiry_alerts", 0), "warn": stats.get("expiry_alerts", 0) > 0},
+                {"label": "Agreements", "value": stats.get("agreements_count", 0)},
+            ]
+        except Exception:
+            return []
     return get_workspace_standard_stat_cards(db, slug)
 
 
@@ -8751,6 +9037,16 @@ def department_portal(slug):
             flash("This department portal is not included in your subscription package.")
             return redirect(url_for("dashboard"))
     stat_cards = department_portal_stat_cards(portal["slug"], db)
+    if portal["slug"] == "accounts":
+        accounts_full_access = (
+            is_admin_user() or is_super_admin_user() or is_guest_user()
+        )
+        if not _user_can_view_accounts_department_stats(
+            db,
+            session.get("user_id"),
+            full_access=accounts_full_access,
+        ):
+            stat_cards = []
     menu = enrich_portal_menu_open_counts(db, get_department_portal_menu(portal["slug"]))
     menu = filter_portal_menu_for_user(
         db,
@@ -9585,26 +9881,9 @@ def _command_centre_card_stats(db, slug):
     stat_cards = department_portal_stat_cards(slug, db)
     pills = []
     if slug == "accounts":
-        try:
-            _prepare_accounts_db(db)
-            acc = accounts_hub_stats(db)
-            journal_pending = 0
-            if _table_exists(db, "journal_entries"):
-                journal_pending = _safe_scalar_count(
-                    db,
-                    "SELECT COUNT(*) AS c FROM journal_entries "
-                    "WHERE approval_status IN ('Pending Checker', 'Pending Approval')",
-                )
-            pills = [
-                {"label": "Chart heads", "value": str(acc.get("chart_heads", 0))},
-                {
-                    "label": "Journals pending",
-                    "value": str(journal_pending),
-                    "tone": "warn" if journal_pending else None,
-                },
-            ]
-        except Exception:
-            pass
+        open_items = _workspace_open_items_count(db, slug)
+        if open_items:
+            pills = [{"label": "Open items", "value": str(open_items)}]
     elif slug == "projects":
         active = _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")
         total = _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects")
@@ -10171,7 +10450,6 @@ def _dashboard_kpi_icon_map():
 
 def render_choice_b_dashboard():
     db = get_db()
-    month_year = datetime.now().strftime("%b %Y")
 
     def _dashboard_payload(getter, default, label):
         try:
@@ -10180,48 +10458,12 @@ def render_choice_b_dashboard():
             app.logger.exception("Dashboard payload failed: %s", label)
             return default
 
-    user_prefs = _dashboard_payload(
-        lambda: load_dashboard_preferences(db, session.get("user_id")),
-        {},
-        "user_dashboard_prefs",
-    )
-    favorite_modules = user_prefs.get("favorite_modules") if user_prefs else None
-    dashboard_cards = user_prefs.get("dashboard_cards") if user_prefs else None
-
-    command_centre_kpis = _dashboard_payload(
-        lambda: get_command_centre_kpis(db),
-        [],
-        "command_centre_kpis",
-    )
     command_centre_cards = _dashboard_payload(
-        lambda: filter_command_centre_dept_cards(
-            get_command_centre_cards(db),
-            favorite_modules,
-        ),
+        lambda: get_command_centre_cards(db),
         [],
         "command_centre_cards",
     )
     sidebar_context = _command_centre_sidebar_context(db, active_slug="command-centre")
-    stats = _dashboard_payload(lambda: get_dashboard_stats(db), {}, "dashboard_stats")
-    chart_series = _build_dashboard_chart_series(stats)
-    project_status_donut = _dashboard_payload(
-        lambda: _build_project_status_donut(db, stats),
-        {"total": 0, "total_label": "Total Projects", "segments": [], "gradient": "#94a3b8 0% 100%"},
-        "project_status_donut",
-    )
-    task_overview_series = _build_task_overview_series(stats)
-    command_centre_activity = _dashboard_payload(
-        lambda: get_command_centre_recent_activity(db),
-        [
-            {
-                "title": "No recent activity",
-                "detail": "Workflow actions will appear here.",
-                "time": "—",
-                "tone": "muted",
-            }
-        ],
-        "command_centre_activity",
-    )
     greeting = _build_dashboard_greeting_context()
     role_label = session.get("role") or "Platform Admin"
     try:
@@ -10230,28 +10472,17 @@ def render_choice_b_dashboard():
     except Exception:
         pass
     sidebar_context["command_user_role"] = role_label
+    pending_approvals = _dashboard_payload(
+        lambda: get_dashboard_stats(db).get("pending_approvals_count", 0),
+        0,
+        "dashboard_pending_approvals",
+    )
 
     return render_template(
         "dashboard.html",
-        department_portals=get_department_portals(),
-        command_centre_kpis=command_centre_kpis,
         command_centre_cards=command_centre_cards,
-        command_centre_bottom_widgets=MAIN_DASHBOARD_BOTTOM_WIDGETS,
-        command_centre_activity=command_centre_activity,
-        command_centre_month=month_year,
         dashboard_greeting=greeting,
-        dashboard_kpi_icons=_dashboard_kpi_icon_map(),
-        dashboard_quick_links=DASHBOARD_OVERVIEW_QUICK_LINKS,
-        project_status_donut=project_status_donut,
-        task_overview_series=task_overview_series,
-        user_dashboard_prefs=user_prefs,
-        dashboard_shell_favorites=DASHBOARD_SHELL_FAVORITES,
-        dashboard_shell_nav_groups=build_dashboard_shell_nav_groups(
-            super_admin=is_super_admin_user()
-        ),
-        dashboard_shell_settings=DASHBOARD_SHELL_SETTINGS,
-        dashboard_chart_series=chart_series,
-        dashboard_stats=stats,
+        dashboard_stats={"pending_approvals_count": pending_approvals},
         **sidebar_context,
     )
 

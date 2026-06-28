@@ -31,24 +31,21 @@ HELP_CENTER_ITEMS = [
     {"label": "Remote Support", "icon": "fa-desktop", "endpoint": "help_contact", "query": {"mode": "remote"}},
 ]
 
-# Main Command Centre (/dashboard) — department head tiles only (3×3 grid + KPIs).
-# No global top module toolbar or left command rail on /dashboard; users pick a
-# department card to open /dept/<slug>, which shows that dept's tools in a single
-# left sidebar (compact office-style tickets). Back link returns to /dashboard.
+# Main Command Centre (/dashboard) — department launcher tiles only.
+# Financial KPIs/widgets live on /dept/accounts, not here.
 MAIN_DASHBOARD_DEPARTMENT_SLUGS: list[tuple[str, str]] = [
-    ("projects", "Project"),
-    ("hr-payroll", "HR and Payroll"),
+    ("projects", "Projects"),
+    ("planning-wbs", "Planning & WBS"),
+    ("procurement", "Procurement"),
+    ("store", "Store"),
+    ("hr-payroll", "HR & Payroll"),
     ("accounts", "Accounts"),
     ("qc", "QA/QC"),
-    ("store", "Store"),
-    ("subcontract", "Subcontractor"),
-    ("planning-wbs", "Planning and Costing"),
-    ("vehicle", "Vehicle"),
+    ("vehicle", "Fleet"),
     ("plant-operations", "Plant"),
-    ("asphalt-plant", "Asphalt Plant"),
-    ("concrete-plant", "Concrete Plant"),
-    ("precast-yard", "Precast Yard"),
-    ("administration", "Office Administration"),
+    ("subcontract", "Subcontract"),
+    ("reports", "Reports"),
+    ("administration", "Administration"),
 ]
 
 # Canonical department workspace sidebar menus (/dept/<slug>).
@@ -321,20 +318,6 @@ MAIN_DASHBOARD_BOTTOM_WIDGETS: list[dict[str, str]] = [
         "subtitle": "Workflow queue by module",
         "icon": "fa-clipboard-check",
         "chart_type": "bars",
-    },
-    {
-        "key": "cash_vs_budget",
-        "title": "Cash vs Budget",
-        "subtitle": "Monthly variance trend",
-        "icon": "fa-scale-balanced",
-        "chart_type": "lines",
-    },
-    {
-        "key": "expense_breakdown",
-        "title": "Expense Breakdown",
-        "subtitle": "OpEx by category",
-        "icon": "fa-chart-pie",
-        "chart_type": "hbar",
     },
 ]
 
