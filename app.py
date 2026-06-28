@@ -440,7 +440,6 @@ from attachment_service import ensure_attachment_schema
 from audit_trail_service import ensure_audit_schema, list_audit_trail
 from dashboard_prefs_service import (
     DASHBOARD_THEME_SELECT_OPTIONS,
-    filter_command_centre_dept_cards,
     filter_command_centre_kpis,
     filter_command_centre_quick_actions,
     infer_role_profile,
@@ -22776,6 +22775,7 @@ register_erp_admin_routes(
     support_uploads_dir=SUPPORT_TICKETS_DIR,
     hash_password=hash_password,
     timezone_options=APP_TIMEZONE_OPTIONS,
+    build_company_erp_section=build_super_admin_company_erp_section,
 )
 
 if register_bulk_import_routes is not None:
