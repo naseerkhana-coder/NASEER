@@ -8079,6 +8079,35 @@ def _login_remember_cookies(username, company_code, redirect_endpoint="dashboard
     return resp
 
 
+@app.route("/login/branding")
+def login_branding():
+    """Public JSON lookup for login page tenant branding (company code only)."""
+    from flask import jsonify
+
+    code = (request.args.get("company_code") or "").strip().upper()
+    if not code:
+        return jsonify({}), 404
+    try:
+        from super_admin_service import get_customer_by_code
+
+        tenant = get_customer_by_code(get_db(), code)
+    except Exception:
+        app.logger.exception("Login branding API failed for %s", code)
+        return jsonify({}), 404
+    if not tenant:
+        return jsonify({}), 404
+    logo_url = None
+    if tenant.get("logo_path"):
+        logo_url = url_for("static", filename=tenant["logo_path"])
+    return jsonify(
+        {
+            "company_name": tenant.get("company_name"),
+            "customer_code": tenant.get("customer_code"),
+            "logo_url": logo_url,
+        }
+    )
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
@@ -13268,6 +13297,37 @@ def settings():
     ensure_department_master(db)
     if request.method == "POST":
         form_type = request.form.get("form_type", "department").strip()
+        if form_type == "tenant_branding":
+            customer_id = session.get("customer_id")
+            if not customer_id or is_super_admin_user():
+                flash("Tenant branding is managed per customer by Customer Administrators.")
+                return redirect(url_for("settings") + "#tenant-branding")
+            if not is_customer_admin_user() and not is_admin_user():
+                flash("Customer Administrator access required.")
+                return redirect(url_for("settings"))
+            try:
+                from super_admin_service import save_customer_tenant_settings
+
+                save_customer_tenant_settings(
+                    db,
+                    customer_id,
+                    {
+                        "company_name": request.form.get("tenant_company_name"),
+                        "logo_path": request.form.get("tenant_logo_path"),
+                        "theme": request.form.get("tenant_theme"),
+                        "address": request.form.get("tenant_address"),
+                        "vat_gst_number": request.form.get("tenant_gst"),
+                        "financial_year": request.form.get("tenant_financial_year"),
+                        "currency": request.form.get("tenant_currency"),
+                        "timezone": request.form.get("tenant_timezone"),
+                    },
+                )
+                db.commit()
+                flash("Tenant branding and regional settings saved.")
+            except ValueError as exc:
+                db.rollback()
+                flash(str(exc))
+            return redirect(url_for("settings") + "#tenant-branding")
         if form_type == "company":
             timezone = request.form.get("timezone", "Asia/Kolkata").strip()
             valid_tz = {tz for tz, _ in APP_TIMEZONE_OPTIONS}
@@ -13325,6 +13385,15 @@ def settings():
     current_timezone = get_app_setting(db, "timezone", "Asia/Kolkata")
     dashboard_display = get_dashboard_display_settings(db)
     user_dashboard_prefs = load_dashboard_preferences(db, session.get("user_id"))
+    tenant_settings = None
+    customer_id = session.get("customer_id")
+    if customer_id and not is_super_admin_user():
+        try:
+            from super_admin_service import get_customer_by_id
+
+            tenant_settings = get_customer_by_id(db, customer_id)
+        except Exception:
+            tenant_settings = None
     return render_template(
         "settings.html",
         departments=departments,
@@ -13332,6 +13401,10 @@ def settings():
         current_timezone=current_timezone,
         dashboard_display=dashboard_display,
         user_dashboard_prefs=user_dashboard_prefs,
+        tenant_settings=tenant_settings,
+        can_edit_tenant_settings=bool(
+            customer_id and not is_super_admin_user() and (is_customer_admin_user() or is_admin_user())
+        ),
         dashboard_display_options=[
             ("hero", "Welcome header & quick actions"),
             ("context_bar", "Featured project & progress bar"),
@@ -13370,7 +13443,6 @@ def company_master():
                     return redirect(url_for("company_master", company_id=redirect_cid))
                 company_row = get_company(db, redirect_cid)
                 delete_company(db, redirect_cid)
-                db.commit()
                 try:
                     from super_admin_service import log_audit
 
@@ -13383,9 +13455,9 @@ def company_master():
                         f"Deleted company {company_row.get('company_code') if company_row else redirect_cid}",
                         username=session.get("username"),
                     )
-                    db.commit()
                 except Exception:
                     app.logger.exception("Failed to audit company delete")
+                db.commit()
                 flash("Company deleted.")
                 return redirect(url_for("company_master"))
             if action == "save_branch" and redirect_cid:
@@ -22046,6 +22118,7 @@ register_treasury_routes(
     get_db=get_db,
     query_db=query_db,
     is_admin_user=is_admin_user,
+    is_super_admin_user=is_super_admin_user,
     create_approval_request=create_approval_request,
     get_edit_role_for_user=get_edit_role_for_user,
     _workflow_view_context=_workflow_view_context,
