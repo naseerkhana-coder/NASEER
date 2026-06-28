@@ -147,3 +147,7 @@ sudo systemctl restart maxek-erp
 ```
 
 Replace `TIMESTAMP` with your backup filename.
+
+## Partial deploy warning
+
+If you copy only `app.py` (or a few files) instead of the full zip, also deploy the matching Python modules from the **same commit**. See **`deploy/VPS_DEPLOY_APP_PY_BUNDLE.md`** for the minimum file set (e.g. `super_admin_service.py` when `app.py` imports `get_customer_enabled_departments`).

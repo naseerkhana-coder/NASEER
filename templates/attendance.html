@@ -91,10 +91,13 @@
 <div class="erp-module-layout">
 {% if not view_record and not view_monthly_record %}
   {{ erp_module_toolbar(
+    mode='standard',
     search_placeholder=('Search monthly attendance...' if attendance_mode == 'monthly' else 'Search attendance...'),
-    add_url=att_form_anchor,
     export_name=('monthly_attendance' if attendance_mode == 'monthly' else 'attendance'),
-    print_target=att_print_target
+    print_target=att_print_target,
+    form_panel_id=('monthly-attendance' if attendance_mode == 'monthly' else 'add-attendance'),
+    table_panel_id=('monthly-attendance-records' if attendance_mode == 'monthly' else 'daily-attendance-records'),
+    new_url=url_for('attendance', mode=attendance_mode) ~ att_form_anchor
   ) }}
 {% endif %}
 
@@ -194,7 +197,12 @@
         </thead>
         <tbody>
           {% for row in rows %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.approval_status or '' }}"
+              data-created-at="{{ row.attendance_date or '' }}"
+              data-view-url="{{ url_for('attendance', view=row.id) }}"
+              data-edit-url="{{ url_for('attendance', edit=row.id) }}#add-attendance">
             <td>{{ row.id }}</td>
             <td>{{ row.worker_code or '—' }}</td>
             <td>{{ row.worker_name or '—' }}</td>
@@ -240,7 +248,12 @@
         </thead>
         <tbody>
           {% for row in monthly_rows %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.approval_status or '' }}"
+              data-created-at="{{ row.year_month or '' }}"
+              data-view-url="{{ url_for('attendance', view_monthly=row.id) }}"
+              data-edit-url="{{ url_for('attendance', edit_monthly=row.id) }}#monthly-attendance">
             <td>{{ row.id }}</td>
             <td>{{ row.staff_name or '—' }}</td>
             <td>{{ row.employee_code or '—' }}</td>

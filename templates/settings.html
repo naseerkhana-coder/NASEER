@@ -1,5 +1,6 @@
 {% extends 'base_maxek.html' %}
-{% set page_title = 'Settings' %}
+{% set _tenant_label = session.get('customer_name') or (tenant_settings.company_name if tenant_settings else '') %}
+{% set page_title = 'Settings' ~ ((' — ' ~ _tenant_label) if _tenant_label else '') %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Settings' %}
 {% block content %}
 <div class="module-layout settings-module-layout">

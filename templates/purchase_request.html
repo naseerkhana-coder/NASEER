@@ -34,7 +34,16 @@
 
 <div class="erp-module-layout">
 {% if not view_record %}
-  {{ erp_module_toolbar(search_placeholder='Search purchase requests...', add_url='#pr-form', export_name='purchase_requests', print_target='#pr-records') }}
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search purchase requests...',
+    export_name='purchase_requests',
+    print_target='#pr-records',
+    form_panel_id='pr-form',
+    table_panel_id='pr-records',
+    new_url=url_for(module_endpoint) ~ '#pr-form',
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
+  ) }}
 {% endif %}
 
 <div class="module-layout module-layout--list-only">
@@ -99,7 +108,11 @@
         <thead><tr><th>#</th>{% for col in table_columns %}<th>{{ col }}</th>{% endfor %}<th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           {% for row in rows %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.approval_status or '' }}"
+              data-view-url="{{ url_for(module_endpoint, view=row.id) }}"
+              data-edit-url="{{ url_for(module_endpoint, edit=row.id) }}#pr-form">
             <td>{{ row.id }}</td>
             {% for key in row_keys %}
             <td>{{ row[key] if row[key] is not none else '—' }}</td>

@@ -580,6 +580,213 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  document.querySelectorAll('[data-erp-export-pdf]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const targetSelector = button.getAttribute('data-erp-print-target');
+      const target = targetSelector ? document.querySelector(targetSelector) : null;
+      if (target) {
+        document.body.classList.add('erp-print-table-only');
+        target.classList.add('erp-print-focus');
+        window.print();
+        window.addEventListener('afterprint', function cleanup() {
+          document.body.classList.remove('erp-print-table-only');
+          target.classList.remove('erp-print-focus');
+          window.removeEventListener('afterprint', cleanup);
+        });
+      } else {
+        window.print();
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-erp-standard-toolbar]').forEach(function (toolbar) {
+    const formPanelId = toolbar.getAttribute('data-form-panel');
+    const tablePanelId = toolbar.getAttribute('data-table-panel');
+    const deleteFormId = toolbar.getAttribute('data-delete-form');
+    const formPanel = formPanelId ? document.getElementById(formPanelId) : null;
+    const tablePanel = tablePanelId ? document.getElementById(tablePanelId) : null;
+    const deleteForm = deleteFormId ? document.getElementById(deleteFormId) : null;
+    const tbody = tablePanel ? tablePanel.querySelector('tbody') : null;
+    const masterForm = formPanel ? formPanel.querySelector('form') : null;
+    let selectedRow = null;
+
+    function actionButtons() {
+      return toolbar.querySelectorAll('[data-erp-action="open"], [data-erp-action="view"], [data-erp-action="edit"], [data-erp-action="delete"]');
+    }
+
+    function setSelectedRow(row) {
+      if (selectedRow) selectedRow.classList.remove('is-selected');
+      selectedRow = row || null;
+      if (selectedRow) selectedRow.classList.add('is-selected');
+      const hasSelection = !!selectedRow;
+      actionButtons().forEach(function (btn) {
+        btn.disabled = !hasSelection;
+      });
+    }
+
+    function showFormPanel(mode) {
+      if (!formPanel) return;
+      if (window.MaxekDataEntryPanels) {
+        window.MaxekDataEntryPanels.show(formPanel);
+      } else {
+        formPanel.removeAttribute('hidden');
+        const layout = formPanel.closest('.erp-module-layout');
+        if (layout) layout.classList.remove('module-layout--list-only');
+      }
+      if (masterForm) {
+        masterForm.classList.toggle('is-readonly', mode === 'view');
+      }
+      formPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    if (tbody) {
+      tbody.querySelectorAll('.erp-selectable-row').forEach(function (row) {
+        row.addEventListener('click', function (event) {
+          if (event.target.closest('a, button, input, form')) return;
+          setSelectedRow(row);
+        });
+        row.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setSelectedRow(row);
+          }
+        });
+      });
+    }
+
+    toolbar.querySelectorAll('[data-erp-action]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const action = button.getAttribute('data-erp-action');
+        if (action === 'new') {
+          setSelectedRow(null);
+          const addTrigger = toolbar.getAttribute('data-add-trigger');
+          if (addTrigger) {
+            const trigger = document.querySelector(addTrigger);
+            if (trigger) trigger.click();
+            showFormPanel('edit');
+            return;
+          }
+          const newUrl = toolbar.getAttribute('data-new-url');
+          if (newUrl) {
+            window.location.assign(newUrl);
+            return;
+          }
+          if (formPanelId) {
+            const base = window.location.pathname + window.location.search.replace(/#.*$/, '');
+            window.location.assign(base + '#' + formPanelId);
+            showFormPanel('edit');
+          }
+          return;
+        }
+        if (action === 'refresh') {
+          window.location.reload();
+          return;
+        }
+        if (action === 'run-report') {
+          const reportForm = document.getElementById('report-form');
+          if (reportForm) reportForm.requestSubmit();
+          return;
+        }
+        if (!selectedRow) return;
+        const recordId = selectedRow.getAttribute('data-record-id') || selectedRow.getAttribute('data-customer-id');
+        const editUrl = selectedRow.getAttribute('data-edit-url');
+        const codeCell = selectedRow.querySelector('td');
+        const codeLabel = codeCell ? codeCell.textContent.trim() : recordId;
+
+        if (action === 'delete') {
+          const rowDeleteBtn = selectedRow.querySelector('.js-delete-record');
+          if (rowDeleteBtn) {
+            rowDeleteBtn.click();
+            return;
+          }
+          if (!deleteForm || !recordId) return;
+          const confirmMsg = toolbar.getAttribute('data-delete-confirm')
+            || ('Delete ' + codeLabel + '? This cannot be undone.');
+          if (!window.confirm(confirmMsg)) return;
+          const idInput = deleteForm.querySelector('[name="record_id"], #customer-delete-id');
+          if (idInput) idInput.value = recordId;
+          deleteForm.submit();
+          return;
+        }
+        const viewUrl = selectedRow.getAttribute('data-view-url');
+        const openUrl = selectedRow.getAttribute('data-open-url') || editUrl;
+        if (action === 'open' || action === 'edit') {
+          if (openUrl) {
+            window.location.href = openUrl;
+          } else {
+            showFormPanel('edit');
+          }
+          return;
+        }
+        if (action === 'view') {
+          if (viewUrl) {
+            window.location.href = viewUrl;
+          } else if (editUrl) {
+            const hashIdx = editUrl.indexOf('#');
+            const base = hashIdx >= 0 ? editUrl.slice(0, hashIdx) : editUrl;
+            const hash = hashIdx >= 0 ? editUrl.slice(hashIdx) : '';
+            const sep = base.indexOf('?') >= 0 ? '&' : '?';
+            window.location.href = base + sep + 'view=1' + hash;
+          } else {
+            showFormPanel('view');
+          }
+        }
+      });
+    });
+
+    const statusFilter = toolbar.querySelector('[data-erp-filter="status"]');
+    if (statusFilter && tbody) {
+      statusFilter.addEventListener('change', function () {
+        const value = statusFilter.value;
+        tbody.querySelectorAll('.erp-selectable-row').forEach(function (row) {
+          if (!value) {
+            row.style.display = '';
+            return;
+          }
+          row.style.display = (row.getAttribute('data-status') || '') === value ? '' : 'none';
+        });
+      });
+    }
+
+    function sortRows(compareFn) {
+      if (!tbody) return;
+      const rows = Array.from(tbody.querySelectorAll('.erp-selectable-row'));
+      rows.sort(compareFn).forEach(function (row) { tbody.appendChild(row); });
+    }
+
+    const dateSort = toolbar.querySelector('[data-erp-sort="date"]');
+    if (dateSort && tbody) {
+      dateSort.addEventListener('change', function () {
+        const dir = dateSort.value;
+        if (!dir) return;
+        sortRows(function (a, b) {
+          const da = a.getAttribute('data-created-at') || '';
+          const db = b.getAttribute('data-created-at') || '';
+          if (da === db) return 0;
+          if (dir === 'asc') return da < db ? -1 : 1;
+          return da > db ? -1 : 1;
+        });
+      });
+    }
+
+    const columnSort = toolbar.querySelector('[data-erp-sort="column"]');
+    if (columnSort && tbody) {
+      columnSort.addEventListener('change', function () {
+        const spec = columnSort.value;
+        if (!spec) return;
+        const parts = spec.split('-');
+        const colIndex = parseInt(parts[0], 10);
+        const dir = parts[1] || 'asc';
+        sortRows(function (a, b) {
+          const ta = (a.children[colIndex] || {}).textContent || '';
+          const tb = (b.children[colIndex] || {}).textContent || '';
+          const cmp = ta.localeCompare(tb, undefined, { sensitivity: 'base' });
+          return dir === 'desc' ? -cmp : cmp;
+        });
+      });
+    }
+  });
+
   document.querySelectorAll('[data-erp-add-trigger]').forEach(function (button) {
     button.addEventListener('click', function () {
       const selector = button.getAttribute('data-erp-add-trigger');

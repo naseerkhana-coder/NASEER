@@ -23,6 +23,11 @@
   </div>
 
   <div class="pro-dash-header-actions">
+    {% if company_display_name and company_display_name != 'MAXEK Technologies' %}
+    <span class="pro-dash-company-name" title="Tenant company">{{ company_display_name }}</span>
+    {% elif session.get('customer_name') %}
+    <span class="pro-dash-company-name" title="Tenant company">{{ session.get('customer_name') }}</span>
+    {% endif %}
     <a class="pro-dash-header-icon-btn pro-dash-header-icon-btn--badge" href="{{ url_for('notifications') }}" title="Notifications" aria-label="Notifications">
       <i class="fa-regular fa-bell" aria-hidden="true"></i>
       {% set notify_count = system_alert_counts.total|default(dashboard_stats.pending_approvals_count|default(0)) %}

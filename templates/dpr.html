@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, rejection_notice, workflow_modals, transaction_view_tabs, checker_row_actions, approver_row_actions, maker_row_actions, erp_pagination %}
+{% from 'macros/erp_ui.html' import role_status_badge, rejection_notice, workflow_modals, transaction_view_tabs, checker_row_actions, approver_row_actions, maker_row_actions, erp_pagination, erp_module_toolbar %}
 {% set page_title = 'DPR Entry' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Projects &gt; DPR Entry' %}
 {% block page_actions %}
@@ -194,6 +194,20 @@
   </div>
 
   {% else %}
+  {% if not view_record %}
+  <div class="erp-module-layout" style="margin-bottom:1rem;">
+    {{ erp_module_toolbar(
+      mode='standard',
+      search_placeholder='Search DPR measurements...',
+      export_name='dpr_measurements',
+      print_target='#dpr-measurements-list',
+      form_panel_id='dpr-form',
+      table_panel_id='dpr-measurements-list',
+      new_url=url_for('dpr_entry') ~ '#dpr-form',
+      filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
+    ) }}
+  </div>
+  {% endif %}
   {% if view_record %}
   <div class="erp-form-card" style="margin-bottom: 1rem;">
     {% call transaction_view_tabs(view_record, history, can_reopen, approval_id) %}
@@ -850,7 +864,12 @@
         </thead>
         <tbody>
           {% for row in records %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.approval_status or 'Draft' }}"
+              data-created-at="{{ row.report_date or '' }}"
+              data-view-url="{{ url_for('dpr_entry', view=row.id) }}"
+              data-edit-url="{{ url_for('dpr_entry', edit=row.id) }}#dpr-form">
             <td>{{ row.report_date or '—' }}</td>
             <td>{{ row.project_code or row.project_id }}</td>
             <td>{{ row.boq_number or '—' }}</td>

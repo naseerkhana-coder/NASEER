@@ -41,10 +41,14 @@
 <div class="erp-module-layout">
 {% if not view_record %}
   {{ erp_module_toolbar(
+    mode='standard',
     search_placeholder='Search material requests...',
-    add_url='#material-request-form',
     export_name='material_requests',
-    print_target='#material-request-records'
+    print_target='#material-request-records',
+    form_panel_id='material-request-form',
+    table_panel_id='material-request-records',
+    new_url=url_for(module_endpoint) ~ '#material-request-form',
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
   ) }}
 {% endif %}
 
@@ -142,7 +146,12 @@
         </thead>
         <tbody>
           {% for row in rows %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.approval_status or '' }}"
+              data-created-at="{{ row.request_date or row.created_at or '' }}"
+              data-view-url="{{ url_for(module_endpoint, view=row.id) }}"
+              data-edit-url="{{ url_for(module_endpoint, edit=row.id) }}#material-request-form">
             <td>{{ row.id }}</td>
             {% for key in row_keys %}
             <td>

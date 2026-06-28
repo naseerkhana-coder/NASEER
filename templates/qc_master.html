@@ -1,9 +1,7 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'QC Master' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Quality Control &gt; QC Master' %}
-{% block page_actions %}
-<a href="{{ url_for('qc_master', new=1) }}#record-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Test</a>
-{% endblock %}
 {% block content %}
 {% if view_record %}
 <div class="erp-form-card" style="margin-bottom:1rem;">
@@ -17,6 +15,21 @@
   {% if view_record.remarks %}<p><strong>Remarks:</strong> {{ view_record.remarks }}</p>{% endif %}
   <a href="{{ url_for('qc_master', edit=view_record.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
 </div>
+{% endif %}
+
+<div class="erp-module-layout">
+{% if not view_record %}
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search code / name / IS…',
+    search_name='q',
+    export_name='qc_master',
+    print_target='#qc-records',
+    form_panel_id='record-form',
+    table_panel_id='qc-records',
+    new_url=url_for('qc_master', new=1) ~ '#record-form',
+    filter_status_options=test_statuses
+  ) }}
 {% endif %}
 
 {% if show_form %}
@@ -65,23 +78,7 @@
 </div>
 {% endif %}
 
-<form method="get" style="margin-bottom:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-  <input name="q" value="{{ search }}" placeholder="Search code / name / IS…" style="max-width:220px;">
-  <select name="material" onchange="this.form.submit()">
-    <option value="">All materials</option>
-    {% for m in applicable_materials %}
-    <option value="{{ m }}" {% if material_filter == m %}selected{% endif %}>{{ m }}</option>
-    {% endfor %}
-  </select>
-  <select name="status" onchange="this.form.submit()">
-    <option value="">All statuses</option>
-    {% for s in test_statuses %}
-    <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
-</form>
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="qc-records" data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead>
@@ -97,7 +94,11 @@
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr>
+        <tr class="erp-selectable-row" tabindex="0"
+            data-record-id="{{ row.id }}"
+            data-status="{{ row.status or '' }}"
+            data-view-url="{{ url_for('qc_master', view=row.id) }}"
+            data-edit-url="{{ url_for('qc_master', edit=row.id) }}#record-form">
           <td>{{ row.test_code }}</td>
           <td>{{ row.test_name }}</td>
           <td>{{ row.applicable_material or '—' }}</td>
@@ -112,5 +113,6 @@
       </tbody>
     </table>
   </div>
+</div>
 </div>
 {% endblock %}

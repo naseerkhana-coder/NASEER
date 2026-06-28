@@ -367,6 +367,7 @@ from ui_shell_config import (
 from super_admin_service import (
     CUSTOMER_ADMIN_CREATABLE_ROLES,
     CUSTOMER_ADMIN_ROLE,
+    ERP_ADMIN_ACTIVE_ENDPOINTS,
     ERP_ADMIN_SUBTOOLBAR,
     ERP_ADMIN_SUBTOOLBAR_SECTIONS,
     PLATFORM_CUSTOMER_CODE,
@@ -6099,23 +6100,6 @@ ERP_ADMIN_NAV_SLUGS = frozenset(
     }
 )
 
-ERP_ADMIN_ACTIVE_ENDPOINTS = [
-    "super_admin_platform_dashboard",
-    "erp_admin_customers",
-    "erp_admin_licenses",
-    "erp_admin_subscriptions",
-    "erp_admin_user_limits",
-    "erp_admin_branch_limits",
-    "erp_admin_storage_limits",
-    "erp_admin_login_monitoring",
-    "erp_admin_support_tickets",
-    "erp_admin_change_requests",
-    "erp_admin_settings",
-    "erp_admin_audit_logs",
-    "erp_admin_system_health",
-    "user_management",
-]
-
 
 def is_guest_user():
     return (session.get("role") or "").strip().lower() == "guest"
@@ -8026,6 +8010,8 @@ def inject_maxek_layout():
         "active_toolbar_slug": active_toolbar_slug,
         "sub_toolbar_items": sub_toolbar_items,
         "sub_toolbar_sections": sub_toolbar_sections,
+        "erp_admin_active_endpoints": list(ERP_ADMIN_ACTIVE_ENDPOINTS),
+        "is_erp_admin_page": request.endpoint in ERP_ADMIN_ACTIVE_ENDPOINTS,
         "quick_panel_links": quick_panel_for_slug(active_toolbar_slug),
         "global_search_categories": GLOBAL_SEARCH_CATEGORIES,
         "help_center_items": HELP_CENTER_ITEMS,
@@ -10063,9 +10049,11 @@ def _build_dashboard_greeting_context():
     else:
         period = "evening"
     display_name = session.get("employee_name") or session.get("username") or "Super Admin"
+    company_name = session.get("customer_name") or session.get("company_code") or ""
     return {
         "period": period,
         "name": display_name,
+        "company_name": company_name,
         "date_label": now.strftime("%d %b %Y, %A"),
     }
 
@@ -13323,6 +13311,9 @@ def settings():
                     },
                 )
                 db.commit()
+                display_name = (request.form.get("tenant_company_name") or "").strip()
+                if display_name:
+                    session["customer_name"] = display_name
                 flash("Tenant branding and regional settings saved.")
             except ValueError as exc:
                 db.rollback()
@@ -22139,6 +22130,7 @@ register_erp_admin_routes(
     db_path=DB_PATH,
     support_uploads_dir=SUPPORT_TICKETS_DIR,
     hash_password=hash_password,
+    timezone_options=APP_TIMEZONE_OPTIONS,
 )
 
 app.config["GET_DB"] = get_db

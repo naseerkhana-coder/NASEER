@@ -23,6 +23,7 @@ from super_admin_service import (
     TICKET_STATUSES,
     create_customer_admin_user,
     delete_customer,
+    get_customer_by_id,
     get_customer_enabled_departments,
     get_platform_dashboard_data,
     get_system_health,
@@ -40,6 +41,7 @@ from super_admin_service import (
     next_customer_code,
     save_change_request,
     save_customer,
+    save_customer_tenant_settings,
     save_erp_setting,
     save_license,
     save_subscription,
@@ -106,6 +108,7 @@ def register_erp_admin_routes(
     db_path,
     support_uploads_dir,
     hash_password,
+    timezone_options=None,
 ):
     @app.route("/super-admin/dashboard")
     @login_required
@@ -172,6 +175,7 @@ def register_erp_admin_routes(
             for pkg in packages
         }
         edit_id = request.args.get("edit", type=int)
+        view_only = request.args.get("view") == "1"
         edit_record = None
         selected_departments: list[str] = []
         if edit_id:
@@ -188,7 +192,8 @@ def register_erp_admin_routes(
                     record_id = request.form.get("record_id", type=int)
                     if not record_id:
                         raise ValueError("Invalid customer.")
-                    delete_customer(db, record_id)
+                    cascade = request.form.get("cascade") == "1"
+                    delete_customer(db, record_id, cascade=cascade)
                     db.commit()
                     flash("Customer deleted successfully.")
                     return redirect(url_for("erp_admin_customers"))
@@ -233,10 +238,28 @@ def register_erp_admin_routes(
                             mobile=admin_mobile,
                             hash_password_fn=hash_password,
                         )
-                        flash("Customer and Customer Administrator account created successfully.")
+                        customer_row = get_customer_by_id(db, customer_id)
+                        customer_code = (
+                            str(customer_row["customer_code"]).strip()
+                            if customer_row and customer_row["customer_code"]
+                            else form_data.get("customer_code", "")
+                        )
+                        session["customer_onboarding_credentials"] = {
+                            "username": admin_username,
+                            "password": admin_password,
+                            "role": "Customer Administrator",
+                            "customer_code": customer_code,
+                            "company_name": form_data.get("company_name", ""),
+                        }
+                        flash(
+                            "Customer registered. Copy the administrator login credentials "
+                            "shown below — the password is displayed once."
+                        )
                     else:
                         flash("Customer saved successfully.")
                     db.commit()
+                    if not record_id:
+                        return redirect(url_for("erp_admin_customers", created=customer_id))
                     return redirect(url_for("erp_admin_customers"))
                 except ValueError as exc:
                     db.rollback()
@@ -261,10 +284,15 @@ def register_erp_admin_routes(
             row["enabled_department_count"] = len(
                 get_customer_enabled_departments(db, row["id"])
             )
+        created_credentials = None
+        if request.args.get("created"):
+            created_credentials = session.pop("customer_onboarding_credentials", None)
         return render_template(
             "erp_admin/customers.html",
             rows=rows,
             edit_record=edit_record,
+            view_only=view_only and bool(edit_record),
+            created_credentials=created_credentials,
             search=search,
             next_customer_code=next_customer_code(db),
             countries=COMPANY_COUNTRIES,
@@ -275,6 +303,74 @@ def register_erp_admin_routes(
             department_labels=DEPARTMENT_SLUG_LABELS,
             selected_departments=selected_departments,
             statuses=CUSTOMER_STATUSES,
+        )
+
+    @app.route("/erp-admin/customers/<int:customer_id>/settings", methods=["GET", "POST"])
+    @login_required
+    @super_admin_required
+    def erp_admin_customer_settings(customer_id):
+        db = get_db()
+        ensure_super_admin_schema(db)
+        db.commit()
+        row = get_customer_by_id(db, customer_id)
+        if not row:
+            flash("Customer not found.")
+            return redirect(url_for("erp_admin_customers"))
+        customer = dict(row)
+        if int(customer.get("is_platform") or 0):
+            flash("Platform customer settings are not editable here.")
+            return redirect(url_for("erp_admin_customers"))
+
+        logo_upload_dir = os.path.join(app.static_folder or "static", "uploads", "customer_logos")
+        tz_options = timezone_options or [
+            ("Asia/Kolkata", "Asia/Kolkata (IST)"),
+            ("Asia/Dubai", "Asia/Dubai (GST)"),
+            ("UTC", "UTC"),
+        ]
+
+        if request.method == "POST":
+            try:
+                logo_path = (customer.get("logo_path") or "").strip()
+                logo_file = request.files.get("logo")
+                if logo_file and logo_file.filename:
+                    os.makedirs(logo_upload_dir, exist_ok=True)
+                    safe_name = secure_filename(logo_file.filename)
+                    saved = f"{customer_id}_{int(time.time())}_{safe_name}"
+                    logo_file.save(os.path.join(logo_upload_dir, saved))
+                    logo_path = f"uploads/customer_logos/{saved}"
+
+                save_customer_tenant_settings(
+                    db,
+                    customer_id,
+                    {
+                        "company_name": request.form.get("company_name"),
+                        "logo_path": logo_path,
+                        "theme": request.form.get("theme"),
+                        "address": request.form.get("address"),
+                        "vat_gst_number": request.form.get("vat_gst_number"),
+                        "financial_year": request.form.get("financial_year"),
+                        "currency": request.form.get("currency"),
+                        "timezone": request.form.get("timezone"),
+                        "email_settings": request.form.get("email_settings"),
+                    },
+                )
+                db.commit()
+                flash("Customer settings saved.")
+                return redirect(url_for("erp_admin_customer_settings", customer_id=customer_id))
+            except ValueError as exc:
+                db.rollback()
+                flash(str(exc))
+            except Exception as exc:
+                db.rollback()
+                logger.exception("Customer settings save failed: %s", exc)
+                flash(f"Could not save settings: {exc}")
+
+        row = get_customer_by_id(db, customer_id)
+        customer = dict(row) if row else customer
+        return render_template(
+            "erp_admin/customer_settings.html",
+            customer=customer,
+            timezone_options=tz_options,
         )
 
     @app.route("/erp-admin/licenses", methods=["GET", "POST"])

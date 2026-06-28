@@ -8,24 +8,56 @@
 
 {% block content %}
 
+{% if created_credentials %}
+<section class="erp-onboarding-success" id="customer-onboarding-success" aria-labelledby="onboarding-success-title">
+  <div class="erp-onboarding-success__head">
+    <h3 id="onboarding-success-title"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Customer Administrator Created</h3>
+    <p>Share these login details with the tenant. The password is shown once.</p>
+  </div>
+  <dl class="erp-onboarding-credentials">
+    <div><dt>Company</dt><dd>{{ created_credentials.company_name or '—' }}</dd></div>
+    <div><dt>Customer Code</dt><dd><code id="cred-customer-code">{{ created_credentials.customer_code }}</code></dd></div>
+    <div><dt>Username</dt><dd><code id="cred-username">{{ created_credentials.username }}</code></dd></div>
+    <div><dt>Password</dt><dd><code id="cred-password">{{ created_credentials.password }}</code></dd></div>
+    <div><dt>Role</dt><dd>{{ created_credentials.role }}</dd></div>
+  </dl>
+  <div class="erp-onboarding-success__actions">
+    <button type="button" class="erp-btn erp-btn-primary erp-btn-sm" id="copy-onboarding-credentials"><i class="fa-solid fa-copy" aria-hidden="true"></i> Copy credentials</button>
+    <a href="{{ url_for('login', company_code=created_credentials.customer_code) }}" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Open login page</a>
+  </div>
+</section>
+{% endif %}
+
 <div class="erp-module-layout{% if not edit_record %} module-layout--list-only{% endif %}">
 
   {{ erp_module_toolbar(
+    mode='standard',
     search_placeholder='Search customers...',
     search_name='q',
-    add_url='#add-customer',
     export_name='customers',
-    print_target='#customer-records'
+    print_target='#customer-records',
+    form_panel_id='add-customer',
+    table_panel_id='customer-records',
+    delete_form_id='customer-delete-form',
+    show_delete=true,
+    delete_confirm_message='Delete this customer? All user accounts, licenses, and limits for this tenant will be permanently removed. This cannot be undone.',
+    filter_status_options=statuses
   ) }}
+
+  <form id="customer-delete-form" method="post" class="erp-hidden-form" hidden>
+    <input type="hidden" name="form_action" value="delete">
+    <input type="hidden" name="record_id" id="customer-delete-id" value="">
+    <input type="hidden" name="cascade" value="1">
+  </form>
 
   {% call erp_module_form_panel(
     id='add-customer',
-    title=('Edit Customer' if edit_record else 'Register Customer'),
+    title=('View Customer' if view_only else ('Edit Customer' if edit_record else 'Register Customer')),
     hidden=(not edit_record),
     list_anchor='customer-records',
     back_url=url_for('erp_admin_customers') if edit_record else ''
   ) %}
-    <form method="post" class="erp-form-grid" id="customer-master-form">
+    <form method="post" class="erp-form-grid{% if view_only %} is-readonly{% endif %}" id="customer-master-form">
       {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
 
       <div class="erp-field"><input name="customer_code" placeholder=" " required{% if edit_record %} readonly{% endif %} value="{{ edit_record.customer_code if edit_record else next_customer_code }}"><label>Customer Code</label></div>
@@ -89,10 +121,10 @@
       <div class="erp-field"><input type="password" name="admin_confirm_password" placeholder=" " required autocomplete="new-password"><label>Confirm Password *</label></div>
       <div class="erp-field"><input type="email" name="admin_email" placeholder=" " required><label>Admin Email *</label></div>
       <div class="erp-field"><input name="admin_mobile" placeholder=" " required><label>Admin Mobile *</label></div>
-      <div class="erp-field span-2"><input name="admin_display_name" placeholder=" "><label>Display Name</label></div>
+      <div class="erp-field span-2"><input name="admin_display_name" placeholder=" "><label>Full Name</label></div>
       {% endif %}
 
-      <div class="erp-form-actions"><button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>{% if edit_record %}<a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost">Cancel</a>{% endif %}</div>
+      <div class="erp-form-actions">{% if not view_only %}<button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>{% endif %}{% if edit_record %}<a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost">{% if view_only %}Close{% else %}Cancel{% endif %}</a>{% endif %}</div>
     </form>
   {% endcall %}
 
@@ -102,7 +134,7 @@
         <thead><tr><th>Code</th><th>Company</th><th>Country</th><th>Contact</th><th>Mobile</th><th>Email</th><th>Package</th><th>Depts</th><th>Branches</th><th>Users</th><th>Status</th><th class="erp-table-col-actions">Actions</th></tr></thead>
         <tbody>
           {% for row in rows %}
-          <tr>
+          <tr class="erp-selectable-row" data-record-id="{{ row.id }}" data-customer-id="{{ row.id }}" data-status="{{ row.status or '' }}" data-created-at="{{ row.created_at or '' }}" data-edit-url="{{ url_for('erp_admin_customers', edit=row.id, q=search or none) }}#add-customer" tabindex="0">
             <td>{{ row.customer_code }}</td><td>{{ row.company_name }}</td><td>{{ row.country or '—' }}</td>
             <td>{{ row.contact_person or '—' }}</td><td>{{ row.mobile or '—' }}</td><td>{{ row.email or '—' }}</td>
             <td>{{ row.package_code or row.plan }}</td>
@@ -110,14 +142,7 @@
             <td>{{ row.num_branches }}</td><td>{{ row.num_users }}</td>
             <td>{{ approval_badge(row.status) }}</td>
             <td class="erp-table-col-actions">
-              <div class="erp-table-row-actions">
-                <a href="{{ url_for('erp_admin_customers', edit=row.id, q=search or none) }}#add-customer" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit</a>
-                <form method="post" class="erp-inline-form" onsubmit="return confirm('Delete customer {{ row.customer_code }}? This cannot be undone.');">
-                  <input type="hidden" name="form_action" value="delete">
-                  <input type="hidden" name="record_id" value="{{ row.id }}">
-                  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm erp-btn-danger"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Delete</button>
-                </form>
-              </div>
+              <a href="{{ url_for('erp_admin_customer_settings', customer_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
             </td>
           </tr>
           {% else %}<tr><td colspan="12">No customers found.</td></tr>{% endfor %}
@@ -131,10 +156,28 @@
 
 <style>
   .erp-table-col-actions { width: 1%; white-space: nowrap; }
-  .erp-table-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
-  .erp-inline-form { display: inline; margin: 0; }
-  .erp-btn-danger { color: #b91c1c; }
-  .erp-btn-danger:hover { color: #991b1b; background: #fef2f2; }
+  .erp-hidden-form { display: none; }
+  .erp-selectable-row { cursor: pointer; }
+  .erp-selectable-row.is-selected { background: rgba(59, 130, 246, 0.12); outline: 1px solid rgba(59, 130, 246, 0.35); }
+  .erp-onboarding-success {
+    margin-bottom: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(34, 197, 94, 0.45);
+    background: rgba(34, 197, 94, 0.08);
+  }
+  .erp-onboarding-success__head h3 { margin: 0 0 0.35rem; font-size: 1rem; }
+  .erp-onboarding-success__head p { margin: 0; font-size: 0.875rem; opacity: 0.9; }
+  .erp-onboarding-credentials {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem 1.25rem;
+    margin: 1rem 0;
+  }
+  .erp-onboarding-credentials dt { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.75; }
+  .erp-onboarding-credentials dd { margin: 0.15rem 0 0; font-weight: 600; }
+  .erp-onboarding-credentials code { font-family: ui-monospace, monospace; font-size: 0.9rem; }
+  .erp-onboarding-success__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .erp-dept-package-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
   .erp-dept-checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--erp-border, #dbeafe); border-radius: 0.5rem; background: var(--erp-surface-muted, #f8fafc); }
   .erp-dept-checkbox { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; border-radius: 0.375rem; background: #fff; border: 1px solid transparent; }
@@ -142,6 +185,10 @@
   .erp-dept-tag { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.1rem 0.35rem; border-radius: 999px; }
   .erp-dept-tag--default { background: #dbeafe; color: #1d4ed8; }
   .erp-dept-tag--extra { background: #dcfce7; color: #15803d; }
+  #customer-master-form.is-readonly input:not([type="hidden"]),
+  #customer-master-form.is-readonly select,
+  #customer-master-form.is-readonly textarea { pointer-events: none; opacity: 0.85; }
+  #customer-master-form.is-readonly .erp-form-actions { display: none; }
 </style>
 
 <script>
@@ -194,7 +241,7 @@
     updateTags();
   })();
 
-  {% if edit_record %}
+  {% if edit_record or view_only %}
   (function () {
     const panel = document.getElementById('add-customer');
     if (panel && window.MaxekDataEntryPanels) {
@@ -204,6 +251,34 @@
       const layout = panel.closest('.erp-module-layout');
       if (layout) layout.classList.remove('module-layout--list-only');
     }
+  })();
+  {% endif %}
+
+  {% if request.args.get('created') %}
+  (function () {
+    const list = document.getElementById('customer-records');
+    if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  })();
+  {% endif %}
+
+  {% if created_credentials %}
+  (function () {
+    const copyBtn = document.getElementById('copy-onboarding-credentials');
+    if (!copyBtn) return;
+    copyBtn.addEventListener('click', function () {
+      const lines = [
+        'Customer Code: {{ created_credentials.customer_code|e }}',
+        'Username: {{ created_credentials.username|e }}',
+        'Password: {{ created_credentials.password|e }}',
+        'Role: {{ created_credentials.role|e }}'
+      ];
+      const text = lines.join('\n');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          copyBtn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> Copied';
+        });
+      }
+    });
   })();
   {% endif %}
 </script>

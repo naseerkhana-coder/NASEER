@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs, erp_module_toolbar %}
 {% from 'macros/inline_create.html' import vendor_select_with_create, new_vendor_modal %}
 {% set page_title = 'Purchase Orders' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('store') ~ '">Store</a> &gt; Purchase Orders' %}
@@ -7,6 +7,20 @@
 <a href="{{ url_for('purchase_orders', new=1) }}#po-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New PO</a>
 {% endblock %}
 {% block content %}
+{% if not view_record %}
+<div class="erp-module-layout" style="margin-bottom:1rem;">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search purchase orders...',
+    export_name='purchase_orders',
+    print_target='#po-register',
+    form_panel_id='po-form',
+    table_panel_id='po-register',
+    new_url=url_for('purchase_orders', new=1) ~ '#po-form',
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
+  ) }}
+</div>
+{% endif %}
 <div class="module-layout module-layout--entry-focus{% if not show_form %} module-layout--list-only{% endif %}">
 {% if view_record %}
 <div class="erp-form-card" style="margin-bottom:1rem;">
@@ -235,7 +249,12 @@
       <thead><tr><th>PO No.</th><th>Date</th><th>PR#</th><th>Vendor</th><th>Project</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         {% for row in rows %}
-        <tr>
+        <tr class="erp-selectable-row" tabindex="0"
+            data-record-id="{{ row.id }}"
+            data-status="{{ row.approval_status or '' }}"
+            data-created-at="{{ row.order_date or '' }}"
+            data-view-url="{{ url_for('purchase_orders', view=row.id) }}"
+            data-edit-url="{{ url_for('purchase_orders', edit=row.id) }}#po-form">
           <td>{{ row.po_number }}</td>
           <td>{{ row.order_date or '—' }}</td>
           <td>{{ row.pr_number or row.purchase_request_id or '—' }}</td>

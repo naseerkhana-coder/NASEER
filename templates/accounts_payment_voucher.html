@@ -1,5 +1,5 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs %}
+{% from 'macros/erp_ui.html' import role_status_badge, maker_row_actions, rejection_notice, workflow_modals, transaction_view_tabs, erp_module_toolbar %}
 {% from 'macros/inline_create.html' import chart_head_create_button, new_chart_head_modal %}
 {% set page_title = 'Payment Vouchers' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('accounts_hub') ~ '">Accounts</a> &gt; Payments' %}
@@ -7,6 +7,22 @@
 <a href="{{ url_for('accounts_payments', new=1) }}#voucher-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Payment</a>
 {% endblock %}
 {% block content %}
+{% if not view_record %}
+<div class="erp-module-layout" style="margin-bottom:1rem;">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search payment vouchers...',
+    export_name='payment_vouchers',
+    print_target='#payment-register',
+    form_panel_id='voucher-form',
+    table_panel_id='payment-register',
+    new_url=url_for('accounts_payments', new=1) ~ '#voucher-form',
+    reports_url=url_for('accounts_reports'),
+    settings_url=url_for('accounts_chart_of_accounts'),
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
+  ) }}
+</div>
+{% endif %}
 {% if view_record %}
 <div class="erp-form-card" style="margin-bottom:1rem;">
   {% call transaction_view_tabs(view_record, history, can_reopen, approval_id) %}
@@ -164,7 +180,7 @@
 </div>
 {% endif %}
 
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="payment-register" data-erp-table>
   <div class="erp-table-toolbar"><h3 class="erp-table-title">Payment Register</h3></div>
   <div class="erp-table-scroll">
     <table class="erp-table erp-table-module">
@@ -173,7 +189,12 @@
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr>
+        <tr class="erp-selectable-row" tabindex="0"
+            data-record-id="{{ row.id }}"
+            data-status="{{ row.approval_status or '' }}"
+            data-created-at="{{ row.voucher_date or '' }}"
+            data-view-url="{{ url_for('accounts_payments', view=row.id) }}"
+            data-edit-url="{{ url_for('accounts_payments', edit=row.id) }}#voucher-form">
           <td>{{ row.voucher_number or row.id }}</td>
           <td>{{ row.voucher_date or '—' }}</td>
           <td>{{ row.vendor_name or '—' }}</td>

@@ -394,8 +394,106 @@
   print_enabled=true,
   print_url='',
   print_target='#data-table',
-  extra_buttons=''
+  extra_buttons='',
+  mode='default',
+  form_panel_id='',
+  table_panel_id='',
+  filter_status_options=none,
+  show_run_report=false,
+  delete_form_id='',
+  show_delete=false,
+  new_url='',
+  reports_url='',
+  settings_url='',
+  delete_confirm_message='Delete this record?'
 ) %}
+{% if mode == 'standard' %}
+<div class="erp-module-toolbar erp-module-toolbar--standard" role="toolbar" aria-label="Module actions"
+     data-erp-standard-toolbar
+     {% if form_panel_id %}data-form-panel="{{ form_panel_id }}"{% endif %}
+     {% if table_panel_id %}data-table-panel="{{ table_panel_id }}"{% endif %}
+     {% if print_target %}data-print-target="{{ print_target }}"{% endif %}
+     {% if delete_form_id %}data-delete-form="{{ delete_form_id }}"{% endif %}
+     {% if add_trigger_selector %}data-add-trigger="{{ add_trigger_selector }}"{% endif %}
+     {% if new_url %}data-new-url="{{ new_url }}"{% endif %}
+     {% if delete_confirm_message %}data-delete-confirm="{{ delete_confirm_message }}"{% endif %}>
+  <div class="erp-module-toolbar-search">
+    {% if search_name %}
+    <form method="get" class="erp-module-toolbar-search-form" id="erp-toolbar-search-form-{{ search_name }}">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="search" name="{{ search_name }}" value="{{ request.args.get(search_name, '') }}" placeholder="{{ search_placeholder }}" data-erp-module-search aria-label="Search records">
+      <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm erp-toolbar-search-btn"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Search</button>
+    </form>
+    {% else %}
+    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" placeholder="{{ search_placeholder }}" data-erp-module-search data-table-search aria-label="Search records">
+    {% endif %}
+  </div>
+  <div class="erp-module-toolbar-actions">
+    <button type="button" class="erp-btn erp-btn-primary erp-btn-sm" data-erp-action="new"><i class="fa-solid fa-plus" aria-hidden="true"></i> New</button>
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-action="open" disabled><i class="fa-solid fa-folder-open" aria-hidden="true"></i> Open</button>
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-action="view" disabled><i class="fa-solid fa-eye" aria-hidden="true"></i> View</button>
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-action="edit" disabled><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit</button>
+    {% if show_delete %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm erp-btn-danger" data-erp-action="delete" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Delete</button>
+    {% endif %}
+    <span class="erp-toolbar-divider" aria-hidden="true"></span>
+    <label class="erp-toolbar-select-wrap">
+      <span class="visually-hidden">Filter by status</span>
+      <select class="erp-toolbar-select" data-erp-filter="status" aria-label="Status">
+        <option value="">All statuses</option>
+        {% if filter_status_options %}
+        {% for opt in filter_status_options %}
+        <option value="{{ opt }}">{{ opt }}</option>
+        {% endfor %}
+        {% endif %}
+      </select>
+    </label>
+    <label class="erp-toolbar-select-wrap">
+      <span class="visually-hidden">Sort by date</span>
+      <select class="erp-toolbar-select" data-erp-sort="date" aria-label="Date">
+        <option value="">Sort by date</option>
+        <option value="desc">Newest first</option>
+        <option value="asc">Oldest first</option>
+      </select>
+    </label>
+    <label class="erp-toolbar-select-wrap">
+      <span class="visually-hidden">Sort records</span>
+      <select class="erp-toolbar-select" data-erp-sort="column" aria-label="Sort">
+        <option value="">Sort by column</option>
+        <option value="0-asc">Code A–Z</option>
+        <option value="0-desc">Code Z–A</option>
+        <option value="1-asc">Company A–Z</option>
+        <option value="1-desc">Company Z–A</option>
+        <option value="10-asc">Status A–Z</option>
+      </select>
+    </label>
+    {% if export_url %}
+    <a href="{{ export_url }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Export Excel</a>
+    {% elif export_name %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-table-export="{{ export_name }}"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Export Excel</button>
+    {% endif %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-export-pdf{% if print_target %} data-erp-print-target="{{ print_target }}"{% endif %}><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Export PDF</button>
+    {% if print_enabled %}
+      {% if print_url %}
+      <a href="{{ print_url }}" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener"><i class="fa-solid fa-print" aria-hidden="true"></i> Print</a>
+      {% else %}
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-print{% if print_target %} data-erp-print-target="{{ print_target }}"{% endif %}><i class="fa-solid fa-print" aria-hidden="true"></i> Print</button>
+      {% endif %}
+    {% endif %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-action="refresh"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Refresh</button>
+    {% if reports_url %}
+    <a href="{{ reports_url }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Reports</a>
+    {% elif show_run_report %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-erp-action="run-report"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Run Report</button>
+    {% endif %}
+    {% if settings_url %}
+    <a href="{{ settings_url }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
+    {% endif %}
+    {{ extra_buttons|safe }}
+  </div>
+</div>
+{% else %}
 <div class="erp-module-toolbar" role="toolbar" aria-label="Module actions">
   <div class="erp-module-toolbar-search">
     {% if search_name %}
@@ -431,6 +529,7 @@
     {{ extra_buttons|safe }}
   </div>
 </div>
+{% endif %}
 {% endmacro %}
 
 {% macro erp_module_form_panel(id='data-entry', title='', hidden=false, extra_class='', back_url='', list_anchor='', show_nav=true) %}

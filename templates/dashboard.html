@@ -9,7 +9,7 @@
   <header class="pro-dash-greeting-row" aria-labelledby="pro-dash-greeting-title">
     <div class="pro-dash-greeting-text">
       <h1 id="pro-dash-greeting-title">Good {{ dashboard_greeting.period }}, {{ dashboard_greeting.name }} 👋</h1>
-      <p class="pro-dash-greeting-sub">Here's what's happening with your business today.</p>
+      <p class="pro-dash-greeting-sub">{% if dashboard_greeting.company_name %}Here's what's happening at <strong>{{ dashboard_greeting.company_name }}</strong> today.{% else %}Here's what's happening with your business today.{% endif %}</p>
     </div>
     <div class="pro-dash-date-chip" aria-label="Today's date">
       <i class="fa-regular fa-calendar" aria-hidden="true"></i>

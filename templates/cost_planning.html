@@ -1,4 +1,5 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Cost Planning & Monitoring' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Projects &gt; Cost Planning' %}
 {% block page_actions %}
@@ -35,6 +36,23 @@
     <div class="erp-stat-card"><span>Planned Progress</span><strong>{{ '%.1f'|format(dashboard.avg_planned_progress) }}%</strong></div>
     <div class="erp-stat-card"><span>Actual Progress</span><strong>{{ '%.1f'|format(dashboard.avg_actual_progress) }}%</strong></div>
     <div class="erp-stat-card"><span>Delayed Items</span><strong>{{ dashboard.delayed_activities }}</strong></div>
+  </div>
+  {% endif %}
+
+  {% if not view_plan and not editing_plan %}
+  <div class="erp-module-layout" style="margin-bottom:1rem;">
+    {{ erp_module_toolbar(
+      mode='standard',
+      search_placeholder='Search cost plans...',
+      export_url=url_for('cost_planning_export', project_id=filter_project) if filter_project else '',
+      export_name='cost_planning' if not filter_project else '',
+      print_url=url_for('cost_planning_print', project_id=filter_project, print=1) if filter_project else '',
+      print_target='#monitoring-view',
+      form_panel_id='cost-plan-form',
+      table_panel_id='monitoring-view',
+      new_url=url_for('cost_planning', project_id=filter_project) ~ '#cost-plan-form' if filter_project else url_for('cost_planning') ~ '#cost-plan-form',
+      reports_url=url_for('cost_planning_reports')
+    ) }}
   </div>
   {% endif %}
 
@@ -344,7 +362,11 @@
         </thead>
         <tbody>
           {% for row in monitoring_rows %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.plan_status or '' }}"
+              data-view-url="{{ url_for('cost_planning', view=row.id, project_id=filter_project) }}"
+              data-edit-url="{{ url_for('cost_planning', edit=row.id, project_id=filter_project) }}#cost-plan-form">
             <td>{{ row.boq_number or '—' }}</td>
             <td>{{ row.item_code or '—' }} — {{ row.item_description or '' }}</td>
             <td>₹{{ '%.2f'|format(row.total_planned_cost or 0) }}</td>

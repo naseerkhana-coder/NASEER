@@ -451,11 +451,14 @@
 {% if not view_run %}
 
   {{ erp_module_toolbar(
+    mode='standard',
     search_placeholder='Search payroll runs...',
-    add_url='#generate-payroll',
-    add_label='Generate Payroll',
     export_name='payroll_runs',
-    print_target='#payroll-runs'
+    print_target='#payroll-runs',
+    form_panel_id='generate-payroll',
+    table_panel_id='payroll-runs',
+    new_url=url_for('payroll') ~ '#generate-payroll',
+    reports_url=url_for('payroll_payments')
   ) }}
 
 {% endif %}
@@ -640,7 +643,12 @@
 
           {% set run_saved = run.draft_saved|default(0)|int %}
 
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ run.id }}"
+              data-status="{{ run.status or '' }}"
+              data-created-at="{{ run.period_start or '' }}"
+              data-view-url="{{ url_for('payroll', view=run.id) }}"
+              data-edit-url="{{ url_for('payroll', view=run.id) }}">
 
             <td>{{ run.run_ref or run.id }}</td>
 

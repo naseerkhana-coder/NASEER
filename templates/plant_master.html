@@ -1,9 +1,7 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Plant Master' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('plant_dashboard') ~ '">Plant</a> &gt; Master' %}
-{% block page_actions %}
-<a href="{{ url_for('plant_plants', new=1) }}#record-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Plant</a>
-{% endblock %}
 {% block content %}
 {% if view_record %}
 <div class="erp-form-card" style="margin-bottom:1rem;">
@@ -13,6 +11,22 @@
   <p><strong>In-charge:</strong> {{ view_record.incharge or '—' }} | <strong>Project:</strong> {{ view_record.project_name or '—' }}</p>
   <a href="{{ url_for('plant_plants', edit=view_record.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
 </div>
+{% endif %}
+
+<div class="erp-module-layout">
+{% if not view_record %}
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search plants…',
+    search_name='q',
+    export_name='plant_master',
+    print_target='#plant-records',
+    form_panel_id='record-form',
+    table_panel_id='plant-records',
+    new_url=url_for('plant_plants', new=1) ~ '#record-form',
+    reports_url=url_for('plant_costing'),
+    filter_status_options=plant_statuses
+  ) }}
 {% endif %}
 
 {% if show_form %}
@@ -38,18 +52,17 @@
 </div>
 {% endif %}
 
-<form method="get" style="margin-bottom:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-  <input name="q" value="{{ search }}" placeholder="Search plants…" style="max-width:220px;">
-  <select name="plant_type" onchange="this.form.submit()"><option value="">All types</option>{% for t in plant_types %}<option value="{{ t }}" {% if plant_type_filter == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
-  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Search</button>
-</form>
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="plant-records" data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>Plant ID</th><th>Name</th><th>Type</th><th>Location</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for row in rows %}
-        <tr>
+        <tr class="erp-selectable-row" tabindex="0"
+            data-record-id="{{ row.id }}"
+            data-status="{{ row.status or '' }}"
+            data-view-url="{{ url_for('plant_plants', view=row.id) }}"
+            data-edit-url="{{ url_for('plant_plants', edit=row.id) }}#record-form">
           <td>{{ row.plant_id }}</td>
           <td>{{ row.plant_name }}</td>
           <td>{{ row.plant_type or '—' }}</td>
@@ -58,10 +71,11 @@
           <td><a href="{{ url_for('plant_plants', view=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a></td>
         </tr>
         {% else %}
-        <tr><td colspan="6">No plants yet.</td></tr>
+        <tr><td colspan="6">No plants registered yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+</div>
 </div>
 {% endblock %}

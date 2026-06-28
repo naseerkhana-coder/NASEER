@@ -14,6 +14,11 @@
   </div>
 
   <div class="pro-dash-header-actions">
+    {% if company_display_name and company_display_name != 'MAXEK Technologies' %}
+    <span class="pro-dash-company-name" title="Tenant company">{{ company_display_name }}</span>
+    {% elif session.get('customer_name') %}
+    <span class="pro-dash-company-name" title="Tenant company">{{ session.get('customer_name') }}</span>
+    {% endif %}
     {% if context_companies %}
     <select class="pro-dash-context-select company-select" name="company" aria-label="Company" data-company-select>
       <option value="">Company</option>

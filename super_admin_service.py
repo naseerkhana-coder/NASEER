@@ -122,9 +122,10 @@ CUSTOMER_ADMIN_CREATABLE_ROLES = (
     "User",
 )
 
-ERP_ADMIN_ACTIVE_ENDPOINTS = (
+ERP_ADMIN_ACTIVE_ENDPOINTS = [
     "super_admin_platform_dashboard",
     "erp_admin_customers",
+    "erp_admin_customer_settings",
     "erp_admin_licenses",
     "erp_admin_subscriptions",
     "erp_admin_user_limits",
@@ -137,7 +138,7 @@ ERP_ADMIN_ACTIVE_ENDPOINTS = (
     "erp_admin_audit_logs",
     "erp_admin_system_health",
     "user_management",
-)
+]
 
 ERP_ADMIN_SUBTOOLBAR = (
     {
@@ -645,6 +646,7 @@ def ensure_super_admin_schema(db) -> None:
         ("financial_year", "TEXT"),
         ("currency", "TEXT DEFAULT 'INR'"),
         ("timezone", "TEXT DEFAULT 'Asia/Kolkata'"),
+        ("email_settings", "TEXT"),
     ):
         _ensure_column(db, "erp_customers", column, col_type)
     _ensure_column(db, "users", "email", "TEXT")
@@ -1082,31 +1084,13 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
     return customer_id
 
 
-def delete_customer(db, customer_id: int) -> None:
-    """Remove a tenant customer and related platform rows when safe to do so."""
-    ensure_super_admin_schema(db)
-    customer_row = get_customer_by_id(db, customer_id)
-    if not customer_row:
-        raise ValueError("Customer not found.")
-    customer = _row_to_dict(customer_row)
-    if int(customer.get("is_platform") or 0):
-        raise ValueError("Cannot delete the platform customer.")
-    code = str(customer.get("customer_code") or "").strip()
-
-    user_count = _count_customer_users(db, customer_id)
-    if user_count:
-        raise ValueError(
-            f"Cannot delete {code} — {user_count} user account(s) exist. "
-            "Set status to Inactive instead."
-        )
-
-    license_count = _count_customer_licenses(db, customer_id)
-    if license_count:
-        raise ValueError(
-            f"Cannot delete {code} — {license_count} license(s) exist. "
-            "Remove licenses first or set status to Inactive."
-        )
-
+def _delete_customer_related_rows(db, customer_id: int) -> None:
+    """Remove platform rows linked to a tenant customer."""
+    if _table_exists(db, "users"):
+        try:
+            db.execute("DELETE FROM users WHERE customer_id=?", (customer_id,))
+        except Exception:
+            pass
     for table in (
         "erp_user_limits",
         "erp_branch_limits",
@@ -1122,6 +1106,47 @@ def delete_customer(db, customer_id: int) -> None:
             except Exception:
                 pass
 
+
+def delete_customer(db, customer_id: int, *, cascade: bool = False) -> None:
+    """Remove a tenant customer and related platform rows when safe to do so."""
+    ensure_super_admin_schema(db)
+    customer_row = get_customer_by_id(db, customer_id)
+    if not customer_row:
+        raise ValueError("Customer not found.")
+    customer = _row_to_dict(customer_row)
+    if int(customer.get("is_platform") or 0):
+        raise ValueError("Cannot delete the platform customer.")
+    code = str(customer.get("customer_code") or "").strip()
+
+    user_count = _count_customer_users(db, customer_id)
+    license_count = _count_customer_licenses(db, customer_id)
+
+    if cascade:
+        _delete_customer_related_rows(db, customer_id)
+        if not _table_exists(db, "erp_customers"):
+            raise ValueError("Customer master table is not available.")
+        db.execute("DELETE FROM erp_customers WHERE id=? AND is_platform=0", (customer_id,))
+        detail = f"Deleted customer {code}"
+        if user_count or license_count:
+            detail += (
+                f" (cascade: {user_count} user(s), {license_count} license(s) removed)"
+            )
+        log_audit(db, None, None, "Delete", "Customer Master", detail)
+        return
+
+    if user_count:
+        raise ValueError(
+            f"Cannot delete {code} — {user_count} user account(s) exist. "
+            "Use Delete with cascade confirmation or set status to Inactive."
+        )
+
+    if license_count:
+        raise ValueError(
+            f"Cannot delete {code} — {license_count} license(s) exist. "
+            "Remove licenses first or set status to Inactive."
+        )
+
+    _delete_customer_related_rows(db, customer_id)
     if not _table_exists(db, "erp_customers"):
         raise ValueError("Customer master table is not available.")
     db.execute("DELETE FROM erp_customers WHERE id=? AND is_platform=0", (customer_id,))
@@ -1142,13 +1167,15 @@ def save_customer_tenant_settings(db, customer_id: int, data: dict[str, Any]) ->
         "financial_year": (data.get("financial_year") or "").strip(),
         "currency": (data.get("currency") or "INR").strip(),
         "timezone": (data.get("timezone") or "Asia/Kolkata").strip(),
+        "email_settings": (data.get("email_settings") or "").strip(),
     }
     if not fields["company_name"]:
         raise ValueError("Company name is required.")
     now = _now_ts()
     db.execute(
         "UPDATE erp_customers SET company_name=?, logo_path=?, theme=?, address=?, "
-        "vat_gst_number=?, financial_year=?, currency=?, timezone=?, modified_at=? "
+        "vat_gst_number=?, financial_year=?, currency=?, timezone=?, email_settings=?, "
+        "modified_at=? "
         "WHERE id=? AND COALESCE(is_platform, 0)=0",
         (
             fields["company_name"],
@@ -1159,6 +1186,7 @@ def save_customer_tenant_settings(db, customer_id: int, data: dict[str, Any]) ->
             fields["financial_year"] or None,
             fields["currency"],
             fields["timezone"],
+            fields["email_settings"] or None,
             now,
             customer_id,
         ),

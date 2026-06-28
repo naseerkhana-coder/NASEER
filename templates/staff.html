@@ -9,10 +9,13 @@
 {% block content %}
 <div class="erp-module-layout">
   {{ erp_module_toolbar(
+    mode='standard',
     search_placeholder='Search employees...',
-    add_url='#add-staff',
     export_name='employees',
-    print_target='#employee-records'
+    print_target='#employee-records',
+    form_panel_id='add-staff',
+    table_panel_id='employee-records',
+    new_url=url_for('staff') ~ '#add-staff'
   ) }}
   <div class="erp-module-form-panel erp-form-card erp-data-entry-panel" id="add-staff" data-entry-panel data-entry-list="employee-records">
     <div class="erp-data-entry-header" role="toolbar" aria-label="Entry navigation">
@@ -270,7 +273,11 @@
         </thead>
         <tbody>
           {% for row in rows %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.status or 'Active' }}"
+              data-view-url="{{ url_for('employee_profile', employee_type='staff', employee_id=row.id) }}"
+              data-edit-url="{{ url_for('staff', edit=row.id) }}#add-staff">
             <td>{{ row.staff_name }}</td>
             <td>{{ row.employee_code or '—' }}</td>
             <td>{{ row.display_designation }}</td>

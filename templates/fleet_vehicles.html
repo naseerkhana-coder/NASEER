@@ -1,9 +1,7 @@
 {% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
 {% set page_title = 'Vehicle Master' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('fleet_dashboard') ~ '">Fleet</a> &gt; Vehicles' %}
-{% block page_actions %}
-<a href="{{ url_for('fleet_vehicles', new=1) }}#record-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Vehicle</a>
-{% endblock %}
 {% block content %}
 {% if view_record %}
 <div class="erp-form-card" style="margin-bottom:1rem;">
@@ -15,6 +13,22 @@
   <a href="{{ url_for('fleet_vehicle_documents', vehicle_id=view_record.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Documents</a>
   <a href="{{ url_for('fleet_vehicles', edit=view_record.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
 </div>
+{% endif %}
+
+<div class="erp-module-layout">
+{% if not view_record %}
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search vehicles…',
+    search_name='q',
+    export_name='fleet_vehicles',
+    print_target='#vehicle-records',
+    form_panel_id='record-form',
+    table_panel_id='vehicle-records',
+    new_url=url_for('fleet_vehicles', new=1) ~ '#record-form',
+    reports_url=url_for('fleet_running_log'),
+    filter_status_options=vehicle_statuses
+  ) }}
 {% endif %}
 
 {% if show_form %}
@@ -44,14 +58,17 @@
 </div>
 {% endif %}
 
-<form method="get" style="margin-bottom:0.75rem;"><input name="q" value="{{ search }}" placeholder="Search vehicles…" style="max-width:280px;"> <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Search</button></form>
-<div class="erp-table-panel" data-erp-table>
+<div class="erp-table-panel" id="vehicle-records" data-erp-table>
   <div class="erp-table-scroll">
     <table class="erp-table">
       <thead><tr><th>Reg No</th><th>Type</th><th>Make / Model</th><th>Status</th><th>Odometer</th><th></th></tr></thead>
       <tbody>
         {% for row in rows %}
-        <tr>
+        <tr class="erp-selectable-row" tabindex="0"
+            data-record-id="{{ row.id }}"
+            data-status="{{ row.current_status or '' }}"
+            data-view-url="{{ url_for('fleet_vehicles', view=row.id) }}"
+            data-edit-url="{{ url_for('fleet_vehicles', edit=row.id) }}#record-form">
           <td>{{ row.registration_number }}</td>
           <td>{{ row.vehicle_type or '—' }}</td>
           <td>{{ row.make or '' }} {{ row.model or '' }}</td>
@@ -60,10 +77,11 @@
           <td><a href="{{ url_for('fleet_vehicles', view=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a></td>
         </tr>
         {% else %}
-        <tr><td colspan="6">No vehicles yet.</td></tr>
+        <tr><td colspan="6">No vehicles registered yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+</div>
 </div>
 {% endblock %}

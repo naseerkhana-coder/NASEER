@@ -7,11 +7,13 @@
 <button type="button" hidden data-mat-open="new" id="mat-add-trigger" aria-hidden="true"></button>
 <div class="erp-module-layout">
   {{ erp_module_toolbar(
+    mode='standard',
     search_placeholder='Search materials...',
     add_trigger_selector='#mat-add-trigger',
-    add_label='Add New',
     export_url=url_for('store_materials', export='excel'),
-    print_target='#material-records'
+    print_target='#material-records',
+    form_panel_id='mat-form-panel',
+    table_panel_id='material-records'
   ) }}
 
   <div class="erp-module-form-panel erp-form-card" id="mat-form-panel" hidden>
@@ -84,7 +86,11 @@
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr>
+        <tr class="erp-selectable-row" tabindex="0"
+            data-record-id="{{ row.id }}"
+            data-status="{{ 'Active' if row.is_active else 'Inactive' }}"
+            data-edit-url="{{ url_for('store_materials') }}#mat-form-panel"
+            data-open-url="{{ url_for('store_materials') }}#mat-form-panel">
           <td>{{ row.code }}</td>
           <td>{{ row.name }}</td>
           <td>{{ row.category or '—' }}</td>

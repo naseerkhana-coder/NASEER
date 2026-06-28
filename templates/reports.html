@@ -1,12 +1,21 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_pagination %}
-{% set page_title = 'Reports' %}
+{% from 'macros/erp_ui.html' import erp_pagination, erp_module_toolbar %}
+{% set page_title = 'Reports' ~ ((' — ' ~ company_display_name) if company_display_name and company_display_name != 'MAXEK Technologies' else '') %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Reports' %}
 {% block page_actions %}
 <button type="submit" form="report-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-file-export"></i> Export Report</button>
 {% endblock %}
 {% block content %}
-<div class="module-stack">
+<div class="erp-module-layout module-stack">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search report preview...',
+    export_name='report-preview',
+    print_target='[data-erp-table]',
+    show_run_report=true,
+    reports_url=url_for('workflow_audit_report')
+  ) }}
+
   <div class="erp-form-card">
     <h3 class="erp-form-title">Workflow Reports</h3>
     <p class="workflow-hint">Approval audit trail across all modules.</p>

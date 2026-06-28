@@ -64,7 +64,7 @@
 
   </head>
 
-  <body class="maxek-layout maxek-topnav-layout maxek-shell-layout{% if show_command_sidebar and not use_pro_shell|default(false) %} command-centre-layout{% endif %}{% if use_pro_shell|default(false) %} pro-dashboard-mode{% endif %}{% if pro_shell_department_portal|default(false) %} dept-workspace-mode pro-dept-portal{% endif %}{% block body_class %}{% endblock %}"{% if use_pro_shell|default(false) %} data-pro-theme="business"{% endif %}{% if dept_portal_accent %} style="--dept-accent: {{ dept_portal_accent }};"{% endif %}>
+  <body class="maxek-layout maxek-topnav-layout maxek-shell-layout{% if is_erp_admin_page|default(false) %} erp-admin-page{% endif %}{% if show_command_sidebar and not use_pro_shell|default(false) %} command-centre-layout{% endif %}{% if use_pro_shell|default(false) %} pro-dashboard-mode{% endif %}{% if pro_shell_department_portal|default(false) %} dept-workspace-mode pro-dept-portal{% endif %}{% block body_class %}{% endblock %}"{% if use_pro_shell|default(false) %} data-pro-theme="business"{% endif %}{% if dept_portal_accent %} style="--dept-accent: {{ dept_portal_accent }};"{% endif %}>
     <script>
     (function () {
       var layout = document.body;
@@ -127,7 +127,7 @@
           {% endif %}
 
           {% set nav_group = current_nav_group|default({'slug': 'dashboard', 'label': 'Dashboard', 'icon': 'fa-gauge-high'}) %}
-          {% set show_department_subbar = sub_toolbar_items and not pro_shell_department_portal|default(false) and (nav_group.get('slug') != 'dashboard' or request.endpoint in ['dashboard', 'dashboard_choice_b']) and request.endpoint != 'department_portal' %}
+          {% set show_department_subbar = sub_toolbar_items and not pro_shell_department_portal|default(false) and (nav_group.get('slug') != 'dashboard' or request.endpoint in ['dashboard', 'dashboard_choice_b']) and request.endpoint != 'department_portal' and request.endpoint not in erp_admin_active_endpoints|default([]) %}
 
           <div class="{% if pro_shell_dashboard|default(false) %}pro-dash-dashboard-host{% else %}pro-dash-content pro-dash-content--module{% endif %}">
             {% if show_department_subbar and not pro_shell_dashboard|default(false) %}
@@ -397,7 +397,7 @@
 
       {% set nav_group = current_nav_group|default({'slug': 'dashboard', 'label': 'Dashboard', 'icon': 'fa-gauge-high'}) %}
 
-      {% set show_department_subbar = not hide_module_nav and sub_toolbar_items and not pro_shell_department_portal|default(false) and (nav_group.get('slug') != 'dashboard' or request.endpoint in ['dashboard', 'dashboard_choice_b']) and request.endpoint != 'department_portal' %}
+      {% set show_department_subbar = not hide_module_nav and sub_toolbar_items and not pro_shell_department_portal|default(false) and (nav_group.get('slug') != 'dashboard' or request.endpoint in ['dashboard', 'dashboard_choice_b']) and request.endpoint != 'department_portal' and request.endpoint not in erp_admin_active_endpoints|default([]) %}
 
       {% if show_department_subbar %}
 

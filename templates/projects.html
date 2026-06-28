@@ -46,10 +46,14 @@
 <div class="erp-module-layout">
 {% if not view_project %}
   {{ erp_module_toolbar(
+    mode='standard',
     search_placeholder='Search projects...',
-    add_url='#add-project',
     export_name='projects',
-    print_target='#project-list'
+    print_target='#project-list',
+    form_panel_id='add-project',
+    table_panel_id='project-list',
+    new_url=url_for('projects') ~ '#add-project',
+    filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
   ) }}
 {% endif %}
 
@@ -345,7 +349,12 @@
         <thead><tr><th>Project No.</th><th>Name</th><th>Type</th><th>Client / Dept</th><th>Approved Total</th><th>Status</th><th>Workflow</th><th>Actions</th></tr></thead>
         <tbody>
           {% for row in rows %}
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.approval_status or 'Approved' }}"
+              data-created-at="{{ row.created_at or '' }}"
+              data-view-url="{{ url_for('projects', view=row.id) }}"
+              data-edit-url="{{ url_for('projects', edit=row.id) }}#add-project">
             <td>{{ row.project_code or row.id }}</td>
             <td>
               <button type="button" class="erp-link-btn" data-modal-open="project-hub-{{ row.id }}" title="Open Project 360">

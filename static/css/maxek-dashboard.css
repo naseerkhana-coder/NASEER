@@ -1861,6 +1861,112 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.maxek-layout .erp-module-toolbar--standard {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.65rem 0.75rem;
+}
+
+.maxek-layout .erp-module-toolbar--standard .erp-module-toolbar-search {
+  flex: 1 1 200px;
+  max-width: 420px;
+  min-width: 200px;
+}
+
+.maxek-layout .erp-module-toolbar--standard .erp-module-toolbar-search-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.maxek-layout .erp-module-toolbar--standard .erp-module-toolbar-search-form input[type="search"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.maxek-layout .erp-module-toolbar--standard .erp-toolbar-search-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.maxek-layout .erp-module-toolbar--standard .erp-module-toolbar-actions {
+  flex: 1 1 100%;
+  justify-content: flex-start;
+  gap: 0.4rem;
+}
+
+.maxek-layout .erp-module-toolbar--standard .erp-module-toolbar-actions .erp-btn-sm {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.maxek-layout .erp-module-toolbar--standard .erp-toolbar-select {
+  max-width: 8.5rem;
+}
+
+.maxek-layout .erp-selectable-row {
+  cursor: pointer;
+}
+
+.maxek-layout .erp-selectable-row.is-selected {
+  background: rgba(59, 130, 246, 0.12);
+  outline: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.maxek-layout .erp-hidden-form {
+  display: none;
+}
+
+/* ERP Admin pages: single module toolbar only — hide stacked platform subbars */
+.maxek-layout.erp-admin-page .department-subbar,
+.maxek-layout.erp-admin-page .department-subbar-reopen,
+.maxek-layout.erp-admin-page .pro-dash-department-subbar,
+.maxek-layout.erp-admin-page .erp-sub-toolbar,
+.maxek-layout.erp-admin-page .erp-sub-toolbar--secondary {
+  display: none !important;
+}
+
+.erp-toolbar-divider {
+  display: inline-block;
+  width: 1px;
+  height: 1.5rem;
+  background: var(--border-subtle, #334155);
+  margin: 0 0.15rem;
+  flex-shrink: 0;
+}
+
+.erp-toolbar-select-wrap {
+  display: inline-flex;
+  margin: 0;
+}
+
+.erp-toolbar-select {
+  height: var(--layout-control-height, 32px);
+  padding: 0 0.5rem;
+  border-radius: var(--layout-control-radius, 6px);
+  border: 1px solid var(--border-subtle, #334155);
+  background: var(--bg-dark-ops, #0f172a);
+  color: var(--text-main, #e2e8f0);
+  font-size: var(--layout-font-toolbar, 12px);
+  max-width: 9rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .maxek-layout .erp-module-form-panel {
@@ -4942,6 +5048,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+}
+
+.erp-module-toolbar--standard .erp-module-toolbar-actions {
+  flex: 1 1 100%;
 }
 
 /* Dashboard live tables & quick entry */

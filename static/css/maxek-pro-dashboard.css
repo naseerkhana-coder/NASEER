@@ -1044,6 +1044,31 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.pro-dash-company-name {
+  display: inline-flex;
+  align-items: center;
+  max-width: 14rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pro-text, #1e293b);
+  background: var(--pro-accent-soft, rgba(59, 130, 246, 0.12));
+  border: 1px solid var(--pro-accent-border, rgba(59, 130, 246, 0.25));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.maxek-layout.pro-dashboard-mode .erp-module-toolbar--standard {
+  margin-bottom: 0;
+}
+
+.maxek-layout.pro-dashboard-mode.erp-admin-page .pro-dash-content--module {
+  padding-top: 0;
+}
+
 /* Sign out — pinned slot, never clipped or scrolled away */
 .pro-dash-header-logout {
   flex: 0 0 auto;

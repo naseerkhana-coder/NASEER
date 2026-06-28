@@ -1,6 +1,6 @@
 {% extends 'base_maxek.html' %}
 
-{% from 'macros/erp_ui.html' import role_status_badge, rejection_notice, workflow_modals, transaction_view_tabs, checker_row_actions, approver_row_actions, erp_pagination %}
+{% from 'macros/erp_ui.html' import role_status_badge, rejection_notice, workflow_modals, transaction_view_tabs, checker_row_actions, approver_row_actions, erp_pagination, erp_module_toolbar %}
 
 {% set page_title = 'BOQ Creation' %}
 
@@ -179,6 +179,20 @@
 
 
   {% if not view_boq %}
+
+  <div class="erp-module-layout" style="margin-bottom:1rem;">
+    {{ erp_module_toolbar(
+      mode='standard',
+      search_placeholder='Search BOQ records...',
+      export_name='boq',
+      print_target='#boq-list',
+      form_panel_id='boq-form',
+      table_panel_id='boq-list',
+      new_url=url_for('boq_management') ~ '#boq-form',
+      reports_url=url_for('cost_planning_reports'),
+      filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
+    ) }}
+  </div>
 
   <section class="erp-module-form-panel erp-form-card erp-data-entry-panel erp-data-entry-panel--wide" id="boq-form" data-entry-panel data-entry-list="boq-list" data-entry-back-href="{{ url_for('boq_management') }}">
 
@@ -463,7 +477,12 @@
 
           {% for row in rows %}
 
-          <tr>
+          <tr class="erp-selectable-row" tabindex="0"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.approval_status or '' }}"
+              data-created-at="{{ row.created_at or '' }}"
+              data-view-url="{{ url_for('boq_management', view=row.id) }}"
+              data-edit-url="{{ url_for('boq_management', edit=row.id) }}#boq-form">
 
             <td>{{ row.boq_number }}</td>
 
