@@ -33,14 +33,9 @@
   <section class="pro-dash-dept-section pro-dash-dept-section--tiles" aria-labelledby="compact-dept-heading">
     <h3 id="compact-dept-heading" class="erp-module-section-title pro-dash-dept-section-title">Departments</h3>
     <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid pro-dash-dept-tile-grid--compact">
-      {% for card in command_centre_cards %}
-      <a href="{{ url_for('department_portal', slug=card.slug) }}" class="erp-module-tile dept-module-tile pro-dash-dept-tile pro-dash-dept-tile--compact" style="--dept-accent: {{ card.accent }};">
-        <span class="erp-module-tile-icon"><i class="fa-solid {{ card.icon }}" aria-hidden="true"></i></span>
-        <span class="erp-module-tile-body">
-          <span class="erp-module-tile-label">{{ card.card_label }}</span>
-        </span>
-      </a>
-      {% endfor %}
+      {% with tile_class='pro-dash-dept-tile--compact', show_description=false %}
+      {% include 'partials/command_centre_dept_tiles.html' %}
+      {% endwith %}
     </div>
   </section>
 </div>

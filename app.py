@@ -10272,19 +10272,22 @@ def get_command_centre_cards(db):
         if not portal:
             continue
         canonical_slug = portal["slug"]
-        if normalized_enabled is not None and canonical_slug not in normalized_enabled:
-            continue
         if canonical_slug in seen_slugs:
             continue
         seen_slugs.add(canonical_slug)
         meta = meta_by_slug.get(slug) or meta_by_slug.get(canonical_slug)
         if not meta:
             continue
+        is_locked = (
+            normalized_enabled is not None
+            and canonical_slug not in normalized_enabled
+        )
         cards.append(
             {
                 **meta,
                 "slug": canonical_slug,
                 "card_label": label,
+                "is_locked": is_locked,
             }
         )
     return cards
@@ -10619,10 +10622,6 @@ def _build_dashboard_shared_context(db):
         [],
         "command_centre_cards",
     )
-    command_centre_cards = filter_command_centre_dept_cards(
-        command_centre_cards,
-        user_prefs.get("favorite_modules"),
-    )
     command_centre_kpis = filter_command_centre_kpis(
         _dashboard_payload(lambda: get_command_centre_kpis(db), [], "command_centre_kpis"),
         user_prefs.get("dashboard_cards"),
@@ -10665,6 +10664,51 @@ def _build_dashboard_shared_context(db):
     }
 
 
+def build_super_admin_company_erp_section(db):
+    """Level 2 company ERP tiles when Super Admin has an active company context."""
+    company_id = session.get("company_id")
+    if not company_id:
+        return None
+    try:
+        from company_master_service import get_company
+
+        company = get_company(db, int(company_id))
+    except Exception:
+        app.logger.exception("Failed to load company %s for platform dashboard", company_id)
+        company = None
+    if not company:
+        return None
+    company_name = (
+        company.get("trade_name")
+        or company.get("legal_name")
+        or company.get("company_code")
+        or f"Company {company_id}"
+    )
+    branch_label = session.get("branch") or "All branches"
+    project_id = session.get("selected_project_id")
+    project_label = "All Projects"
+    if project_id:
+        try:
+            row = db.execute(
+                "SELECT project_name FROM projects WHERE id=?",
+                (int(project_id),),
+            ).fetchone()
+            if row:
+                project_label = row["project_name"]
+        except Exception:
+            pass
+    cards = get_command_centre_cards(db)
+    return {
+        "company_id": int(company_id),
+        "company_name": company_name,
+        "branch_label": branch_label,
+        "project_label": project_label,
+        "command_centre_cards": cards,
+        "dept_count": len(cards),
+        "dashboard_url": url_for("dashboard"),
+    }
+
+
 def render_choice_b_dashboard():
     db = get_db()
     theme_ctx = resolve_dashboard_theme(
@@ -10677,6 +10721,11 @@ def render_choice_b_dashboard():
     context["dashboard_theme_effective"] = theme_ctx["effective"]
     if theme_ctx.get("notice"):
         flash(theme_ctx["notice"], "info")
+    try:
+        if is_super_admin_user():
+            context["super_admin_company_erp"] = True
+    except Exception:
+        pass
     return render_template(theme_ctx["template"], **context)
 
 
@@ -10685,7 +10734,11 @@ def render_choice_b_dashboard():
 def dashboard():
     try:
         if is_super_admin_user():
-            return redirect(url_for("super_admin_platform_dashboard"))
+            query_company_id = request.args.get("company_id", type=int)
+            if query_company_id:
+                session["company_id"] = query_company_id
+            if not session.get("company_id"):
+                return redirect(url_for("super_admin_platform_dashboard"))
     except Exception:
         pass
     return render_choice_b_dashboard()

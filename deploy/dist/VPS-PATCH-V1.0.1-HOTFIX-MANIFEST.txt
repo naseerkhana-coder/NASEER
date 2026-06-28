@@ -1,29 +1,53 @@
-﻿MAXEK ERP — VPS Patch v1.0.1 Hotfix
-Generated: 2026-06-28
+MAXEK ERP — VPS Patch v1.0.1 Hotfix (revised)
+Generated: 2026-06-28 20:07
 Archive: deploy/dist/vps-patch-v1.0.1-hotfix.zip
 
 Purpose
 -------
-Minimal VPS deployment patch so the application starts via WSGI without requiring
-bulk import or data import Python modules on the server. Bulk/data import routes
-register only when those modules are present.
+Fix production UAT issues after initial v1.0.1 hotfix:
+  1. Dashboard theme settings (Settings + Customer Settings templates/services)
+  2. Main dashboard shows all 14 department tiles (locked when not subscribed)
+  3. WSGI-safe bulk import registration (try/except in app.py)
+
+Root cause
+----------
+Initial hotfix zip deployed app.py only. VPS kept older templates without
+dashboard_layout_theme / dashboard_theme UI. Department tiles were filtered by
+subscription enabled_departments and user favorite_modules preferences.
 
 Files in archive
 ----------------
-app.py
-  Wrap bulk_import_routes and data_import_routes imports in try/except and register
-  routes only when import succeeds. Allows wsgi import and app boot on VPS without
-  bulk import dependencies.
-
-standard_boq_library_service.py
-  Standard BOQ library service included in the v1.0.1 hotfix bundle for VPS parity
-  with UAT fixes.
-
-static/js/maxek-ui.js
-  Shared MAXEK UI JavaScript included in the v1.0.1 hotfix bundle for client-side
-  fixes shipped with this release.
+  app.py
+  dashboard_prefs_service.py
+  user_context_service.py
+  erp_admin_routes.py
+  standard_boq_library_service.py
+  templates/settings.html
+  templates/erp_admin/customer_settings.html
+  templates/dashboard.html
+  templates/dashboard_theme_executive.html
+  templates/dashboard_theme_compact.html
+  templates/partials/command_centre_dept_tiles.html
+  static/css/maxek-dashboard.css
+  static/js/maxek-ui.js
 
 Deployment
 ----------
-Extract zip at application root (preserve paths). Restart WSGI/application service.
-Do not deploy bulk_import_*.py or data_import_*.py unless bulk import is required.
+Extract zip at application root (preserve paths). Restart gunicorn/uwsgi.
+Schema columns (dashboard_theme, dashboard_layout_theme) auto-migrate on boot.
+
+LOCAL -> VPS
+--------------------------------------------------------------------------------
+   1. C:\Users\rajee\Documents\New project\MAXEK_ERP\app.py -> /var/www/maxek-erp-flask/app.py
+   2. C:\Users\rajee\Documents\New project\MAXEK_ERP\dashboard_prefs_service.py -> /var/www/maxek-erp-flask/dashboard_prefs_service.py
+   3. C:\Users\rajee\Documents\New project\MAXEK_ERP\user_context_service.py -> /var/www/maxek-erp-flask/user_context_service.py
+   4. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_admin_routes.py -> /var/www/maxek-erp-flask/erp_admin_routes.py
+   5. C:\Users\rajee\Documents\New project\MAXEK_ERP\standard_boq_library_service.py -> /var/www/maxek-erp-flask/standard_boq_library_service.py
+   6. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\settings.html -> /var/www/maxek-erp-flask/templates/settings.html
+   7. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\customer_settings.html -> /var/www/maxek-erp-flask/templates/erp_admin/customer_settings.html
+   8. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard.html -> /var/www/maxek-erp-flask/templates/dashboard.html
+   9. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_executive.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_executive.html
+  10. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_compact.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_compact.html
+  11. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\command_centre_dept_tiles.html -> /var/www/maxek-erp-flask/templates/partials/command_centre_dept_tiles.html
+  12. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\css\maxek-dashboard.css -> /var/www/maxek-erp-flask/static/css/maxek-dashboard.css
+  13. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\js\maxek-ui.js -> /var/www/maxek-erp-flask/static/js/maxek-ui.js

@@ -134,7 +134,7 @@
         {% endfor %}
       </div>
       <div class="dash-display-toggles span-2">
-        <p><strong>Favourite modules</strong> <span class="erp-form-hint">Controls which department tiles appear on Command Centre</span></p>
+        <p><strong>Favourite modules</strong> <span class="erp-form-hint">Shortcuts for quick actions (department tiles always show all modules on the home dashboard)</span></p>
         {% for mod in ['accounts_payments','accounts_receipts','boq_management','dpr_entry','client_billing_register','store','material_request','purchase_orders','payroll','approvals'] %}
         <label><input type="checkbox" name="favorite_modules" value="{{ mod }}"{% if mod in (user_dashboard_prefs.favorite_modules or []) %} checked{% endif %}> {{ mod|replace('_',' ')|title }}</label>
         {% endfor %}
