@@ -1,6 +1,8 @@
 ﻿# MAXEK ERP — Deployment Approval & Execution Runbook
 
 **Date:** 2026-06-28  
+**Release roadmap:** [docs/MAXEK_ERP_RELEASE_PLAN.md](../docs/MAXEK_ERP_RELEASE_PLAN.md)
+
 **Approved by:** User (manual deployment)  
 **Repository:** `C:\Users\rajee\Documents\New project\MAXEK_ERP`  
 **Git HEAD:** `2e10ed5a72ec334de41553d609049a273edda2a8` — feat: improve user permission assignment UI with department matrix  
@@ -233,3 +235,4 @@ python deploy/build_vps_patch_latest.py
 - [ ] Service verified
 - [ ] UAT smoke passed
 - [ ] Production baseline signed off
+
