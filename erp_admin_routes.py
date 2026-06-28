@@ -177,8 +177,11 @@ def register_erp_admin_routes(
     @super_admin_required
     def erp_admin_customers():
         db = get_db()
-        ensure_super_admin_schema(db)
-        db.commit()
+        try:
+            ensure_super_admin_schema(db)
+            db.commit()
+        except Exception:
+            logger.exception("erp_admin_customers schema ensure failed")
         packages = list_customer_packages(db)
         package_defaults = {
             pkg["package_code"]: pkg.get("default_department_slugs") or []

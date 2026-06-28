@@ -2092,17 +2092,27 @@ def _seed_users_if_missing(
         "SELECT id, customer_id FROM users WHERE username='admin' AND customer_id IS NULL"
     ).fetchone()
     if admin_row and trd001:
-        db.execute(
-            "UPDATE users SET customer_id=?, role=?, password=?, employee_name=? WHERE id=?",
-            (
-                trd001["id"],
-                CUSTOMER_ADMIN_ROLE,
-                hash_password_fn(TRD001_ADMIN_DEFAULT_PASSWORD),
-                "Arabica Coffee Admin",
-                admin_row["id"],
-            ),
-        )
-        report["created"].append("user:legacy_admin_mapped_to_TRD001")
+        existing_tenant_admin = db.execute(
+            "SELECT id FROM users WHERE username='admin' AND customer_id=?",
+            (trd001["id"],),
+        ).fetchone()
+        if existing_tenant_admin and existing_tenant_admin["id"] != admin_row["id"]:
+            report["skipped"].append("user:legacy_admin_mapped_to_TRD001")
+        else:
+            try:
+                db.execute(
+                    "UPDATE users SET customer_id=?, role=?, password=?, employee_name=? WHERE id=?",
+                    (
+                        trd001["id"],
+                        CUSTOMER_ADMIN_ROLE,
+                        hash_password_fn(TRD001_ADMIN_DEFAULT_PASSWORD),
+                        "Arabica Coffee Admin",
+                        admin_row["id"],
+                    ),
+                )
+                report["created"].append("user:legacy_admin_mapped_to_TRD001")
+            except sqlite3.IntegrityError:
+                report["skipped"].append("user:legacy_admin_mapped_to_TRD001")
 
     superadmin_row = db.execute(
         "SELECT id FROM users WHERE username='superadmin' AND customer_id=?",

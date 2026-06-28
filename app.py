@@ -17880,13 +17880,22 @@ def ledger():
     return _accounts_book("Ledger")
 
 
+def _accounts_journal_rows(fetch_fn, db, from_date, to_date):
+    try:
+        return fetch_fn(db, from_date, to_date)
+    except sqlite3.OperationalError:
+        app.logger.exception("Accounts journal query failed (%s)", fetch_fn.__name__)
+        return []
+
+
 @app.route("/accounts/cash-book-v2")
 @login_required
 def accounts_cash_book_v2():
     db = get_db()
     _prepare_accounts_db(db)
     from_date, to_date = _accounts_date_range()
-    return _accounts_book_v2("Cash Book (CoA)", get_cash_book_v2(db, from_date, to_date), "Cash / Petty")
+    rows = _accounts_journal_rows(get_cash_book_v2, db, from_date, to_date)
+    return _accounts_book_v2("Cash Book (CoA)", rows, "Cash / Petty")
 
 
 @app.route("/accounts/bank-book-v2")
@@ -17895,7 +17904,8 @@ def accounts_bank_book_v2():
     db = get_db()
     _prepare_accounts_db(db)
     from_date, to_date = _accounts_date_range()
-    return _accounts_book_v2("Bank Book (CoA)", get_bank_book_v2(db, from_date, to_date), "Bank")
+    rows = _accounts_journal_rows(get_bank_book_v2, db, from_date, to_date)
+    return _accounts_book_v2("Bank Book (CoA)", rows, "Bank")
 
 
 @app.route("/accounts/day-book")
@@ -17904,7 +17914,7 @@ def accounts_day_book():
     db = get_db()
     _prepare_accounts_db(db)
     from_date, to_date = _accounts_date_range()
-    rows = get_day_book(db, from_date, to_date)
+    rows = _accounts_journal_rows(get_day_book, db, from_date, to_date)
     export = request.args.get("export")
     if export == "excel":
         buf = export_report_excel(rows, "Day Book")
@@ -17929,7 +17939,16 @@ def accounts_general_ledger():
     _prepare_accounts_db(db)
     from_date, to_date = _accounts_date_range()
     account_id = request.args.get("account_id", type=int)
-    rows = get_general_ledger(db, account_id, from_date, to_date)
+    try:
+        rows = get_general_ledger(db, account_id, from_date, to_date)
+    except sqlite3.OperationalError:
+        app.logger.exception("General ledger query failed")
+        rows = []
+    chart_heads = []
+    try:
+        chart_heads = list_chart_of_accounts(db)
+    except sqlite3.OperationalError:
+        app.logger.exception("Chart of accounts list failed for general ledger")
     return render_template(
         "accounts_book_v2.html",
         page_title="General Ledger",
@@ -17940,7 +17959,7 @@ def accounts_general_ledger():
         from_date=from_date or "",
         to_date=to_date or "",
         account_label="All Accounts",
-        chart_heads=list_chart_of_accounts(db),
+        chart_heads=chart_heads,
         selected_account_id=account_id,
     )
 

@@ -2,7 +2,7 @@
 {% from 'macros/erp_ui.html' import erp_module_toolbar, entity_status_badge, erp_pagination, erp_module_form_panel, erp_module_table_panel %}
 
 {% set page_title = 'License Master' %}
-{% set breadcrumbs = '<a href="' ~ url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a> &gt; License Master' %}
+{% set breadcrumbs = '<a href="' ~ safe_url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a> &gt; License Master' %}
 
 {% block content %}
 <div class="erp-module-layout{% if not edit_record %} module-layout--list-only{% endif %}">
