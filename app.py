@@ -416,12 +416,14 @@ from badge_counts_service import badge_for_endpoint, get_live_badge_counts
 from attachment_service import ensure_attachment_schema
 from audit_trail_service import ensure_audit_schema, list_audit_trail
 from dashboard_prefs_service import (
+    DASHBOARD_THEME_SELECT_OPTIONS,
     filter_command_centre_dept_cards,
     filter_command_centre_kpis,
     filter_command_centre_quick_actions,
     infer_role_profile,
     load_dashboard_preferences,
     normalize_ui_theme,
+    resolve_dashboard_theme,
     save_dashboard_preferences,
 )
 
@@ -10481,8 +10483,53 @@ def _dashboard_kpi_icon_map():
     }
 
 
-def render_choice_b_dashboard():
-    db = get_db()
+def _build_executive_financial_summary(db, stats):
+    """High-level financial snapshot for Executive dashboard (not full accounts dept)."""
+    summary = {
+        "cash_display": stats.get("cash_display") or "—",
+        "pending_expenses": 0,
+        "revenue": "—",
+        "open_pos": 0,
+        "journal_pending": 0,
+    }
+    try:
+        _prepare_accounts_db(db)
+        accounts = accounts_hub_stats(db)
+        summary["pending_expenses"] = accounts.get("pending_expenses") or 0
+    except Exception:
+        pass
+    if _table_exists(db, "journal_entries"):
+        summary["journal_pending"] = _safe_scalar_count(
+            db,
+            "SELECT COUNT(*) AS c FROM journal_entries "
+            "WHERE approval_status IN ('Pending Checker', 'Pending Approval')",
+        )
+    summary["open_pos"] = _safe_scalar_count(
+        db,
+        "SELECT COUNT(*) AS c FROM purchase_orders "
+        "WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending', 'Draft')",
+    )
+    for kpi in get_command_centre_kpis(db):
+        if kpi.get("key") == "revenue":
+            summary["revenue"] = kpi.get("value", "—")
+            break
+    return summary
+
+
+def _build_executive_company_summary(stats):
+    return {
+        "company_name": session.get("customer_name") or session.get("company_code") or "",
+        "branch": session.get("branch", "Head Office"),
+        "total_projects": stats.get("total_projects") or 0,
+        "active_projects": stats.get("active_projects") or 0,
+        "workforce": stats.get("total_employees") or 0,
+        "present_today": stats.get("present_today") or 0,
+        "health_score": stats.get("health_score") or 0,
+    }
+
+
+def _build_dashboard_shared_context(db):
+    """Shared dashboard payload for all layout themes (no duplicated business logic)."""
 
     def _dashboard_payload(getter, default, label):
         try:
@@ -10491,10 +10538,29 @@ def render_choice_b_dashboard():
             app.logger.exception("Dashboard payload failed: %s", label)
             return default
 
+    user_id = session.get("user_id")
+    user_prefs = load_dashboard_preferences(db, user_id)
+    stats = _dashboard_payload(lambda: get_dashboard_stats(db), {}, "dashboard_stats")
     command_centre_cards = _dashboard_payload(
         lambda: get_command_centre_cards(db),
         [],
         "command_centre_cards",
+    )
+    command_centre_cards = filter_command_centre_dept_cards(
+        command_centre_cards,
+        user_prefs.get("favorite_modules"),
+    )
+    command_centre_kpis = filter_command_centre_kpis(
+        _dashboard_payload(lambda: get_command_centre_kpis(db), [], "command_centre_kpis"),
+        user_prefs.get("dashboard_cards"),
+    )
+    command_centre_quick_actions = filter_command_centre_quick_actions(
+        user_prefs.get("quick_actions"),
+    )
+    approval_summary = _dashboard_payload(
+        lambda: get_approval_summary(db),
+        {},
+        "approval_summary",
     )
     sidebar_context = _command_centre_sidebar_context(db, active_slug="command-centre")
     greeting = _build_dashboard_greeting_context()
@@ -10505,19 +10571,40 @@ def render_choice_b_dashboard():
     except Exception:
         pass
     sidebar_context["command_user_role"] = role_label
-    pending_approvals = _dashboard_payload(
-        lambda: get_dashboard_stats(db).get("pending_approvals_count", 0),
-        0,
-        "dashboard_pending_approvals",
-    )
+    pending_approvals = stats.get("pending_approvals_count", 0)
+    if not pending_approvals and approval_summary:
+        pending_approvals = (
+            (approval_summary.get("pending_checker") or 0)
+            + (approval_summary.get("pending_approval") or 0)
+        )
 
-    return render_template(
-        "dashboard.html",
-        command_centre_cards=command_centre_cards,
-        dashboard_greeting=greeting,
-        dashboard_stats={"pending_approvals_count": pending_approvals},
+    return {
+        "command_centre_cards": command_centre_cards,
+        "command_centre_kpis": command_centre_kpis,
+        "command_centre_quick_actions": command_centre_quick_actions,
+        "dashboard_greeting": greeting,
+        "dashboard_stats": stats,
+        "approval_summary": approval_summary,
+        "financial_summary": _build_executive_financial_summary(db, stats),
+        "company_summary": _build_executive_company_summary(stats),
+        "pending_approvals_count": pending_approvals,
         **sidebar_context,
+    }
+
+
+def render_choice_b_dashboard():
+    db = get_db()
+    theme_ctx = resolve_dashboard_theme(
+        db,
+        session.get("user_id"),
+        session.get("customer_id"),
     )
+    context = _build_dashboard_shared_context(db)
+    context["dashboard_theme"] = theme_ctx
+    context["dashboard_theme_effective"] = theme_ctx["effective"]
+    if theme_ctx.get("notice"):
+        flash(theme_ctx["notice"], "info")
+    return render_template(theme_ctx["template"], **context)
 
 
 @app.route("/dashboard")
@@ -13572,6 +13659,7 @@ def settings():
                         "company_name": request.form.get("tenant_company_name"),
                         "logo_path": request.form.get("tenant_logo_path"),
                         "theme": request.form.get("tenant_theme"),
+                        "dashboard_theme": request.form.get("tenant_dashboard_theme"),
                         "address": request.form.get("tenant_address"),
                         "vat_gst_number": request.form.get("tenant_gst"),
                         "financial_year": request.form.get("tenant_financial_year"),
@@ -13614,6 +13702,7 @@ def settings():
             modules = [m.strip() for m in request.form.getlist("favorite_modules") if m.strip()]
             actions = [a.strip() for a in request.form.getlist("quick_actions") if a.strip()]
             reports = [r.strip() for r in request.form.getlist("reports") if r.strip()]
+            layout_theme = request.form.get("dashboard_layout_theme", "").strip()
             save_dashboard_preferences(
                 db,
                 session.get("user_id"),
@@ -13622,6 +13711,7 @@ def settings():
                 dashboard_cards=cards,
                 quick_actions=actions,
                 reports=reports,
+                dashboard_layout_theme=layout_theme or None,
             )
             flash("Your dashboard preferences were saved.")
             return redirect(url_for("settings") + "#dashboard-preferences")
@@ -13662,6 +13752,7 @@ def settings():
         dashboard_display=dashboard_display,
         user_dashboard_prefs=user_dashboard_prefs,
         tenant_settings=tenant_settings,
+        dashboard_theme_options=DASHBOARD_THEME_SELECT_OPTIONS,
         can_edit_tenant_settings=bool(
             customer_id and not is_super_admin_user() and (is_customer_admin_user() or is_admin_user())
         ),

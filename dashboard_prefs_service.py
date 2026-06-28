@@ -8,14 +8,119 @@ from typing import Any
 
 from user_context_service import ensure_user_context_schema
 
+_UNSET = object()
+
 VALID_UI_THEMES = frozenset({"command-dark", "pro-light", "ultra-color"})
 DEFAULT_UI_THEME = "command-dark"
+
+VALID_DASHBOARD_THEMES = frozenset(
+    {"executive", "command-centre", "compact", "kpi", "custom"}
+)
+ACTIVE_DASHBOARD_THEMES = frozenset({"executive", "command-centre", "compact"})
+PLACEHOLDER_DASHBOARD_THEMES = frozenset({"kpi", "custom"})
+DEFAULT_DASHBOARD_THEME = "command-centre"
+
+DASHBOARD_THEME_LABELS: dict[str, str] = {
+    "executive": "Theme A — Executive Dashboard",
+    "command-centre": "Theme B — Construction Command Centre",
+    "compact": "Theme C — Compact Dashboard",
+    "kpi": "Theme D — KPI Dashboard",
+    "custom": "Theme E — Custom Dashboard",
+}
+
+DASHBOARD_THEME_TEMPLATES: dict[str, str] = {
+    "command-centre": "dashboard.html",
+    "executive": "dashboard_theme_executive.html",
+    "compact": "dashboard_theme_compact.html",
+}
+
+DASHBOARD_THEME_SELECT_OPTIONS: list[tuple[str, str, bool]] = [
+    ("executive", DASHBOARD_THEME_LABELS["executive"], False),
+    ("command-centre", DASHBOARD_THEME_LABELS["command-centre"], False),
+    ("compact", DASHBOARD_THEME_LABELS["compact"], False),
+    ("kpi", f'{DASHBOARD_THEME_LABELS["kpi"]} (coming soon)', True),
+    ("custom", f'{DASHBOARD_THEME_LABELS["custom"]} (coming soon)', True),
+]
 
 
 def normalize_ui_theme(theme: str | None) -> str:
     if theme and theme in VALID_UI_THEMES:
         return theme
     return DEFAULT_UI_THEME
+
+
+def normalize_dashboard_theme(theme: str | None) -> str:
+    if theme and theme in VALID_DASHBOARD_THEMES:
+        return theme
+    return DEFAULT_DASHBOARD_THEME
+
+
+def resolve_effective_dashboard_theme(theme: str | None) -> tuple[str, str | None]:
+    """Return (effective_theme, optional_notice) for placeholder themes."""
+    normalized = normalize_dashboard_theme(theme)
+    if normalized in PLACEHOLDER_DASHBOARD_THEMES:
+        label = DASHBOARD_THEME_LABELS.get(normalized, normalized)
+        return (
+            DEFAULT_DASHBOARD_THEME,
+            f'{label} is coming soon. Showing Construction Command Centre.',
+        )
+    return normalized, None
+
+
+def get_customer_dashboard_theme(db, customer_id: int | None) -> str:
+    if not customer_id:
+        return DEFAULT_DASHBOARD_THEME
+    try:
+        row = db.execute(
+            "SELECT dashboard_theme FROM erp_customers WHERE id=?",
+            (customer_id,),
+        ).fetchone()
+    except Exception:
+        return DEFAULT_DASHBOARD_THEME
+    if not row:
+        return DEFAULT_DASHBOARD_THEME
+    raw = row["dashboard_theme"] if "dashboard_theme" in row.keys() else None
+    return normalize_dashboard_theme(raw)
+
+
+def resolve_dashboard_theme(
+    db,
+    user_id: int | None,
+    customer_id: int | None,
+) -> dict[str, Any]:
+    """Resolve dashboard layout: user override beats company default."""
+    user_requested: str | None = None
+    if user_id:
+        ensure_user_context_schema(db)
+        row = db.execute(
+            "SELECT dashboard_layout_theme FROM user_dashboard_preferences WHERE user_id=?",
+            (user_id,),
+        ).fetchone()
+        if row and row["dashboard_layout_theme"]:
+            user_requested = str(row["dashboard_layout_theme"]).strip() or None
+    if user_requested:
+        effective, notice = resolve_effective_dashboard_theme(user_requested)
+        return {
+            "requested": user_requested,
+            "effective": effective,
+            "source": "user",
+            "notice": notice,
+            "template": DASHBOARD_THEME_TEMPLATES.get(
+                effective, DASHBOARD_THEME_TEMPLATES[DEFAULT_DASHBOARD_THEME]
+            ),
+        }
+
+    company_requested = get_customer_dashboard_theme(db, customer_id)
+    effective, notice = resolve_effective_dashboard_theme(company_requested)
+    return {
+        "requested": company_requested,
+        "effective": effective,
+        "source": "company",
+        "notice": notice,
+        "template": DASHBOARD_THEME_TEMPLATES.get(
+            effective, DASHBOARD_THEME_TEMPLATES[DEFAULT_DASHBOARD_THEME]
+        ),
+    }
 
 DEFAULT_ROLE_PROFILES: dict[str, dict[str, Any]] = {
     "accounts": {
@@ -81,6 +186,8 @@ def load_dashboard_preferences(db, user_id: int | None) -> dict[str, Any]:
             parsed[col] = []
     if "ui_theme" in row.keys():
         parsed["ui_theme"] = normalize_ui_theme(row["ui_theme"])
+    if "dashboard_layout_theme" in row.keys() and row["dashboard_layout_theme"]:
+        parsed["dashboard_layout_theme"] = normalize_dashboard_theme(row["dashboard_layout_theme"])
     return _merge_defaults(parsed, role_profile)
 
 
@@ -94,9 +201,16 @@ def save_dashboard_preferences(
     quick_actions: list[str] | None = None,
     reports: list[str] | None = None,
     ui_theme: str | None = None,
+    dashboard_layout_theme: str | None | object = _UNSET,
 ) -> dict[str, Any]:
     ensure_user_context_schema(db)
     existing = load_dashboard_preferences(db, user_id)
+    layout_theme = existing.get("dashboard_layout_theme")
+    if dashboard_layout_theme is not _UNSET:
+        if dashboard_layout_theme in (None, ""):
+            layout_theme = None
+        else:
+            layout_theme = normalize_dashboard_theme(str(dashboard_layout_theme))
     payload = {
         "role_profile": role_profile or existing.get("role_profile", "default"),
         "favorite_modules": favorite_modules if favorite_modules is not None else existing.get("favorite_modules", []),
@@ -104,13 +218,15 @@ def save_dashboard_preferences(
         "quick_actions": quick_actions if quick_actions is not None else existing.get("quick_actions", []),
         "reports": reports if reports is not None else existing.get("reports", []),
         "ui_theme": normalize_ui_theme(ui_theme if ui_theme is not None else existing.get("ui_theme")),
+        "dashboard_layout_theme": layout_theme,
     }
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     db.execute(
         """
         INSERT INTO user_dashboard_preferences(
-            user_id, role_profile, favorite_modules, dashboard_cards, quick_actions, reports, ui_theme, updated_at
-        ) VALUES(?,?,?,?,?,?,?,?)
+            user_id, role_profile, favorite_modules, dashboard_cards, quick_actions, reports,
+            ui_theme, dashboard_layout_theme, updated_at
+        ) VALUES(?,?,?,?,?,?,?,?,?)
         ON CONFLICT(user_id) DO UPDATE SET
             role_profile=excluded.role_profile,
             favorite_modules=excluded.favorite_modules,
@@ -118,6 +234,7 @@ def save_dashboard_preferences(
             quick_actions=excluded.quick_actions,
             reports=excluded.reports,
             ui_theme=excluded.ui_theme,
+            dashboard_layout_theme=excluded.dashboard_layout_theme,
             updated_at=excluded.updated_at
         """,
         (
@@ -128,6 +245,7 @@ def save_dashboard_preferences(
             json.dumps(payload["quick_actions"]),
             json.dumps(payload["reports"]),
             payload["ui_theme"],
+            payload["dashboard_layout_theme"],
             now,
         ),
     )

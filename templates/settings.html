@@ -59,6 +59,14 @@
       <div class="erp-field span-2"><input name="tenant_company_name" required placeholder=" " value="{{ tenant_settings.company_name or '' }}"><label>Company Display Name *</label></div>
       <div class="erp-field span-2"><input name="tenant_logo_path" placeholder=" " value="{{ tenant_settings.logo_path or '' }}"><label>Logo Path (under static/)</label></div>
       <div class="erp-field"><select name="tenant_theme" class="has-value"><option value="command-dark"{% if tenant_settings.theme == 'command-dark' or not tenant_settings.theme %} selected{% endif %}>Command Dark</option><option value="pro-light"{% if tenant_settings.theme == 'pro-light' %} selected{% endif %}>Pro Light</option><option value="ultra-color"{% if tenant_settings.theme == 'ultra-color' %} selected{% endif %}>Ultra Color</option></select><label>UI Theme</label></div>
+      <div class="erp-field span-2">
+        <select name="tenant_dashboard_theme" class="has-value">
+          {% for value, label, disabled in dashboard_theme_options %}
+          <option value="{{ value }}"{% if (tenant_settings.dashboard_theme or 'command-centre') == value %} selected{% endif %}{% if disabled %} disabled{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Dashboard Theme (company default)</label>
+      </div>
       <div class="erp-field span-2"><textarea name="tenant_address" placeholder=" ">{{ tenant_settings.address or '' }}</textarea><label>Registered Address</label></div>
       <div class="erp-field"><input name="tenant_gst" placeholder=" " value="{{ tenant_settings.vat_gst_number or '' }}"><label>GST / VAT Number</label></div>
       <div class="erp-field"><input name="tenant_financial_year" placeholder=" " value="{{ tenant_settings.financial_year or '' }}"><label>Financial Year (e.g. 2025-26)</label></div>
@@ -100,6 +108,16 @@
     <p class="erp-form-hint">Saved for your user account only. Choose role profile and widgets.</p>
     <form method="post" class="erp-form-grid">
       <input type="hidden" name="form_type" value="user_dashboard_preferences">
+      <div class="erp-field span-2">
+        <select name="dashboard_layout_theme" class="has-value">
+          <option value=""{% if not user_dashboard_prefs.dashboard_layout_theme %} selected{% endif %}>Use company default{% if tenant_settings and tenant_settings.dashboard_theme %} ({{ tenant_settings.dashboard_theme|replace('-', ' ')|title }}){% else %} (Command Centre){% endif %}</option>
+          {% for value, label, disabled in dashboard_theme_options %}
+          <option value="{{ value }}"{% if user_dashboard_prefs.dashboard_layout_theme == value %} selected{% endif %}{% if disabled %} disabled{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Dashboard Layout Theme</label>
+        <p class="erp-form-hint">Overrides the company default from Customer Settings for your account only.</p>
+      </div>
       <div class="erp-field span-2">
         <select name="role_profile" class="has-value">
           <option value="default"{% if user_dashboard_prefs.role_profile == 'default' %} selected{% endif %}>Default</option>

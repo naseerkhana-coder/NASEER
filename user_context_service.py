@@ -49,6 +49,8 @@ def ensure_user_context_schema(db) -> None:
     cols = {r[1] for r in db.execute("PRAGMA table_info(user_dashboard_preferences)").fetchall()}
     if "ui_theme" not in cols:
         db.execute("ALTER TABLE user_dashboard_preferences ADD COLUMN ui_theme TEXT")
+    if "dashboard_layout_theme" not in cols:
+        db.execute("ALTER TABLE user_dashboard_preferences ADD COLUMN dashboard_layout_theme TEXT")
         db.commit()
 
 

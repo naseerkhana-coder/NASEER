@@ -647,6 +647,7 @@ def ensure_super_admin_schema(db) -> None:
         ("currency", "TEXT DEFAULT 'INR'"),
         ("timezone", "TEXT DEFAULT 'Asia/Kolkata'"),
         ("email_settings", "TEXT"),
+        ("dashboard_theme", "TEXT DEFAULT 'command-centre'"),
     ):
         _ensure_column(db, "erp_customers", column, col_type)
     _ensure_column(db, "users", "email", "TEXT")
@@ -1168,6 +1169,7 @@ def save_customer_tenant_settings(db, customer_id: int, data: dict[str, Any]) ->
         "currency": (data.get("currency") or "INR").strip(),
         "timezone": (data.get("timezone") or "Asia/Kolkata").strip(),
         "email_settings": (data.get("email_settings") or "").strip(),
+        "dashboard_theme": (data.get("dashboard_theme") or "").strip() or "command-centre",
     }
     if not fields["company_name"]:
         raise ValueError("Company name is required.")
@@ -1175,7 +1177,7 @@ def save_customer_tenant_settings(db, customer_id: int, data: dict[str, Any]) ->
     db.execute(
         "UPDATE erp_customers SET company_name=?, logo_path=?, theme=?, address=?, "
         "vat_gst_number=?, financial_year=?, currency=?, timezone=?, email_settings=?, "
-        "modified_at=? "
+        "dashboard_theme=?, modified_at=? "
         "WHERE id=? AND COALESCE(is_platform, 0)=0",
         (
             fields["company_name"],
@@ -1187,6 +1189,7 @@ def save_customer_tenant_settings(db, customer_id: int, data: dict[str, Any]) ->
             fields["currency"],
             fields["timezone"],
             fields["email_settings"] or None,
+            fields["dashboard_theme"],
             now,
             customer_id,
         ),

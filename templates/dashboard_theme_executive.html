@@ -1,0 +1,119 @@
+{% extends 'base_maxek.html' %}
+
+{% block body_class %} dashboard-mode pro-dashboard-mode dashboard-theme-executive{% endblock %}
+
+{% block title %}Executive Dashboard — MAXEK ERP{% endblock %}
+
+{% block content %}
+<div class="pro-dash-content pro-dash-content--home pro-dash-theme-layout" data-dashboard-theme="executive">
+  <header class="pro-dash-greeting-row" aria-labelledby="pro-dash-greeting-title">
+    <div class="pro-dash-greeting-text">
+      <h1 id="pro-dash-greeting-title">Good {{ dashboard_greeting.period }}, {{ dashboard_greeting.name }}</h1>
+      <p class="pro-dash-greeting-sub">Executive overview{% if company_summary.company_name %} for <strong>{{ company_summary.company_name }}</strong>{% endif %} — {{ company_summary.branch }}</p>
+    </div>
+    <div class="pro-dash-date-chip" aria-label="Today's date">
+      <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+      <span>{{ dashboard_greeting.date_label }}</span>
+    </div>
+  </header>
+
+  <section class="pro-dash-exec-section" aria-labelledby="exec-company-heading">
+    <h3 id="exec-company-heading" class="erp-module-section-title pro-dash-dept-section-title">Company Summary</h3>
+    <div class="pro-dash-exec-kpi-grid">
+      <article class="pro-dash-exec-kpi-card">
+        <span class="pro-dash-exec-kpi-label">Active Projects</span>
+        <strong class="pro-dash-exec-kpi-value">{{ company_summary.active_projects }}</strong>
+        <span class="pro-dash-exec-kpi-hint">{{ company_summary.total_projects }} total sites</span>
+      </article>
+      <article class="pro-dash-exec-kpi-card">
+        <span class="pro-dash-exec-kpi-label">Workforce</span>
+        <strong class="pro-dash-exec-kpi-value">{{ company_summary.workforce }}</strong>
+        <span class="pro-dash-exec-kpi-hint">{{ company_summary.present_today }} present today</span>
+      </article>
+      <article class="pro-dash-exec-kpi-card">
+        <span class="pro-dash-exec-kpi-label">Health Score</span>
+        <strong class="pro-dash-exec-kpi-value">{{ company_summary.health_score }}%</strong>
+        <span class="pro-dash-exec-kpi-hint">Operational pulse</span>
+      </article>
+      <article class="pro-dash-exec-kpi-card pro-dash-exec-kpi-card--warn">
+        <span class="pro-dash-exec-kpi-label">Pending Approvals</span>
+        <strong class="pro-dash-exec-kpi-value">{{ pending_approvals_count }}</strong>
+        <span class="pro-dash-exec-kpi-hint"><a href="{{ url_for('approvals') }}">Open approvals queue</a></span>
+      </article>
+    </div>
+  </section>
+
+  <div class="pro-dash-exec-columns">
+    <section class="pro-dash-exec-panel" aria-labelledby="exec-approvals-heading">
+      <h3 id="exec-approvals-heading" class="erp-module-section-title pro-dash-dept-section-title">Pending Approvals</h3>
+      <ul class="pro-dash-exec-stat-list">
+        <li><span>Pending checker</span><strong>{{ approval_summary.pending_checker|default(0) }}</strong></li>
+        <li><span>Pending approval</span><strong>{{ approval_summary.pending_approval|default(0) }}</strong></li>
+        <li><span>Approved today</span><strong>{{ approval_summary.approved_today|default(0) }}</strong></li>
+        <li><span>Rejected today</span><strong>{{ approval_summary.rejected_today|default(0) }}</strong></li>
+      </ul>
+    </section>
+
+    <section class="pro-dash-exec-panel" aria-labelledby="exec-projects-heading">
+      <h3 id="exec-projects-heading" class="erp-module-section-title pro-dash-dept-section-title">Project Summary</h3>
+      <ul class="pro-dash-exec-stat-list">
+        <li><span>Active projects</span><strong>{{ dashboard_stats.active_projects|default(0) }}</strong></li>
+        <li><span>Total projects</span><strong>{{ dashboard_stats.total_projects|default(0) }}</strong></li>
+        <li><span>DPR entries today</span><strong>{{ dashboard_stats.dpr_today_count|default(0) }}</strong></li>
+        {% if dashboard_stats.featured_project %}
+        <li><span>Latest active site</span><strong>{{ dashboard_stats.featured_project.project_name }}</strong></li>
+        {% endif %}
+      </ul>
+    </section>
+
+    <section class="pro-dash-exec-panel" aria-labelledby="exec-finance-heading">
+      <h3 id="exec-finance-heading" class="erp-module-section-title pro-dash-dept-section-title">Financial Summary</h3>
+      <p class="pro-dash-exec-panel-note">High-level snapshot — open Accounts for full registers.</p>
+      <ul class="pro-dash-exec-stat-list">
+        <li><span>Cash balance</span><strong>{{ financial_summary.cash_display }}</strong></li>
+        <li><span>Revenue (₹ CR)</span><strong>{{ financial_summary.revenue }}</strong></li>
+        <li><span>Pending expenses</span><strong>{{ financial_summary.pending_expenses }}</strong></li>
+        <li><span>Open POs</span><strong>{{ financial_summary.open_pos }}</strong></li>
+        <li><span>Journal pending</span><strong>{{ financial_summary.journal_pending }}</strong></li>
+      </ul>
+    </section>
+  </div>
+
+  {% if command_centre_quick_actions %}
+  <section class="pro-dash-exec-section" aria-labelledby="exec-quick-actions-heading">
+    <h3 id="exec-quick-actions-heading" class="erp-module-section-title pro-dash-dept-section-title">Quick Actions</h3>
+    <div class="pro-dash-compact-actions">
+      {% for action in command_centre_quick_actions[:6] %}
+      <a class="pro-dash-compact-action-btn" href="{{ url_for(action.endpoint) }}">
+        <i class="fa-solid {{ action.icon }}" aria-hidden="true"></i>
+        <span>{{ action.label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="pro-dash-dept-section pro-dash-dept-section--tiles" aria-labelledby="exec-dept-heading">
+    <div class="pro-dash-dept-section-head">
+      <div>
+        <h3 id="exec-dept-heading" class="erp-module-section-title pro-dash-dept-section-title">Quick Department Access</h3>
+        <p class="pro-dash-dept-section-sub">Jump into a department workspace.</p>
+      </div>
+    </div>
+    <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid pro-dash-dept-tile-grid--mockup">
+      {% for card in command_centre_cards %}
+      <a href="{{ url_for('department_portal', slug=card.slug) }}" class="erp-module-tile dept-module-tile pro-dash-dept-tile pro-dash-dept-tile--mockup" style="--dept-accent: {{ card.accent }};">
+        <span class="erp-module-tile-icon"><i class="fa-solid {{ card.icon }}" aria-hidden="true"></i></span>
+        <span class="erp-module-tile-body">
+          <span class="erp-module-tile-label">{{ card.card_label }}</span>
+          {% if card.description %}
+          <span class="erp-module-tile-desc">{{ card.description }}</span>
+          {% endif %}
+        </span>
+        <span class="erp-module-tile-open">Open Department</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

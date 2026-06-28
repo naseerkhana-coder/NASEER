@@ -50,6 +50,16 @@
         <label>UI Theme</label>
       </div>
 
+      <div class="erp-field">
+        <select name="dashboard_theme" class="has-value">
+          {% for value, label, disabled in dashboard_theme_options %}
+          <option value="{{ value }}"{% if (customer.dashboard_theme or 'command-centre') == value %} selected{% endif %}{% if disabled %} disabled{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Dashboard Theme</label>
+        <p class="erp-form-section-help">Default home dashboard layout for all users in this tenant. Users may override in Settings → My Dashboard Preferences.</p>
+      </div>
+
       <div class="erp-field span-2">
         <textarea name="email_settings" placeholder=" ">{{ customer.email_settings or '' }}</textarea>
         <label>Email Settings</label>

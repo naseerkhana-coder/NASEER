@@ -8,6 +8,7 @@ import time
 from flask import flash, redirect, render_template, request, session, url_for
 from werkzeug.utils import secure_filename
 
+from dashboard_prefs_service import DASHBOARD_THEME_SELECT_OPTIONS
 from super_admin_service import (
     CHANGE_REQUEST_STATUSES,
     CUSTOMER_PLANS,
@@ -346,6 +347,7 @@ def register_erp_admin_routes(
                         "company_name": request.form.get("company_name"),
                         "logo_path": logo_path,
                         "theme": request.form.get("theme"),
+                        "dashboard_theme": request.form.get("dashboard_theme"),
                         "email_settings": request.form.get("email_settings"),
                     },
                 )
@@ -366,6 +368,7 @@ def register_erp_admin_routes(
             "erp_admin/customer_settings.html",
             customer=customer,
             timezone_options=tz_options,
+            dashboard_theme_options=DASHBOARD_THEME_SELECT_OPTIONS,
         )
 
     @app.route("/erp-admin/licenses", methods=["GET", "POST"])

@@ -7478,3 +7478,166 @@
   background: var(--maxek-scrollbar-thumb);
   border-color: var(--maxek-scrollbar-track);
 }
+
+/* ── Dashboard layout themes (data-dashboard-theme on content wrapper) ── */
+.pro-dash-theme-layout {
+  --dash-layout-gap: var(--layout-section-gap, 16px);
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--dash-layout-gap);
+  margin-bottom: calc(var(--dash-layout-gap) * 1.25);
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-kpi-card {
+  background: var(--maxek-card-bg);
+  border: 1px solid var(--maxek-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-kpi-label {
+  font-size: 12px;
+  color: var(--maxek-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-kpi-value {
+  font-size: 1.75rem;
+  line-height: 1.1;
+  color: var(--maxek-text);
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-kpi-hint {
+  font-size: 12px;
+  color: var(--maxek-text-muted);
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-kpi-card--warn {
+  border-color: var(--maxek-accent-border);
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--dash-layout-gap);
+  margin-bottom: calc(var(--dash-layout-gap) * 1.5);
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-panel {
+  background: var(--maxek-card-bg);
+  border: 1px solid var(--maxek-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-stat-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-stat-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--maxek-text-muted);
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-stat-list strong {
+  color: var(--maxek-text);
+  font-size: 1.1rem;
+}
+
+[data-dashboard-theme="executive"] .pro-dash-exec-panel-note,
+[data-dashboard-theme="compact"] .pro-dash-compact-header p {
+  font-size: 12px;
+  color: var(--maxek-text-muted);
+  margin: 0 0 8px;
+}
+
+[data-dashboard-theme="executive"] .pro-dash-compact-actions,
+[data-dashboard-theme="compact"] .pro-dash-compact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: calc(var(--dash-layout-gap) * 1.25);
+}
+
+[data-dashboard-theme="executive"] .pro-dash-compact-action-btn,
+[data-dashboard-theme="compact"] .pro-dash-compact-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--maxek-border);
+  background: var(--maxek-card-bg);
+  color: var(--maxek-text);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+[data-dashboard-theme="compact"] .pro-dash-compact-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--dash-layout-gap);
+}
+
+[data-dashboard-theme="compact"] .pro-dash-compact-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+[data-dashboard-theme="compact"] .pro-dash-compact-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--maxek-accent-soft);
+  border: 1px solid var(--maxek-accent-border);
+  color: var(--maxek-text);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+[data-dashboard-theme="compact"] .pro-dash-dept-tile-grid--compact {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+[data-dashboard-theme="compact"] .pro-dash-dept-tile--compact {
+  min-height: 96px;
+  padding: 12px;
+}
+
+[data-dashboard-theme="compact"] .pro-dash-dept-tile--compact .erp-module-tile-desc,
+[data-dashboard-theme="compact"] .pro-dash-dept-tile--compact .erp-module-tile-open {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  [data-dashboard-theme="executive"] .pro-dash-exec-kpi-grid,
+  [data-dashboard-theme="executive"] .pro-dash-exec-columns {
+    grid-template-columns: 1fr;
+  }
+
+  [data-dashboard-theme="compact"] .pro-dash-dept-tile-grid--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
