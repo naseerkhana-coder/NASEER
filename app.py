@@ -10040,7 +10040,7 @@ def get_command_centre_ticket_types(db):
 
 def _build_dashboard_greeting_context():
     """Time-of-day greeting and formatted date for the Overview header."""
-    now = datetime.now()
+    now = get_app_now()
     hour = now.hour
     if hour < 12:
         period = "morning"
