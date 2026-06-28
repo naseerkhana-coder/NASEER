@@ -237,7 +237,7 @@ def save_boq_import(
             "INSERT INTO boq_items(boq_id, line_no, item_code, project_id, item_description, "
             "detailed_specification, quantity, unit, rate, amount, remarks, boq_code, "
             "library_item_id, created_by, created_at, approval_status, is_deleted) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 boq_id,
                 line["line_no"],
@@ -255,6 +255,7 @@ def save_boq_import(
                 username,
                 now_ts,
                 record_pending_checker,
+                0,
             ),
         )
 

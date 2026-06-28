@@ -652,6 +652,17 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
       });
+
+      const preselectedId = toolbar.getAttribute('data-preselected-record')
+        || new URLSearchParams(window.location.search).get('edit');
+      if (preselectedId) {
+        const initialRow = tbody.querySelector(
+          '.erp-selectable-row[data-record-id="' + preselectedId + '"]'
+        ) || tbody.querySelector(
+          '.erp-selectable-row[data-customer-id="' + preselectedId + '"]'
+        );
+        if (initialRow) setSelectedRow(initialRow);
+      }
     }
 
     toolbar.querySelectorAll('[data-erp-action]').forEach(function (button) {

@@ -1602,6 +1602,18 @@ def allocate_next_prefixed_number(db, prefix):
         "SELECT last_number FROM number_sequences WHERE prefix=?",
         (prefix,),
     ).fetchone()
+    if not row:
+        sync_prefix_sequence(db, prefix)
+        db.execute(
+            "UPDATE number_sequences SET last_number = last_number + 1 WHERE prefix=?",
+            (prefix,),
+        )
+        row = db.execute(
+            "SELECT last_number FROM number_sequences WHERE prefix=?",
+            (prefix,),
+        ).fetchone()
+    if not row:
+        raise ValueError(f"Could not allocate number for prefix {prefix!r}")
     return f"{prefix}{int(row['last_number'])}"
 
 
@@ -1699,6 +1711,43 @@ def _ensure_boq_schema_columns(db):
         _ensure_column(db, table, column, col_type)
 
 
+def ensure_boq_items_table(db):
+    """Create or upgrade boq_items for BOQ management save (legacy VPS DBs)."""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS boq_items(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            boq_id INTEGER,
+            line_no INTEGER,
+            project_id INTEGER,
+            boq_date TEXT,
+            item_code TEXT,
+            item_description TEXT,
+            quantity REAL,
+            unit TEXT,
+            rate REAL,
+            amount REAL,
+            remarks TEXT,
+            created_by TEXT,
+            approval_status TEXT DEFAULT 'Pending Checker',
+            created_at TEXT,
+            modified_at TEXT,
+            modified_by TEXT,
+            deleted_by TEXT,
+            deleted_at TEXT,
+            is_deleted INTEGER DEFAULT 0,
+            FOREIGN KEY(project_id) REFERENCES projects(id)
+        )
+    """)
+    _ensure_boq_schema_columns(db)
+    for column, col_type in (
+        ("detailed_specification", "TEXT"),
+        ("library_item_id", "INTEGER"),
+        ("boq_code", "TEXT"),
+        ("remarks", "TEXT"),
+    ):
+        _ensure_column(db, "boq_items", column, col_type)
+
+
 def ensure_boq_master_table(db):
     db.execute("""
         CREATE TABLE IF NOT EXISTS boq_master(
@@ -1718,6 +1767,7 @@ def ensure_boq_master_table(db):
             FOREIGN KEY(project_id) REFERENCES projects(id)
         )
     """)
+    ensure_boq_items_table(db)
     _ensure_boq_schema_columns(db)
 
 
@@ -15623,11 +15673,11 @@ def _insert_boq_lines(db, boq_id, project_id, lines, actor, now_ts=None):
         db.execute(
             "INSERT INTO boq_items(boq_id, line_no, item_code, project_id, item_description, quantity, unit, "
             "rate, amount, created_by, created_at, approval_status, is_deleted) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)",
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 boq_id, line["line_no"], item_code, project_id, line["item_description"],
                 line["quantity"], line["unit"], line["rate"], line["amount"],
-                actor, now_ts, RECORD_PENDING_CHECKER,
+                actor, now_ts, RECORD_PENDING_CHECKER, 0,
             ),
         )
 

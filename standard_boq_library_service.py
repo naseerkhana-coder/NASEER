@@ -8,6 +8,11 @@ from typing import Any
 
 
 def _ensure_column(db, table: str, column: str, col_type: str) -> None:
+    if not db.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        (table,),
+    ).fetchone():
+        return
     cols = {r[1] for r in db.execute(f"PRAGMA table_info({table})").fetchall()}
     if column not in cols:
         db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
