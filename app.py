@@ -3630,6 +3630,7 @@ def ensure_payroll_tables(db):
                 ("created_at", "TEXT"),
                 ("modified_at", "TEXT"),
                 ("draft_saved", "INTEGER DEFAULT 0"),
+                ("run_date", "TEXT"),
             ),
         ),
         (
@@ -3662,6 +3663,13 @@ def ensure_payroll_tables(db):
     ):
         for column, col_type in columns:
             _ensure_column(db, table, column, col_type)
+    try:
+        db.execute(
+            "UPDATE payroll_runs SET run_date = COALESCE(period_start, period_end, created_at) "
+            "WHERE run_date IS NULL OR TRIM(run_date) = ''"
+        )
+    except Exception:
+        pass
     staff_cols = {
         row[1] for row in db.execute("PRAGMA table_info(staff)").fetchall()
     } if _table_exists(db, "staff") else set()
@@ -8150,12 +8158,33 @@ def login():
                 redirect_endpoint=post_login_endpoint,
             )
         flash("Invalid username or password, or account is inactive.")
+    login_branding = None
+    preview_code = (
+        request.args.get("company_code")
+        or request.form.get("company_code")
+        or default_company_code
+        or ""
+    ).strip()
+    if preview_code:
+        try:
+            from super_admin_service import get_customer_by_code
+
+            tenant = get_customer_by_code(get_db(), preview_code.upper())
+            if tenant:
+                login_branding = {
+                    "company_name": tenant.get("company_name"),
+                    "customer_code": tenant.get("customer_code"),
+                    "logo_path": tenant.get("logo_path"),
+                }
+        except Exception:
+            app.logger.exception("Login branding lookup failed for %s", preview_code)
     return render_template(
         "login.html",
         app_version=APP_VERSION,
         remembered_user=remembered_user,
         default_company_code=default_company_code,
         remembered_usernames=[remembered_user] if remembered_user else [],
+        login_branding=login_branding,
     )
 
 
@@ -9314,11 +9343,12 @@ def _workspace_month_amount(db, slug=None):
                 ).fetchone()
                 total += float(row["total"] or 0)
         if scopes is None or scopes & {"hr-payroll", "reports"}:
-            if _table_exists(db, "payroll_run_lines"):
+            if _table_exists(db, "payroll_lines"):
                 row = db.execute(
-                    "SELECT COALESCE(SUM(net_pay), 0) AS total FROM payroll_run_lines prl "
+                    "SELECT COALESCE(SUM(prl.net_salary), 0) AS total FROM payroll_lines prl "
                     "JOIN payroll_runs pr ON pr.id = prl.payroll_run_id "
-                    "WHERE date(COALESCE(pr.run_date, pr.created_at)) >= date('now', 'start of month')"
+                    "WHERE date(COALESCE(pr.run_date, pr.period_start, pr.created_at)) "
+                    ">= date('now', 'start of month')"
                 ).fetchone()
                 total += float(row["total"] or 0)
         if scopes is None or scopes & {"store", "procurement", "reports"}:
@@ -9829,21 +9859,28 @@ def _session_customer_enabled_department_slugs(db):
 def get_command_centre_cards(db):
     meta_by_slug = {meta["slug"]: meta for meta in COMMAND_CENTRE_CARD_META}
     cards = []
+    seen_slugs: set[str] = set()
     enabled_slugs = _session_customer_enabled_department_slugs(db)
+    normalized_enabled = None
+    if enabled_slugs is not None:
+        normalized_enabled = {resolve_department_portal_slug(s) for s in enabled_slugs}
     for slug, label in MAIN_DASHBOARD_DEPARTMENT_SLUGS:
-        if enabled_slugs is not None and slug not in enabled_slugs:
-            continue
         portal = get_department_portal(slug)
         if not portal:
             continue
         canonical_slug = portal["slug"]
+        if normalized_enabled is not None and canonical_slug not in normalized_enabled:
+            continue
+        if canonical_slug in seen_slugs:
+            continue
+        seen_slugs.add(canonical_slug)
         meta = meta_by_slug.get(slug) or meta_by_slug.get(canonical_slug)
         if not meta:
             continue
         cards.append(
             {
                 **meta,
-                "slug": slug,
+                "slug": canonical_slug,
                 "card_label": label,
                 "stat_pills": _command_centre_card_stats(db, canonical_slug),
             }
@@ -10140,7 +10177,10 @@ def render_choice_b_dashboard():
         "command_centre_kpis",
     )
     command_centre_cards = _dashboard_payload(
-        lambda: get_command_centre_cards(db),
+        lambda: filter_command_centre_dept_cards(
+            get_command_centre_cards(db),
+            favorite_modules,
+        ),
         [],
         "command_centre_cards",
     )
@@ -13325,8 +13365,27 @@ def company_master():
                 flash("Company saved.")
                 return redirect(url_for("company_master", company_id=new_id))
             if action == "delete_company" and redirect_cid:
+                if not is_super_admin_user():
+                    flash("Only Super Admin can delete a company. Contact platform support.")
+                    return redirect(url_for("company_master", company_id=redirect_cid))
+                company_row = get_company(db, redirect_cid)
                 delete_company(db, redirect_cid)
                 db.commit()
+                try:
+                    from super_admin_service import log_audit
+
+                    log_audit(
+                        db,
+                        session.get("customer_id"),
+                        session.get("user_id"),
+                        "Delete",
+                        "Company Master",
+                        f"Deleted company {company_row.get('company_code') if company_row else redirect_cid}",
+                        username=session.get("username"),
+                    )
+                    db.commit()
+                except Exception:
+                    app.logger.exception("Failed to audit company delete")
                 flash("Company deleted.")
                 return redirect(url_for("company_master"))
             if action == "save_branch" and redirect_cid:

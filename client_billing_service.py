@@ -132,12 +132,21 @@ def ensure_client_billing_schema(db) -> None:
         ("gst_percent", "REAL DEFAULT 0"), ("gst_amount", "REAL DEFAULT 0"),
         ("tds_percent", "REAL DEFAULT 0"), ("tds_amount", "REAL DEFAULT 0"),
         ("other_tax_amount", "REAL DEFAULT 0"), ("net_payable", "REAL DEFAULT 0"),
+        ("net_amount", "REAL DEFAULT 0"),
         ("bill_status", "TEXT DEFAULT 'Draft'"), ("paid_amount", "REAL DEFAULT 0"),
         ("paid_at", "TEXT"), ("certified_at", "TEXT"),
         ("approval_status", "TEXT DEFAULT 'Pending Checker'"),
         ("created_by", "TEXT"), ("created_at", "TEXT"), ("modified_at", "TEXT"),
     ):
         _ensure_column(db, "client_bills", col, ctype)
+
+    try:
+        db.execute(
+            "UPDATE client_bills SET net_amount = COALESCE(net_payable, 0) "
+            "WHERE net_amount IS NULL OR net_amount = 0"
+        )
+    except Exception:
+        pass
 
     db.execute("""
         CREATE TABLE IF NOT EXISTS client_bill_lines(

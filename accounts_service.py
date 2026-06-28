@@ -365,8 +365,22 @@ def ensure_accounts_schema(db) -> None:
         ("amount_paid", "REAL DEFAULT 0"),
         ("attachment_filename", "TEXT"),
         ("journal_entry_id", "INTEGER"),
+        ("amount", "REAL DEFAULT 0"),
+        ("expense_date", "TEXT"),
     ):
         _ensure_column(db, "account_expenses", column, col_type)
+
+    try:
+        db.execute(
+            "UPDATE account_expenses SET amount = COALESCE(grand_total, 0) "
+            "WHERE amount IS NULL OR amount = 0"
+        )
+        db.execute(
+            "UPDATE account_expenses SET expense_date = entry_date "
+            "WHERE expense_date IS NULL OR TRIM(expense_date) = ''"
+        )
+    except Exception:
+        pass
 
     for column, col_type in (
         ("tds_applicable", "INTEGER DEFAULT 0"),
