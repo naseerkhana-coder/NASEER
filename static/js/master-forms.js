@@ -349,18 +349,30 @@
     if (countRows() >= max) addBtn.disabled = true;
   }
 
+  var PERM_ACTIONS = ['view', 'create', 'edit', 'delete', 'approve', 'print', 'export'];
+
   function initTabPermissions() {
     var panel = document.querySelector('[data-tab-permissions-panel]');
-    if (!panel) return;
+    if (!panel || panel.hasAttribute('data-perm-super-admin')) return;
+
     var userId = panel.querySelector('[data-perm-user-id]');
-    var deptSelect = panel.querySelector('[data-perm-department]');
-    var grid = panel.querySelector('[data-perm-grid]');
+    var deptGrid = panel.querySelector('[data-perm-dept-grid]');
+    var matrixWrap = panel.querySelector('[data-perm-matrix-wrap]');
+    var matrixBody = panel.querySelector('[data-perm-matrix-body]');
     var emptyHint = panel.querySelector('[data-perm-empty]');
     var statusEl = panel.querySelector('[data-perm-status]');
     var saveBtn = panel.querySelector('[data-perm-save]');
-    if (!userId || !deptSelect || !grid || !saveBtn) return;
+    var searchInput = panel.querySelector('[data-perm-search]');
+    var templateSelect = panel.querySelector('[data-perm-template]');
+    var copyUserSelect = panel.querySelector('[data-perm-copy-user]');
 
-    var currentDept = '';
+    if (!userId || !deptGrid || !matrixBody || !saveBtn) return;
+
+    var state = {
+      departments: {},
+      selectedDepts: new Set(),
+      searchTerm: '',
+    };
 
     function setStatus(msg, isError) {
       if (!statusEl) return;
@@ -374,85 +386,337 @@
       statusEl.style.color = isError ? 'var(--erp-danger, #c0392b)' : '';
     }
 
-    function renderTabs(tabs) {
-      grid.innerHTML = '';
-      if (!tabs || !tabs.length) {
-        grid.hidden = true;
-        if (emptyHint) {
-          emptyHint.hidden = false;
-          emptyHint.textContent = 'No modules configured for this department.';
-        }
-        saveBtn.disabled = true;
-        return;
-      }
-      tabs.forEach(function (tab) {
-        var label = document.createElement('label');
-        var input = document.createElement('input');
-        input.type = 'checkbox';
-        input.name = 'perm_tab';
-        input.value = tab.tab_key;
-        if (tab.granted) input.checked = true;
-        label.appendChild(input);
-        label.appendChild(document.createTextNode(' ' + (tab.label || tab.tab_key)));
-        grid.appendChild(label);
-      });
-      grid.hidden = false;
-      if (emptyHint) emptyHint.hidden = true;
-      saveBtn.disabled = false;
+    function emptyActions() {
+      var actions = {};
+      PERM_ACTIONS.forEach(function (a) { actions[a] = false; });
+      return actions;
     }
 
-    function loadTabs() {
-      var dept = deptSelect.value;
-      currentDept = dept;
-      if (!dept) {
-        grid.hidden = true;
-        saveBtn.disabled = true;
+    function fullActions() {
+      var actions = {};
+      PERM_ACTIONS.forEach(function (a) { actions[a] = true; });
+      return actions;
+    }
+
+    function viewOnlyActions() {
+      var actions = emptyActions();
+      actions.view = true;
+      return actions;
+    }
+
+    function cloneActions(src) {
+      var actions = emptyActions();
+      if (!src) return actions;
+      PERM_ACTIONS.forEach(function (a) {
+        actions[a] = !!src[a];
+      });
+      return actions;
+    }
+
+    function getSelectedDeptSlugs() {
+      var slugs = [];
+      deptGrid.querySelectorAll('[data-perm-dept]:checked').forEach(function (el) {
+        slugs.push(el.value);
+      });
+      return slugs;
+    }
+
+    function syncSelectedDepts() {
+      state.selectedDepts = new Set(getSelectedDeptSlugs());
+    }
+
+    function ensureDeptEntry(slug, label, tabs) {
+      if (!state.departments[slug]) {
+        state.departments[slug] = { label: label || slug, tabs: {} };
+      }
+      (tabs || []).forEach(function (tab) {
+        state.departments[slug].tabs[tab.tab_key] = {
+          tab_key: tab.tab_key,
+          label: tab.label || tab.tab_key,
+          actions: cloneActions(tab.actions),
+        };
+      });
+    }
+
+    function allVisibleRows() {
+      var rows = [];
+      Object.keys(state.departments).forEach(function (slug) {
+        if (!state.selectedDepts.has(slug)) return;
+        var dept = state.departments[slug];
+        Object.keys(dept.tabs).forEach(function (tabKey) {
+          rows.push({
+            deptSlug: slug,
+            deptLabel: dept.label,
+            tab: dept.tabs[tabKey],
+          });
+        });
+      });
+      return rows;
+    }
+
+    function rowMatchesSearch(row) {
+      if (!state.searchTerm) return true;
+      var q = state.searchTerm.toLowerCase();
+      return (
+        (row.tab.label || '').toLowerCase().indexOf(q) >= 0
+        || (row.deptLabel || '').toLowerCase().indexOf(q) >= 0
+        || (row.tab.tab_key || '').toLowerCase().indexOf(q) >= 0
+      );
+    }
+
+    function renderMatrix() {
+      matrixBody.innerHTML = '';
+      var rows = allVisibleRows().filter(rowMatchesSearch);
+      if (!state.selectedDepts.size) {
+        if (matrixWrap) matrixWrap.hidden = true;
         if (emptyHint) {
           emptyHint.hidden = false;
-          emptyHint.textContent = 'Choose a department to load its module list.';
+          emptyHint.textContent = 'Select at least one department to load modules.';
         }
-        setStatus('');
         return;
       }
-      setStatus('Loading modules…');
-      fetch(
-        '/api/settings/users/' + encodeURIComponent(userId.value) + '/department-tabs?department='
-          + encodeURIComponent(dept),
+      if (matrixWrap) matrixWrap.hidden = false;
+      if (!rows.length) {
+        if (emptyHint) {
+          emptyHint.hidden = false;
+          emptyHint.textContent = state.searchTerm
+            ? 'No modules match your search.'
+            : 'No modules configured for selected departments.';
+        }
+        return;
+      }
+      if (emptyHint) emptyHint.hidden = true;
+
+      rows.forEach(function (row) {
+        var tr = document.createElement('tr');
+        tr.dataset.dept = row.deptSlug;
+        tr.dataset.tabKey = row.tab.tab_key;
+
+        var tdModule = document.createElement('td');
+        tdModule.className = 'perm-col-module';
+        tdModule.textContent = row.tab.label;
+        tr.appendChild(tdModule);
+
+        var tdDept = document.createElement('td');
+        tdDept.className = 'perm-col-dept';
+        tdDept.textContent = row.deptLabel;
+        tr.appendChild(tdDept);
+
+        PERM_ACTIONS.forEach(function (action) {
+          var td = document.createElement('td');
+          td.className = 'perm-col-action';
+          var label = document.createElement('label');
+          label.className = 'perm-action-check';
+          var input = document.createElement('input');
+          input.type = 'checkbox';
+          input.dataset.permAction = action;
+          input.checked = !!row.tab.actions[action];
+          input.addEventListener('change', function () {
+            row.tab.actions[action] = input.checked;
+            if (action !== 'view' && input.checked) {
+              row.tab.actions.view = true;
+              var viewInput = tr.querySelector('[data-perm-action="view"]');
+              if (viewInput) viewInput.checked = true;
+            }
+            if (action === 'view' && !input.checked) {
+              PERM_ACTIONS.forEach(function (a) {
+                if (a === 'view') return;
+                row.tab.actions[a] = false;
+                var other = tr.querySelector('[data-perm-action="' + a + '"]');
+                if (other) other.checked = false;
+              });
+            }
+          });
+          label.appendChild(input);
+          td.appendChild(label);
+          tr.appendChild(td);
+        });
+
+        matrixBody.appendChild(tr);
+      });
+    }
+
+    function loadDepartments(slugs, opts) {
+      opts = opts || {};
+      if (!slugs.length) {
+        renderMatrix();
+        return Promise.resolve();
+      }
+      if (!opts.silent) setStatus('Loading modules…');
+      return fetch(
+        '/api/settings/users/' + encodeURIComponent(userId.value)
+          + '/permissions-matrix?departments=' + encodeURIComponent(slugs.join(',')),
         { credentials: 'same-origin' }
       )
-        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (res) {
+          return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+        })
         .then(function (result) {
           if (!result.ok) throw new Error((result.data && result.data.error) || 'Load failed');
-          if (deptSelect.value !== currentDept) return;
-          renderTabs(result.data.tabs || []);
-          setStatus('');
+          var payload = result.data.departments || {};
+          Object.keys(payload).forEach(function (slug) {
+            ensureDeptEntry(slug, payload[slug].label, payload[slug].tabs);
+          });
+          renderMatrix();
+          if (!opts.silent) setStatus('');
         })
         .catch(function (err) {
-          setStatus(err.message || 'Could not load tab list', true);
+          setStatus(err.message || 'Could not load permissions', true);
         });
     }
 
-    deptSelect.addEventListener('change', loadTabs);
+    function onDeptChange() {
+      syncSelectedDepts();
+      var slugs = getSelectedDeptSlugs();
+      var missing = slugs.filter(function (slug) {
+        return !state.departments[slug] || !Object.keys(state.departments[slug].tabs).length;
+      });
+      if (missing.length) {
+        loadDepartments(missing);
+      } else {
+        renderMatrix();
+      }
+    }
+
+    function applyBulkAction(mode) {
+      allVisibleRows().filter(rowMatchesSearch).forEach(function (row) {
+        if (mode === 'select-all' || mode === 'full-access') {
+          row.tab.actions = fullActions();
+        } else if (mode === 'clear-all') {
+          row.tab.actions = emptyActions();
+        } else if (mode === 'view-only') {
+          row.tab.actions = viewOnlyActions();
+        }
+      });
+      renderMatrix();
+    }
+
+    function buildSavePayload() {
+      var payload = { departments: {} };
+      state.selectedDepts.forEach(function (slug) {
+        var dept = state.departments[slug];
+        if (!dept) return;
+        payload.departments[slug] = Object.keys(dept.tabs).map(function (tabKey) {
+          return {
+            tab_key: tabKey,
+            actions: cloneActions(dept.tabs[tabKey].actions),
+          };
+        });
+      });
+      return payload;
+    }
+
+    deptGrid.addEventListener('change', function (e) {
+      if (e.target.matches('[data-perm-dept]')) onDeptChange();
+    });
+
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        state.searchTerm = (searchInput.value || '').trim();
+        renderMatrix();
+      });
+    }
+
+    panel.querySelectorAll('[data-perm-bulk]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        applyBulkAction(btn.getAttribute('data-perm-bulk'));
+      });
+    });
+
+    if (templateSelect) {
+      templateSelect.addEventListener('change', function () {
+        var templateId = templateSelect.value;
+        if (!templateId) return;
+        setStatus('Applying role template…');
+        fetch('/api/settings/permission-templates/' + encodeURIComponent(templateId), {
+          credentials: 'same-origin',
+        })
+          .then(function (res) {
+            return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+          })
+          .then(function (result) {
+            if (!result.ok) throw new Error((result.data && result.data.error) || 'Template failed');
+            var data = result.data;
+            deptGrid.querySelectorAll('[data-perm-dept]').forEach(function (el) {
+              el.checked = (data.departments || []).indexOf(el.value) >= 0;
+            });
+            syncSelectedDepts();
+            var deptData = data.departments_data || {};
+            Object.keys(deptData).forEach(function (slug) {
+              ensureDeptEntry(slug, slug, []);
+              deptData[slug].forEach(function (tab) {
+                state.departments[slug].tabs[tab.tab_key] = {
+                  tab_key: tab.tab_key,
+                  label: tab.label || tab.tab_key,
+                  actions: cloneActions(tab.actions || data.actions),
+                };
+              });
+            });
+            renderMatrix();
+            setStatus('Template applied — review and save.');
+            templateSelect.value = '';
+          })
+          .catch(function (err) {
+            setStatus(err.message || 'Could not apply template', true);
+            templateSelect.value = '';
+          });
+      });
+    }
+
+    if (copyUserSelect) {
+      copyUserSelect.addEventListener('change', function () {
+        var sourceId = copyUserSelect.value;
+        if (!sourceId) return;
+        setStatus('Loading permissions from user…');
+        fetch(
+          '/api/settings/users/' + encodeURIComponent(sourceId) + '/permissions-matrix',
+          { credentials: 'same-origin' }
+        )
+          .then(function (res) {
+            return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+          })
+          .then(function (result) {
+            if (!result.ok) throw new Error((result.data && result.data.error) || 'Load failed');
+            var data = result.data;
+            var slugs = data.configured_departments || [];
+            state.departments = {};
+            deptGrid.querySelectorAll('[data-perm-dept]').forEach(function (el) {
+              el.checked = slugs.indexOf(el.value) >= 0;
+            });
+            syncSelectedDepts();
+            Object.keys(data.departments || {}).forEach(function (slug) {
+              if (slugs.indexOf(slug) < 0) return;
+              ensureDeptEntry(slug, data.departments[slug].label, data.departments[slug].tabs);
+            });
+            renderMatrix();
+            setStatus('Permissions loaded — review and save.');
+            copyUserSelect.value = '';
+          })
+          .catch(function (err) {
+            setStatus(err.message || 'Copy failed', true);
+            copyUserSelect.value = '';
+          });
+      });
+    }
 
     saveBtn.addEventListener('click', function () {
-      var dept = deptSelect.value;
-      if (!dept) return;
-      var keys = [];
-      grid.querySelectorAll('input[name="perm_tab"]:checked').forEach(function (el) {
-        keys.push(el.value);
-      });
+      var payload = buildSavePayload();
       saveBtn.disabled = true;
-      setStatus('Saving…');
-      fetch('/api/settings/users/' + encodeURIComponent(userId.value) + '/department-tabs', {
+      setStatus('Saving permissions…');
+      fetch('/api/settings/users/' + encodeURIComponent(userId.value) + '/permissions-matrix', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ department: dept, tabs: keys }),
+        body: JSON.stringify(payload),
       })
-        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (res) {
+          return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+        })
         .then(function (result) {
           if (!result.ok) throw new Error((result.data && result.data.error) || 'Save failed');
-          setStatus('Tab access saved (' + (result.data.saved || keys.length) + ' modules).');
+          var saved = result.data.saved || {};
+          var total = Object.keys(saved).reduce(function (n, k) { return n + (saved[k] || 0); }, 0);
+          setStatus('Permissions saved (' + total + ' module grants).');
           saveBtn.disabled = false;
         })
         .catch(function (err) {
@@ -460,6 +724,32 @@
           saveBtn.disabled = false;
         });
     });
+
+    fetch('/api/settings/users/' + encodeURIComponent(userId.value) + '/permissions-matrix', {
+      credentials: 'same-origin',
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var slugs = data.configured_departments || [];
+        if (slugs.length) {
+          deptGrid.querySelectorAll('[data-perm-dept]').forEach(function (el) {
+            el.checked = slugs.indexOf(el.value) >= 0;
+          });
+          syncSelectedDepts();
+          state.departments = {};
+          loadDepartments(slugs);
+        }
+      })
+      .catch(function () { /* fresh user — no prior restrictions */ });
+
+    if (window.location.hash === '#user-permissions') {
+      var anchor = document.getElementById('user-permissions');
+      if (anchor) {
+        window.requestAnimationFrame(function () {
+          anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    }
   }
 
   function initProjectClientModal() {

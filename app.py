@@ -401,15 +401,25 @@ from user_context_service import (
     save_user_context,
 )
 from user_permission_service import (
+    MAIN_PERMISSION_DEPARTMENT_CHOICES,
+    PERMISSION_ACTION_KEYS,
+    PERMISSION_ACTION_LABELS,
     PERMISSION_DEPARTMENT_CHOICES,
     apply_user_tab_permissions_to_nav_groups,
     build_department_tab_catalog,
+    copy_user_permissions_matrix,
     ensure_user_tab_permissions_schema,
     filter_portal_menu_for_user,
     get_granted_tab_keys_for_department,
+    get_main_permission_department_slugs,
+    get_permission_role_template,
+    get_user_configured_permission_departments,
     get_user_department_tab_state,
+    list_permission_role_templates,
     nav_slug_to_permission_department,
+    save_user_department_tab_entries,
     save_user_department_tab_permissions,
+    save_user_permissions_matrix,
     user_has_tab_restrictions,
 )
 from badge_counts_service import badge_for_endpoint, get_live_badge_counts
@@ -14161,14 +14171,142 @@ def _department_tabs_payload(department_slug: str) -> tuple[dict | None, dict | 
     return portal, nav_group, catalog
 
 
+def _valid_permission_department_slug(department_slug: str) -> bool:
+    slug = (department_slug or "").strip()
+    if slug in get_main_permission_department_slugs():
+        return True
+    return slug in {s for s, _ in PERMISSION_DEPARTMENT_CHOICES}
+
+
+@app.route("/api/settings/permission-templates", methods=["GET"])
+@admin_required
+def api_permission_templates():
+    return jsonify({"templates": list_permission_role_templates()})
+
+
+@app.route("/api/settings/permission-templates/<template_id>", methods=["GET"])
+@admin_required
+def api_permission_template_detail(template_id):
+    template = get_permission_role_template(template_id)
+    if not template:
+        return jsonify({"error": "Unknown template"}), 404
+    departments: dict[str, list[dict]] = {}
+    for slug in template["departments"]:
+        if not _valid_permission_department_slug(slug):
+            continue
+        _, _, catalog = _department_tabs_payload(slug)
+        departments[slug] = [
+            {
+                "tab_key": tab["tab_key"],
+                "label": tab["label"],
+                "actions": template["actions"],
+            }
+            for tab in catalog
+        ]
+    return jsonify({**template, "departments_data": departments})
+
+
+@app.route("/api/settings/users/<int:user_id>/permissions-matrix", methods=["GET"])
+@admin_required
+def api_user_permissions_matrix_get(user_id):
+    user = query_db("SELECT id FROM users WHERE id=?", (user_id,), one=True)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    requested = (request.args.get("departments") or "").strip()
+    if requested:
+        slugs = [s.strip() for s in requested.split(",") if s.strip()]
+    else:
+        slugs = [slug for slug, _ in MAIN_PERMISSION_DEPARTMENT_CHOICES]
+    invalid = [s for s in slugs if not _valid_permission_department_slug(s)]
+    if invalid:
+        return jsonify({"error": f"Unknown department(s): {', '.join(invalid)}"}), 400
+    db = get_db()
+    departments: dict[str, dict[str, Any]] = {}
+    for slug in slugs:
+        _, _, catalog = _department_tabs_payload(slug)
+        tabs = get_user_department_tab_state(db, user_id, slug, catalog)
+        label = dict(MAIN_PERMISSION_DEPARTMENT_CHOICES).get(
+            slug, dict(PERMISSION_DEPARTMENT_CHOICES).get(slug, slug)
+        )
+        departments[slug] = {"label": label, "tabs": tabs}
+    return jsonify(
+        {
+            "user_id": user_id,
+            "departments": departments,
+            "configured_departments": get_user_configured_permission_departments(db, user_id),
+            "actions": list(PERMISSION_ACTION_KEYS),
+            "action_labels": PERMISSION_ACTION_LABELS,
+        }
+    )
+
+
+@app.route("/api/settings/users/<int:user_id>/permissions-matrix", methods=["POST"])
+@admin_required
+def api_user_permissions_matrix_save(user_id):
+    payload = request.get_json(silent=True) or {}
+    departments_payload = payload.get("departments") or {}
+    if not isinstance(departments_payload, dict):
+        return jsonify({"error": "departments must be an object"}), 400
+    user = query_db("SELECT id FROM users WHERE id=?", (user_id,), one=True)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    for slug in departments_payload:
+        if not _valid_permission_department_slug(slug):
+            return jsonify({"error": f"Unknown department: {slug}"}), 400
+    db = get_db()
+
+    def catalog_resolver(dept_slug: str) -> list[dict]:
+        _, _, catalog = _department_tabs_payload(dept_slug)
+        return catalog
+
+    saved = save_user_permissions_matrix(
+        db,
+        user_id,
+        departments_payload,
+        catalog_resolver=catalog_resolver,
+    )
+    db.commit()
+    return jsonify({"ok": True, "saved": saved})
+
+
+@app.route("/api/settings/users/<int:user_id>/copy-permissions", methods=["POST"])
+@admin_required
+def api_user_copy_permissions(user_id):
+    payload = request.get_json(silent=True) or {}
+    source_user_id = payload.get("source_user_id")
+    if not source_user_id:
+        return jsonify({"error": "source_user_id is required"}), 400
+    try:
+        source_user_id = int(source_user_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "source_user_id must be an integer"}), 400
+    if source_user_id == user_id:
+        return jsonify({"error": "Cannot copy permissions from the same user"}), 400
+    user = query_db("SELECT id FROM users WHERE id=?", (user_id,), one=True)
+    source = query_db("SELECT id FROM users WHERE id=?", (source_user_id,), one=True)
+    if not user or not source:
+        return jsonify({"error": "User not found"}), 404
+    dept_slugs = payload.get("departments")
+    if dept_slugs is not None and not isinstance(dept_slugs, list):
+        return jsonify({"error": "departments must be a list when provided"}), 400
+    db = get_db()
+    copy_user_permissions_matrix(
+        db,
+        source_user_id,
+        user_id,
+        department_slugs=dept_slugs,
+    )
+    db.commit()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/settings/users/<int:user_id>/department-tabs", methods=["GET"])
 @admin_required
 def api_user_department_tabs_get(user_id):
     department_slug = (request.args.get("department") or "").strip()
     if not department_slug:
         return jsonify({"error": "department query parameter is required"}), 400
-    valid_slugs = {slug for slug, _ in PERMISSION_DEPARTMENT_CHOICES}
-    if department_slug not in valid_slugs:
+    if not _valid_permission_department_slug(department_slug):
         return jsonify({"error": "Unknown department"}), 400
     user = query_db("SELECT id FROM users WHERE id=?", (user_id,), one=True)
     if not user:
@@ -14176,7 +14314,9 @@ def api_user_department_tabs_get(user_id):
     _, _, catalog = _department_tabs_payload(department_slug)
     db = get_db()
     tabs = get_user_department_tab_state(db, user_id, department_slug, catalog)
-    dept_label = dict(PERMISSION_DEPARTMENT_CHOICES).get(department_slug, department_slug)
+    dept_label = dict(MAIN_PERMISSION_DEPARTMENT_CHOICES).get(
+        department_slug, dict(PERMISSION_DEPARTMENT_CHOICES).get(department_slug, department_slug)
+    )
     return jsonify(
         {
             "user_id": user_id,
@@ -14193,23 +14333,31 @@ def api_user_department_tabs_save(user_id):
     payload = request.get_json(silent=True) or {}
     department_slug = (payload.get("department") or "").strip()
     granted_tabs = payload.get("tabs") or []
+    entries = payload.get("entries")
     if not department_slug:
         return jsonify({"error": "department is required"}), 400
-    valid_slugs = {slug for slug, _ in PERMISSION_DEPARTMENT_CHOICES}
-    if department_slug not in valid_slugs:
+    if not _valid_permission_department_slug(department_slug):
         return jsonify({"error": "Unknown department"}), 400
-    if not isinstance(granted_tabs, list):
-        return jsonify({"error": "tabs must be a list"}), 400
     user = query_db("SELECT id FROM users WHERE id=?", (user_id,), one=True)
     if not user:
         return jsonify({"error": "User not found"}), 404
     _, _, catalog = _department_tabs_payload(department_slug)
     db = get_db()
-    save_user_department_tab_permissions(
-        db, user_id, department_slug, [str(k) for k in granted_tabs], catalog
-    )
+    if entries is not None:
+        if not isinstance(entries, list):
+            return jsonify({"error": "entries must be a list"}), 400
+        saved_count = save_user_department_tab_entries(
+            db, user_id, department_slug, entries, catalog
+        )
+    else:
+        if not isinstance(granted_tabs, list):
+            return jsonify({"error": "tabs must be a list"}), 400
+        save_user_department_tab_permissions(
+            db, user_id, department_slug, [str(k) for k in granted_tabs], catalog
+        )
+        saved_count = len(granted_tabs)
     db.commit()
-    return jsonify({"ok": True, "saved": len(granted_tabs)})
+    return jsonify({"ok": True, "saved": saved_count})
 
 
 @app.route("/settings/users", methods=["GET", "POST"])
@@ -14303,10 +14451,13 @@ def user_settings():
             db.execute("DELETE FROM user_maker_assignments WHERE user_id=?", (saved_user_id,))
 
         db.commit()
+        if saved_user_id and not user_id:
+            return redirect(url_for("user_settings", edit=saved_user_id) + "#user-permissions")
         return redirect(url_for("user_settings"))
 
     edit_id = request.args.get("edit")
     edit_user = None
+    edit_user_is_super_admin = False
     maker_assignments = []
     if edit_id:
         edit_user = query_db(
@@ -14317,6 +14468,7 @@ def user_settings():
         )
         if edit_user:
             maker_assignments = get_user_maker_assignments(db, edit_id)
+            edit_user_is_super_admin = _is_super_admin_row(db, edit_user)
 
     staff_rows = query_db(
         "SELECT s.id, s.employee_code, s.staff_name, s.department, s.designation_id, "
@@ -14352,7 +14504,16 @@ def user_settings():
         workflow_modules=workflow_modules,
         maker_assignments=maker_assignments,
         max_maker_slots=MAX_MAKER_ASSIGNMENTS,
-        permission_departments=PERMISSION_DEPARTMENT_CHOICES,
+        permission_departments=MAIN_PERMISSION_DEPARTMENT_CHOICES,
+        permission_actions=PERMISSION_ACTION_KEYS,
+        permission_action_labels=PERMISSION_ACTION_LABELS,
+        permission_role_templates=list_permission_role_templates(),
+        edit_user_is_super_admin=edit_user_is_super_admin,
+        copy_permission_users=[
+            {"id": r["id"], "username": r["username"], "employee_name": r.get("employee_name") or ""}
+            for r in enriched
+            if edit_user is None or str(r["id"]) != str(edit_user["id"])
+        ],
     )
 
 

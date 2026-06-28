@@ -194,29 +194,82 @@
       </div>
 
       {% if edit_user %}
-      <div class="span-2" data-tab-permissions-panel>
-        <h4 class="erp-form-subtitle">Department Tab Access</h4>
-        <p class="erp-hint">Select a department, then tick the modules/tabs this user may open. Saves per department.</p>
-        <div class="erp-form-grid" style="align-items:end;margin-bottom:0.75rem;">
+      <div class="span-2" id="user-permissions" data-tab-permissions-panel
+           {% if edit_user_is_super_admin %}data-perm-super-admin{% endif %}>
+        <h4 class="erp-form-subtitle">Permission Assignment</h4>
+        {% if edit_user_is_super_admin %}
+        <div class="erp-validation perm-super-admin-banner">
+          <strong>Super Admin — Full access.</strong> Platform super admins are unrestricted; tab permissions are not applied.
+        </div>
+        {% else %}
+        <p class="erp-hint">Step 1: select main departments. Step 2: modules load automatically. Step 3: set View / Create / Edit / Delete / Approve / Print / Export per module. Only <strong>View</strong> controls menu access.</p>
+
+        <div class="perm-toolbar erp-form-grid" style="align-items:end;margin-bottom:0.75rem;">
+          <div class="erp-field span-2">
+            <input type="search" id="perm-module-search" data-perm-search placeholder=" " autocomplete="off">
+            <label>Search modules (e.g. Material, DPR)</label>
+          </div>
           <div class="erp-field">
-            <select id="perm-department" data-perm-department>
-              <option value="">Select department</option>
-              {% for slug, label in permission_departments %}
-              <option value="{{ slug }}">{{ label }}</option>
+            <select id="perm-role-template" data-perm-template>
+              <option value="">Role template…</option>
+              {% for t in permission_role_templates %}
+              <option value="{{ t.id }}">{{ t.label }}</option>
               {% endfor %}
             </select>
-            <label>Department</label>
+            <label>Apply role template</label>
           </div>
           <div class="erp-field">
-            <button type="button" class="erp-btn erp-btn-primary erp-btn-sm" data-perm-save disabled>
-              <i class="fa-solid fa-floppy-disk"></i> Save tab access
-            </button>
+            <select id="perm-copy-user" data-perm-copy-user>
+              <option value="">Copy from user…</option>
+              {% for u in copy_permission_users %}
+              <option value="{{ u.id }}">{{ u.username }}{% if u.employee_name %} — {{ u.employee_name }}{% endif %}</option>
+              {% endfor %}
+            </select>
+            <label>Copy from existing user</label>
           </div>
         </div>
+
+        <div class="perm-bulk-actions">
+          <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-perm-bulk="select-all"><i class="fa-solid fa-check-double"></i> Select All</button>
+          <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-perm-bulk="clear-all"><i class="fa-solid fa-eraser"></i> Clear All</button>
+          <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-perm-bulk="view-only"><i class="fa-solid fa-eye"></i> View Only</button>
+          <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-perm-bulk="full-access"><i class="fa-solid fa-unlock"></i> Full Access</button>
+          <button type="button" class="erp-btn erp-btn-primary erp-btn-sm" data-perm-save><i class="fa-solid fa-floppy-disk"></i> Save permissions</button>
+        </div>
         <div data-perm-status class="erp-hint" hidden></div>
-        <div data-perm-grid class="dash-display-toggles" hidden></div>
-        <p data-perm-empty class="erp-hint">Choose a department to load its module list.</p>
+
+        <div class="perm-step">
+          <h5 class="perm-step-title">Step 1 — Main departments</h5>
+          <div class="perm-dept-grid" data-perm-dept-grid>
+            {% for slug, label in permission_departments %}
+            <label class="perm-dept-chip">
+              <input type="checkbox" name="perm_dept" value="{{ slug }}" data-perm-dept>
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="perm-step" data-perm-matrix-wrap hidden>
+          <h5 class="perm-step-title">Step 2 &amp; 3 — Module permission matrix</h5>
+          <div class="perm-matrix-scroll">
+            <table class="erp-table perm-matrix-table" data-perm-matrix>
+              <thead>
+                <tr>
+                  <th class="perm-col-module">Module</th>
+                  <th class="perm-col-dept">Department</th>
+                  {% for action in permission_actions %}
+                  <th class="perm-col-action" title="{{ permission_action_labels[action] }}">{{ permission_action_labels[action] }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody data-perm-matrix-body></tbody>
+            </table>
+          </div>
+          <p data-perm-empty class="erp-hint">Select at least one department to load modules.</p>
+        </div>
         <input type="hidden" data-perm-user-id value="{{ edit_user.id }}">
+        {% endif %}
       </div>
       {% endif %}
 
