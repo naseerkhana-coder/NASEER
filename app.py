@@ -8178,12 +8178,13 @@ def login_branding():
     if not tenant:
         return jsonify({}), 404
     logo_url = None
-    if tenant.get("logo_path"):
-        logo_url = url_for("static", filename=tenant["logo_path"])
+    logo_path = _row_val(tenant, "logo_path")
+    if logo_path:
+        logo_url = url_for("static", filename=logo_path)
     return jsonify(
         {
-            "company_name": tenant.get("company_name"),
-            "customer_code": tenant.get("customer_code"),
+            "company_name": _row_val(tenant, "company_name"),
+            "customer_code": _row_val(tenant, "customer_code"),
             "logo_url": logo_url,
         }
     )
@@ -8282,9 +8283,9 @@ def login():
             tenant = get_customer_by_code(get_db(), preview_code.upper())
             if tenant:
                 login_branding = {
-                    "company_name": tenant.get("company_name"),
-                    "customer_code": tenant.get("customer_code"),
-                    "logo_path": tenant.get("logo_path"),
+                    "company_name": _row_val(tenant, "company_name"),
+                    "customer_code": _row_val(tenant, "customer_code"),
+                    "logo_path": _row_val(tenant, "logo_path"),
                 }
         except Exception:
             app.logger.exception("Login branding lookup failed for %s", preview_code)

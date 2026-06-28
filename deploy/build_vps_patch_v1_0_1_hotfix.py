@@ -76,6 +76,7 @@ def build() -> None:
         "  5. Customer Master package panel dark theme",
         "  6. Remove header progress bar; platform dashboard UI refresh",
         "  7. Platform admin security + workflow exempt (prior hotfix retained)",
+        "  8. Fix login branding API (sqlite3.Row .get AttributeError on VPS)",
         "",
         "Files in archive",
         "----------------",
