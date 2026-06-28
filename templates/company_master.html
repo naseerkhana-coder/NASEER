@@ -82,12 +82,22 @@
       <div class="erp-field"><input name="phone" placeholder=" " value="{{ selected_company.phone if selected_company else '' }}"><label>Phone</label></div>
       <div class="erp-field"><input name="email" type="email" placeholder=" " value="{{ selected_company.email if selected_company else '' }}"><label>Email</label></div>
       <div class="erp-field span-2"><input name="website" placeholder=" " value="{{ selected_company.website if selected_company else '' }}"><label>Website</label></div>
+      <div class="span-2"><h4 style="margin:0.75rem 0 0.25rem;">Primary Bank Account</h4></div>
+      <div class="erp-field"><input name="bank_name" placeholder=" " value="{{ selected_company.bank_name if selected_company else '' }}"><label>Bank Name</label></div>
+      <div class="erp-field"><input name="bank_branch_name" placeholder=" " value="{{ selected_company.bank_branch_name if selected_company else '' }}"><label>Branch Name</label></div>
+      <div class="erp-field span-2"><input name="bank_branch_address" placeholder=" " value="{{ selected_company.bank_branch_address if selected_company else '' }}"><label>Branch Address</label></div>
+      <div class="erp-field"><input name="bank_account_name" placeholder=" " value="{{ selected_company.bank_account_name if selected_company else '' }}"><label>Account Name</label></div>
+      <div class="erp-field"><input name="bank_account_number" placeholder=" " value="{{ selected_company.bank_account_number if selected_company else '' }}"><label>Account Number</label></div>
+      <div class="erp-field"><input name="bank_ifsc" placeholder=" " value="{{ selected_company.bank_ifsc if selected_company else '' }}"><label>IFSC</label></div>
+      <div class="erp-field"><input name="bank_swift" placeholder=" " value="{{ selected_company.bank_swift if selected_company else '' }}"><label>SWIFT (optional)</label></div>
+      <div class="erp-field"><input name="bank_micr" placeholder=" " value="{{ selected_company.bank_micr if selected_company else '' }}"><label>MICR (optional)</label></div>
+      <div class="erp-field"><input name="bank_upi" placeholder=" " value="{{ selected_company.bank_upi if selected_company else '' }}"><label>UPI (optional)</label></div>
       <div class="span-2"><h4 style="margin:0.5rem 0;">Country-specific registration</h4></div>
       <div id="company-country-fields" class="erp-form-grid span-2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;"></div>
       <div class="erp-form-actions span-2">
         <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Company</button>
         {% if selected_company %}
-        <button type="submit" formaction="{{ url_for('company_master') }}" name="form_action" value="delete_company" class="erp-btn erp-btn-ghost" onclick="return confirm('Delete this company and all branches, directors, documents?');">Delete</button>
+        <button type="submit" formaction="{{ url_for('company_master') }}" name="form_action" value="delete_company" class="erp-btn erp-btn-ghost" onclick="return confirm('Delete this company and all branches, directors, documents? This action is restricted to Super Admin.');">Delete</button>
         {% endif %}
       </div>
     </form>

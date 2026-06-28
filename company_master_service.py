@@ -267,6 +267,9 @@ def ensure_company_master_schema(db) -> None:
         ("state_region", "TEXT"), ("postal_code", "TEXT"), ("phone", "TEXT"),
         ("email", "TEXT"), ("website", "TEXT"), ("country_fields_json", "TEXT"),
         ("created_by", "TEXT"), ("created_at", "TEXT"), ("modified_at", "TEXT"),
+        ("bank_name", "TEXT"), ("bank_branch_name", "TEXT"), ("bank_branch_address", "TEXT"),
+        ("bank_account_name", "TEXT"), ("bank_account_number", "TEXT"),
+        ("bank_ifsc", "TEXT"), ("bank_swift", "TEXT"), ("bank_micr", "TEXT"), ("bank_upi", "TEXT"),
     ):
         _ensure_column(db, "companies", col, ctype)
 
@@ -492,7 +495,18 @@ def save_company(db, form, username: str, company_id: int | None = None) -> int:
     status = (form.get("status") or "Active").strip()
     country_fields = _parse_country_fields(form, country, db)
     now = _now_ts()
-    values = (
+    bank_values = (
+        (form.get("bank_name") or "").strip(),
+        (form.get("bank_branch_name") or "").strip(),
+        (form.get("bank_branch_address") or "").strip(),
+        (form.get("bank_account_name") or "").strip(),
+        (form.get("bank_account_number") or "").strip(),
+        (form.get("bank_ifsc") or "").strip().upper(),
+        (form.get("bank_swift") or "").strip().upper(),
+        (form.get("bank_micr") or "").strip(),
+        (form.get("bank_upi") or "").strip(),
+    )
+    core_values = (
         legal_name,
         trade_name,
         country,
@@ -506,23 +520,28 @@ def save_company(db, form, username: str, company_id: int | None = None) -> int:
         (form.get("email") or "").strip(),
         (form.get("website") or "").strip(),
         _json_dump(country_fields),
-        now,
+        *bank_values,
     )
     if company_id:
         db.execute(
             "UPDATE companies SET legal_name=?, trade_name=?, country=?, status=?, "
             "address_line1=?, address_line2=?, city=?, state_region=?, postal_code=?, "
-            "phone=?, email=?, website=?, country_fields_json=?, modified_at=? WHERE id=?",
-            (*values, company_id),
+            "phone=?, email=?, website=?, country_fields_json=?, "
+            "bank_name=?, bank_branch_name=?, bank_branch_address=?, bank_account_name=?, "
+            "bank_account_number=?, bank_ifsc=?, bank_swift=?, bank_micr=?, bank_upi=?, "
+            "modified_at=? WHERE id=?",
+            (*core_values, now, company_id),
         )
         return company_id
     code = _next_company_code(db)
     cur = db.execute(
         "INSERT INTO companies(company_code, legal_name, trade_name, country, status, "
         "address_line1, address_line2, city, state_region, postal_code, phone, email, "
-        "website, country_fields_json, created_by, created_at, modified_at) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (code, *values, username, now),
+        "website, country_fields_json, bank_name, bank_branch_name, bank_branch_address, "
+        "bank_account_name, bank_account_number, bank_ifsc, bank_swift, bank_micr, bank_upi, "
+        "created_by, created_at, modified_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (code, *core_values, username, now, now),
     )
     return int(cur.lastrowid)
 
