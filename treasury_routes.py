@@ -181,12 +181,21 @@ from backup_service import (
 
 
 def register_treasury_routes(app, *, login_required, get_db, query_db, is_admin_user,
+                               is_super_admin_user=None,
                                create_approval_request, get_edit_role_for_user,
                                _workflow_view_context, _module_edit_context, _complete_module_save,
                                treasury_docs_dir=None, save_file_fn=None, db_path=None):
     """Register treasury blueprint-style routes on the Flask app."""
     docs_dir = treasury_docs_dir or os.path.join("static", "uploads", "treasury")
     database_path = db_path or os.path.join("database", "maxek.db")
+
+    def _is_super_admin():
+        if not is_super_admin_user:
+            return False
+        try:
+            return bool(is_super_admin_user())
+        except Exception:
+            return False
 
     def _save_upload(file_storage):
         if save_file_fn:
@@ -2153,6 +2162,7 @@ def register_treasury_routes(app, *, login_required, get_db, query_db, is_admin_
             stats=stats,
             backups=backups,
             is_admin=is_admin_user(),
+            is_super_admin=_is_super_admin(),
         )
 
     @app.route("/treasury/backup-system/create", methods=["POST"])
@@ -2196,8 +2206,8 @@ def register_treasury_routes(app, *, login_required, get_db, query_db, is_admin_
     @app.route("/treasury/backup-system/<int:backup_id>/restore", methods=["POST"])
     @login_required
     def treasury_backup_restore(backup_id):
-        if not is_admin_user():
-            flash("Administrator access required to restore backups.")
+        if not _is_super_admin():
+            flash("Super Admin access required to restore backups.")
             return redirect(url_for("treasury_backup_system"))
         if request.form.get("confirm_restore") != "yes":
             flash("Restore not confirmed.")
@@ -2224,8 +2234,8 @@ def register_treasury_routes(app, *, login_required, get_db, query_db, is_admin_
     @app.route("/treasury/backup-system/<int:backup_id>/delete", methods=["POST"])
     @login_required
     def treasury_backup_delete(backup_id):
-        if not is_admin_user():
-            flash("Administrator access required to delete backups.")
+        if not _is_super_admin():
+            flash("Super Admin access required to delete backups.")
             return redirect(url_for("treasury_backup_system"))
         db = get_db()
         _prepare_treasury_db(db)

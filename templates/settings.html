@@ -39,6 +39,34 @@
     </form>
   </div>
 
+  {% if can_edit_tenant_settings and tenant_settings %}
+  <div class="erp-form-card" id="tenant-branding">
+    <h3 class="erp-form-title">Tenant Branding &amp; Regional Settings</h3>
+    <p class="erp-form-hint">Logo path is relative to <code>static/</code> (e.g. <code>uploads/logos/acme.png</code>).</p>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_type" value="tenant_branding">
+      <div class="erp-field span-2"><input name="tenant_company_name" required placeholder=" " value="{{ tenant_settings.company_name or '' }}"><label>Company Display Name *</label></div>
+      <div class="erp-field span-2"><input name="tenant_logo_path" placeholder=" " value="{{ tenant_settings.logo_path or '' }}"><label>Logo Path (under static/)</label></div>
+      <div class="erp-field"><select name="tenant_theme" class="has-value"><option value="command-dark"{% if tenant_settings.theme == 'command-dark' or not tenant_settings.theme %} selected{% endif %}>Command Dark</option><option value="pro-light"{% if tenant_settings.theme == 'pro-light' %} selected{% endif %}>Pro Light</option><option value="ultra-color"{% if tenant_settings.theme == 'ultra-color' %} selected{% endif %}>Ultra Color</option></select><label>UI Theme</label></div>
+      <div class="erp-field span-2"><textarea name="tenant_address" placeholder=" ">{{ tenant_settings.address or '' }}</textarea><label>Registered Address</label></div>
+      <div class="erp-field"><input name="tenant_gst" placeholder=" " value="{{ tenant_settings.vat_gst_number or '' }}"><label>GST / VAT Number</label></div>
+      <div class="erp-field"><input name="tenant_financial_year" placeholder=" " value="{{ tenant_settings.financial_year or '' }}"><label>Financial Year (e.g. 2025-26)</label></div>
+      <div class="erp-field"><input name="tenant_currency" placeholder=" " value="{{ tenant_settings.currency or 'INR' }}"><label>Currency</label></div>
+      <div class="erp-field span-2">
+        <select name="tenant_timezone" class="has-value">
+          {% for tz_value, tz_label in timezone_options %}
+          <option value="{{ tz_value }}"{% if tz_value == (tenant_settings.timezone or current_timezone) %} selected{% endif %}>{{ tz_label }}</option>
+          {% endfor %}
+        </select>
+        <label>Tenant Timezone</label>
+      </div>
+      <div class="erp-form-actions span-2">
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Tenant Settings</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
   <div class="erp-form-card" id="dashboard-display">
     <h3 class="erp-form-title">Dashboard Display</h3>
     <p class="erp-form-hint">Control which widgets appear on the home dashboard for all users.</p>

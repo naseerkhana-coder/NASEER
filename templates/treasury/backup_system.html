@@ -95,6 +95,7 @@
           <td style="white-space:nowrap;">
             {% if is_admin and row.file_exists and row.status == 'completed' %}
             <a href="{{ url_for('treasury_backup_download', backup_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Download</a>
+            {% if is_super_admin %}
             <form method="post" action="{{ url_for('treasury_backup_restore', backup_id=row.id) }}" style="display:inline;" onsubmit="return confirm('Restore database from this backup? A safety backup will be created first. You must restart the application after restore.');">
               <input type="hidden" name="confirm_restore" value="yes">
               <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Restore</button>
@@ -102,6 +103,7 @@
             <form method="post" action="{{ url_for('treasury_backup_delete', backup_id=row.id) }}" style="display:inline;" onsubmit="return confirm('Delete this backup file permanently?');">
               <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Delete</button>
             </form>
+            {% endif %}
             {% elif is_admin and not row.file_exists %}
             <span class="workflow-hint">File missing</span>
             {% endif %}
@@ -115,7 +117,7 @@
   </div>
 </div>
 
-{% if is_admin %}
+{% if is_super_admin %}
 <div class="erp-alert erp-alert-warning" style="margin-top:1.25rem;padding:0.75rem 1rem;border-radius:0.5rem;background:#fef3c7;border:1px solid #f59e0b;">
   <strong><i class="fa-solid fa-triangle-exclamation"></i> Restore requires application restart</strong>
   <p style="margin:0.5rem 0 0;font-size:0.9rem;">
