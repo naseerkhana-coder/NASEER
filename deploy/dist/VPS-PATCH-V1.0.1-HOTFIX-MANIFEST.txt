@@ -1,0 +1,29 @@
+﻿MAXEK ERP — VPS Patch v1.0.1 Hotfix
+Generated: 2026-06-28
+Archive: deploy/dist/vps-patch-v1.0.1-hotfix.zip
+
+Purpose
+-------
+Minimal VPS deployment patch so the application starts via WSGI without requiring
+bulk import or data import Python modules on the server. Bulk/data import routes
+register only when those modules are present.
+
+Files in archive
+----------------
+app.py
+  Wrap bulk_import_routes and data_import_routes imports in try/except and register
+  routes only when import succeeds. Allows wsgi import and app boot on VPS without
+  bulk import dependencies.
+
+standard_boq_library_service.py
+  Standard BOQ library service included in the v1.0.1 hotfix bundle for VPS parity
+  with UAT fixes.
+
+static/js/maxek-ui.js
+  Shared MAXEK UI JavaScript included in the v1.0.1 hotfix bundle for client-side
+  fixes shipped with this release.
+
+Deployment
+----------
+Extract zip at application root (preserve paths). Restart WSGI/application service.
+Do not deploy bulk_import_*.py or data_import_*.py unless bulk import is required.
