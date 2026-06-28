@@ -368,6 +368,7 @@ from super_admin_service import (
     CUSTOMER_ADMIN_CREATABLE_ROLES,
     CUSTOMER_ADMIN_ROLE,
     ERP_ADMIN_SUBTOOLBAR,
+    ERP_ADMIN_SUBTOOLBAR_SECTIONS,
     PLATFORM_CUSTOMER_CODE,
     SUPER_ADMIN_ROLE,
     authenticate_tenant_user,
@@ -7901,7 +7902,10 @@ def inject_maxek_layout():
         }
     sub_toolbar_items = [] if in_dept_portal_shell else filter_sub_toolbar_items(current_nav_group)
     sub_toolbar_sections = None
-    if not in_dept_portal_shell and active_toolbar_slug == "accounts-finance":
+    if not in_dept_portal_shell and request.endpoint in ERP_ADMIN_ACTIVE_ENDPOINTS:
+        sub_toolbar_sections = ERP_ADMIN_SUBTOOLBAR_SECTIONS
+        sub_toolbar_items = list(ERP_ADMIN_SUBTOOLBAR)
+    elif not in_dept_portal_shell and active_toolbar_slug == "accounts-finance":
         sub_toolbar_sections = accounts_sub_toolbar_sections()
         sub_toolbar_items = [
             item
@@ -8035,9 +8039,7 @@ def inject_maxek_layout():
         "dashboard_shell_favorites": DASHBOARD_SHELL_FAVORITES,
         "dashboard_shell_nav_groups": build_dashboard_shell_nav_groups(super_admin=super_admin),
         "dashboard_shell_settings": DASHBOARD_SHELL_SETTINGS,
-        "primary_dashboard_endpoint": (
-            "super_admin_platform_dashboard" if super_admin else "dashboard"
-        ),
+        "primary_dashboard_endpoint": "dashboard",
     }
 
 
@@ -10200,8 +10202,6 @@ def render_choice_b_dashboard():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    if is_super_admin_user():
-        return redirect(url_for("super_admin_platform_dashboard"))
     return render_choice_b_dashboard()
 
 

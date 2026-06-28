@@ -110,11 +110,16 @@
   var backBtn = shell.querySelector('[data-pro-back]');
   if (backBtn) {
     backBtn.addEventListener('click', function () {
+      var fallback = backBtn.getAttribute('data-fallback-url');
+      if (fallback) {
+        window.location.href = fallback;
+        return;
+      }
       if (window.history.length > 1) {
         window.history.back();
         return;
       }
-      window.location.href = backBtn.getAttribute('data-fallback-url') || '/dashboard';
+      window.location.href = '/dashboard';
     });
   }
 
