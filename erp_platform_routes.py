@@ -78,8 +78,11 @@ def api_erp_context():
     db = get_db()
     user_id = int(session["user_id"])
     if request.method == "GET":
+        from app import is_platform_super_admin_user
+
         ctx = load_user_context(db, user_id) or {}
         company_id = ctx.get("company_id") or session.get("company_id")
+        customer_filter = None if is_platform_super_admin_user() else session.get("customer_id")
         return jsonify(
             {
                 "context": {
@@ -89,7 +92,7 @@ def api_erp_context():
                     "branch_name": ctx.get("branch_name") or session.get("branch"),
                     "project_id": ctx.get("project_id") or session.get("selected_project_id"),
                 },
-                "companies": list_context_companies(db),
+                "companies": list_context_companies(db, customer_filter),
                 "branches": list_context_branches(db, company_id),
                 "projects": list_context_projects(db, ctx.get("branch_id")),
             }

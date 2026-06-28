@@ -407,6 +407,7 @@ from auth_jwt import ensure_jwt_schema
 from tenant_isolation import ensure_tenant_isolation_schema
 from user_context_service import (
     apply_context_to_session,
+    resolve_super_admin_company_id,
     ensure_user_context_schema,
     list_context_branches,
     list_context_companies,
@@ -8015,7 +8016,8 @@ def inject_maxek_layout():
             ]
         except sqlite3.OperationalError:
             header_projects = []
-    context_companies = list_context_companies(db, session.get("customer_id"))
+    context_customer_filter = None if platform_super_admin else session.get("customer_id")
+    context_companies = list_context_companies(db, context_customer_filter)
     company_display_name = (
         session.get("customer_name")
         or session.get("company_code")
@@ -10678,7 +10680,7 @@ def _build_dashboard_shared_context(db):
 
 def build_super_admin_company_erp_section(db):
     """Level 2 company ERP tiles when Super Admin has an active company context."""
-    company_id = session.get("company_id")
+    company_id = resolve_super_admin_company_id(db, session)
     if not company_id:
         return None
     try:
@@ -10749,6 +10751,8 @@ def dashboard():
             query_company_id = request.args.get("company_id", type=int)
             if query_company_id:
                 session["company_id"] = query_company_id
+            elif not session.get("company_id"):
+                resolve_super_admin_company_id(db, session)
             if not session.get("company_id"):
                 return redirect(url_for("super_admin_platform_dashboard"))
     except Exception:

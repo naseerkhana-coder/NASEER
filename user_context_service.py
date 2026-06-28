@@ -164,6 +164,40 @@ def list_context_companies(db, customer_id: int | None) -> list[dict[str, Any]]:
         return []
 
 
+def resolve_super_admin_company_id(
+    db,
+    session_obj: dict,
+    *,
+    persist_session: bool = True,
+) -> int | None:
+    """Pick active company for platform super admin (session → saved context → first company)."""
+    company_id = session_obj.get("company_id")
+    if company_id:
+        try:
+            return int(company_id)
+        except (TypeError, ValueError):
+            pass
+    user_id = session_obj.get("user_id")
+    if user_id:
+        ctx = load_user_context(db, int(user_id))
+        if ctx and ctx.get("company_id"):
+            try:
+                company_id = int(ctx["company_id"])
+            except (TypeError, ValueError):
+                company_id = None
+            if company_id and persist_session:
+                session_obj["company_id"] = company_id
+            if company_id:
+                return company_id
+    companies = list_context_companies(db, None)
+    if not companies:
+        return None
+    company_id = int(companies[0]["id"])
+    if persist_session:
+        session_obj["company_id"] = company_id
+    return company_id
+
+
 def list_context_branches(db, company_id: int | None) -> list[dict[str, Any]]:
     if not company_id:
         return []
