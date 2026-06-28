@@ -1,142 +1,250 @@
-# Production UAT Checklist — MAXEK ERP
+# MAXEK ERP v1.0.1 Final UAT Checklist
 
 **Environment:** https://erp.maxekindia.com  
+**VPS app path:** `/var/www/maxek-erp-flask`  
 **Date tested:** _______________  
 **Tester:** _______________
 
-Use this checklist during browser testing. Tick each box when verified. Note failures in the **Issues** column.
+Use this checklist during browser testing on production after deploying the v1.0.1 hotfix. Tick each item when verified. Log failures in the **Issues log** at the bottom.
 
 ---
 
-## 1. Login
+## Deployment
 
-| # | Test case | Super Admin | Customer Admin | Company Admin | Normal User | Checker | Approver | Issues |
-|---|-----------|:-----------:|:--------------:|:-------------:|:-----------:|:-------:|:--------:|--------|
-| 1.1 | Login page loads with company code field | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 1.2 | Valid credentials → dashboard | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 1.3 | Invalid password shows clear error | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 1.4 | Wrong company code blocked / message shown | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 1.5 | Session persists on refresh | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 1.6 | Logout clears session and returns to login | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 1.7 | Super Admin: Platform Command Centre accessible | ☐ | — | — | — | — | — | |
-| 1.8 | Customer Admin: tenant dashboard only (no platform admin) | — | ☐ | — | — | — | — | |
+| Item | Value |
+|------|-------|
+| Version | v1.0.1 Hotfix |
+| Commit | `f4ce536` (prior: `4068db8`) |
+| Patch archive | `deploy/dist/vps-patch-v1.0.1-hotfix.zip` |
+| Files in patch | 32 |
+| Build script | `deploy/build_vps_patch_v1_0_1_hotfix.py` |
 
----
+Deploy to the VPS and restart the service **before** UAT.
 
-## 2. Navigation
+### VPS deploy commands
 
-| # | Test case | Super Admin | Customer Admin | Company Admin | Normal User | Checker | Approver | Issues |
-|---|-----------|:-----------:|:--------------:|:-------------:|:-----------:|:-------:|:--------:|--------|
-| 2.1 | Sidebar loads all licensed modules | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 2.2 | Breadcrumbs correct on module pages | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 2.3 | Department hub links open correct workspace | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 2.4 | Settings → Company Master opens legal registration | ☐ | ☐ | ☐ | — | ☐ | ☐ | |
-| 2.5 | Settings → Users opens user list | ☐ | ☐ | ☐ | — | ☐ | ☐ | |
-| 2.6 | Super Admin → Customer Settings (branding only) | ☐ | — | — | — | — | — | |
-| 2.7 | Unlicensed module shows placeholder / blocked | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 2.8 | Mobile / narrow viewport: sidebar usable | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
+Upload `vps-patch-v1.0.1-hotfix.zip` to the VPS (e.g. `/tmp/`), then run on the server:
 
----
+```bash
+APP=/var/www/maxek-erp-flask
+cd "$APP"
 
-## 3. Standard Toolbar (List / CRUD modules)
+# 1. Backup (stops maxek-erp during DB snapshot, restarts when done)
+bash deploy/vps_backup.sh "$APP"
 
-Verify on sample modules: **Projects**, **Clients**, **Vendor Master**, **Employee Master**, **Material Request**, **Accounts Expenses**.
+# 2. Apply hotfix (preserve paths under app root)
+sudo unzip -o /tmp/vps-patch-v1.0.1-hotfix.zip -d "$APP"
 
-| # | Test case | Super Admin | Customer Admin | Company Admin | Normal User | Checker | Approver | Issues |
-|---|-----------|:-----------:|:--------------:|:-------------:|:-----------:|:-------:|:--------:|--------|
-| 3.1 | Toolbar visible: New, View, Edit, Search, Filter, Refresh | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.2 | Export Excel downloads data | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.3 | Export PDF / Print works on list | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.4 | Search filters table rows | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.5 | Status filter works (workflow modules) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.6 | Select row → View / Edit enabled | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.7 | New opens form panel or new URL | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.8 | Refresh reloads list | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.9 | Reports link opens reports module (where applicable) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 3.10 | Delete on toolbar: Super Admin only (Customer Master) | ☐ | — | — | — | — | — | |
+# 3. Permissions + restart
+sudo chown -R www-data:www-data "$APP"
+sudo systemctl restart maxek-erp
+sudo systemctl status maxek-erp --no-pager
+journalctl -u maxek-erp -n 40 --no-pager
+```
+
+No database schema changes are required for this patch.
 
 ---
 
-## 4. CRUD Operations
+## Production test URLs
 
-| # | Test case | Super Admin | Customer Admin | Company Admin | Normal User | Checker | Approver | Issues |
-|---|-----------|:-----------:|:--------------:|:-------------:|:-----------:|:-------:|:--------:|--------|
-| 4.1 | Create master record (Client / Vendor / Staff) | ☐ | ☐ | ☐ | ☐ | — | — | |
-| 4.2 | Edit existing record saves changes | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 4.3 | View read-only mode (no accidental edit) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 4.4 | Required field validation on save | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 4.5 | Company Master: save legal name, GST, bank (no logo field) | ☐ | ☐ | ☐ | — | ☐ | ☐ | |
-| 4.6 | Customer Settings: logo upload + theme only | ☐ | — | — | — | — | — | |
-| 4.7 | Pagination on long lists | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
+Base URL: **https://erp.maxekindia.com**
 
----
-
-## 5. Workflow (Maker → Checker → Approver)
-
-Test on: **Projects**, **BOQ**, **DPR**, **Material Request**, **Expenses**, **Attendance**.
-
-| # | Test case | Super Admin | Customer Admin | Company Admin | Normal User | Checker | Approver | Issues |
-|---|-----------|:-----------:|:--------------:|:-------------:|:-----------:|:-------:|:--------:|--------|
-| 5.1 | Maker: Save → Pending Checker | ☐ | ☐ | ☐ | ☐ | — | — | |
-| 5.2 | Maker: Edit while Pending Checker | ☐ | ☐ | ☐ | ☐ | — | — | |
-| 5.3 | Maker: Delete via row action (pending only) | ☐ | ☐ | ☐ | ☐ | — | — | |
-| 5.4 | Checker: Verify → Pending Approval | ☐ | ☐ | ☐ | — | ☐ | — | |
-| 5.5 | Checker: Reject with remarks | ☐ | ☐ | ☐ | — | ☐ | — | |
-| 5.6 | Approver: Approve → Approved | ☐ | ☐ | ☐ | — | — | ☐ | |
-| 5.7 | Approver: Reject with remarks | ☐ | ☐ | ☐ | — | — | ☐ | |
-| 5.8 | Approval history timeline visible on view | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 5.9 | Toolbar Delete NOT used for workflow delete (row Actions used) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
+| Area | Path | Full URL |
+|------|------|----------|
+| Login | `/login` | https://erp.maxekindia.com/login |
+| Accounts hub | `/accounts` | https://erp.maxekindia.com/accounts |
+| Receipt voucher | `/accounts/receipts` | https://erp.maxekindia.com/accounts/receipts |
+| Cash Book (CoA v2) | `/accounts/cash-book-v2` | https://erp.maxekindia.com/accounts/cash-book-v2 |
+| Bank Book (CoA v2) | `/accounts/bank-book-v2` | https://erp.maxekindia.com/accounts/bank-book-v2 |
+| Day Book | `/accounts/day-book` | https://erp.maxekindia.com/accounts/day-book |
+| General Ledger | `/accounts/general-ledger` | https://erp.maxekindia.com/accounts/general-ledger |
+| TDS register | `/accounts/tds-register` | https://erp.maxekindia.com/accounts/tds-register |
+| TDS (legacy route) | `/accounts/tds` | https://erp.maxekindia.com/accounts/tds |
+| Cash Book (legacy) | `/accounts/cash-book` | https://erp.maxekindia.com/accounts/cash-book |
+| Bank Book (legacy) | `/accounts/bank-book` | https://erp.maxekindia.com/accounts/bank-book |
+| Ledger (legacy) | `/accounts/ledger` | https://erp.maxekindia.com/accounts/ledger |
+| Customer Master | `/erp-admin/customers` | https://erp.maxekindia.com/erp-admin/customers |
+| License Master | `/erp-admin/licenses` | https://erp.maxekindia.com/erp-admin/licenses |
+| Platform dashboard | `/super-admin/dashboard` | https://erp.maxekindia.com/super-admin/dashboard |
 
 ---
 
-## 6. Reports
+# UAT Execution Order
 
-| # | Test case | Super Admin | Customer Admin | Company Admin | Normal User | Checker | Approver | Issues |
-|---|-----------|:-----------:|:--------------:|:-------------:|:-----------:|:-------:|:--------:|--------|
-| 6.1 | Global Reports module opens | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 6.2 | Accounts Reports generate | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 6.3 | Cost Planning Reports | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 6.4 | Client Billing Reports | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 6.5 | Payroll / attendance exports | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 6.6 | Treasury reports (if licensed) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
+Run sections **in order**. Section 1 is highest priority.
+
+## 1. Accounts Module (Highest Priority)
+
+Verify these pages open without any server errors:
+
+| Page | URL | Pass |
+|------|-----|:----:|
+| Receipt | https://erp.maxekindia.com/accounts/receipts | ☐ |
+| Cash Book (v2) | https://erp.maxekindia.com/accounts/cash-book-v2 | ☐ |
+| Bank Book (v2) | https://erp.maxekindia.com/accounts/bank-book-v2 | ☐ |
+| Day Book | https://erp.maxekindia.com/accounts/day-book | ☐ |
+| General Ledger | https://erp.maxekindia.com/accounts/general-ledger | ☐ |
+
+**Acceptance:**
+
+- No HTTP 500
+- No HTTP 502
+- No template errors
+- No route errors
+- No SQL errors
+
+Also smoke-test **legacy routes** if navigation still references them:
+
+| Legacy route | URL | Pass |
+|--------------|-----|:----:|
+| Cash Book | https://erp.maxekindia.com/accounts/cash-book | ☐ |
+| Bank Book | https://erp.maxekindia.com/accounts/bank-book | ☐ |
+| Ledger | https://erp.maxekindia.com/accounts/ledger | ☐ |
 
 ---
 
-## 7. Permissions by Role
+## 2. TDS
 
-| # | Test case | Super Admin | Customer Admin | Company Admin | Normal User | Checker | Approver | Issues |
-|---|-----------|:-----------:|:--------------:|:-------------:|:-----------:|:-------:|:--------:|--------|
-| 7.1 | Super Admin: Customer Master CRUD + cascade delete | ☐ | — | — | — | — | — | |
-| 7.2 | Super Admin: License & limits management | ☐ | — | — | — | — | — | |
-| 7.3 | Customer Admin: full tenant modules per package | — | ☐ | — | — | — | — | |
-| 7.4 | Company Admin: settings, users, company master | — | — | ☐ | — | — | — | |
-| 7.5 | Normal User: maker modules only, no admin settings | — | — | — | ☐ | — | — | |
-| 7.6 | Checker: verify/reject, no approve | — | — | — | — | ☐ | — | |
-| 7.7 | Approver: final approve/reject | — | — | — | — | — | ☐ | |
-| 7.8 | Cross-tenant data isolation (cannot see other customer) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| 7.9 | Direct URL to admin route blocked for non-admin | — | ☐ | ☐ | ☐ | ☐ | ☐ | |
+**URL:** https://erp.maxekindia.com/accounts/tds-register
+
+Verify:
+
+| Check | Pass |
+|-------|:----:|
+| Back button returns to the **Accounts** dashboard (`/accounts`) | ☐ |
+| Does **not** redirect to the Main Dashboard | ☐ |
 
 ---
 
-## 8. Sign-off
+## 3. Customer Master
 
-| Role | Name | Signature | Date | Pass / Fail |
-|------|------|-----------|------|-------------|
-| Super Admin tester | | | | |
-| Customer Admin tester | | | | |
-| Company Admin tester | | | | |
-| Normal User tester | | | | |
-| Checker tester | | | | |
-| Approver tester | | | | |
-| UAT lead | | | | |
+**URL:** https://erp.maxekindia.com/erp-admin/customers (open a customer for edit)
 
-**Overall production sign-off:** ☐ Approved  ☐ Blocked — see issues log
+Verify:
+
+| Check | Pass |
+|-------|:----:|
+| Package & Department Access panel uses dark theme | ☐ |
+| White background removed | ☐ |
+| Text remains readable after Save | ☐ |
+| Package selection works correctly | ☐ |
+
+---
+
+## 4. Platform Dashboard
+
+**URL:** https://erp.maxekindia.com/super-admin/dashboard  
+*(Super Admin / Platform Super Admin only)*
+
+Verify:
+
+| Check | Pass |
+|-------|:----:|
+| Header progress bar removed | ☐ |
+| Department card colors display correctly | ☐ |
+| Customer Creation appears under Quick Actions | ☐ |
+| Card spacing is consistent | ☐ |
+| Recent Customers table styling is correct | ☐ |
+| Navigation does not produce server errors | ☐ |
+
+---
+
+## 5. License Master
+
+**URL:** https://erp.maxekindia.com/erp-admin/licenses  
+*(Platform Super Admin only)*
+
+Verify:
+
+| Check | Pass |
+|-------|:----:|
+| License Registration saves successfully | ☐ |
+| Edit works | ☐ |
+| Delete works (Platform Super Admin only) | ☐ |
+| Open / View / Edit / Delete disabled until a row is selected | ☐ |
+| Customer, Product, and Plan validation works correctly | ☐ |
+
+---
+
+## 6. Final Smoke Test
+
+Verify across roles (Super Admin, Customer Admin, Company Admin, Normal User, Checker, Approver):
+
+| Check | Pass |
+|-------|:----:|
+| Login (all roles) — https://erp.maxekindia.com/login | ☐ |
+| Logout clears session | ☐ |
+| CRUD operations on sample masters (Client, Vendor, Staff) | ☐ |
+| Role permissions enforced (admin routes blocked for non-admin) | ☐ |
+| Department / module navigation | ☐ |
+| No remaining HTTP 500 / 502 errors on licensed modules | ☐ |
+
+---
+
+# Release Decision
+
+## PASS
+
+- Sign off **v1.0.1**
+- Tag production (`v1.0.1`)
+- Freeze maintenance branch
+
+**Overall production sign-off:** ☐ Approved
+
+## FAIL
+
+- Fix **only** Critical or High issues
+- Re-run affected UAT sections above
+- **No new features** on the maintenance branch
+
+**Overall production sign-off:** ☐ Blocked — see issues log
+
+---
+
+# Next Release
+
+After **v1.0.1** is approved, start **v1.1**:
+
+- Bulk Import & Migration
+- BOQ Import
+- BOQ Library
+- Customer Import
+- Company Import
+- Material Import
+- Opening Balances
+- Chart of Accounts Import
+
+Run separate **staging**, **UAT**, and **production** deployment for v1.1. See `docs/MAXEK_ERP_RELEASE_PLAN.md`.
+
+---
+
+## Hotfix scope (reference)
+
+| Fix | Evidence |
+|-----|----------|
+| Platform dashboard UI + Super Admin dept tiles | `4068db8`, `f4ce536` |
+| License Master 500 + toolbar (edit/delete, row selection) | `f4ce536` |
+| Accounts `url_for` fixes (receipt + book templates) | `f4ce536` |
+| TDS back → Accounts hub | `f4ce536` |
+| Customer Master package panel dark theme | `f4ce536` |
+
+---
+
+## Sign-off
+
+| Role | Name | Date | Pass / Fail |
+|------|------|------|-------------|
+| UAT lead | | | |
+| Super Admin tester | | | |
+| Customer Admin tester | | | |
+| Company Admin tester | | | |
 
 ---
 
 ## Issues log
 
-| ID | Module | Role | Steps to reproduce | Expected | Actual | Severity |
-|----|--------|------|-------------------|----------|--------|----------|
+| ID | Section | URL / module | Steps to reproduce | Expected | Actual | Severity |
+|----|---------|--------------|-------------------|----------|--------|----------|
 | | | | | | | |
 | | | | | | | |
