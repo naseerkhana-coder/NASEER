@@ -625,7 +625,8 @@ def save_branch(
         "tax_registration, country_fields_json, is_head_office, status, created_by, created_at, "
         "modified_at"
     )
-    insert_vals = (*values, username, now)
+    # values ends with (status, modified_at) for UPDATE; INSERT needs created_by/created_at instead.
+    insert_vals = (*values[:-1], username, now, now)
     if customer_id is not None:
         cur = db.execute(
             f"INSERT INTO company_branches({insert_cols}, customer_id) "

@@ -11096,16 +11096,25 @@ def _create_client_from_form():
         return None
     db = get_db()
     client_code = generate_client_code(db)
-    cursor = db.execute(
-        "INSERT INTO clients(client_code, client_name, company_name, contact_person, mobile, email, "
-        "address, gst_number, pan_number, status) VALUES(?,?,?,?,?,?,?,?,?,?)",
-        (
-            client_code, client_name, company_name, contact_person, mobile, email,
-            address, gst_number, pan_number, status,
-        ),
-    )
-    db.commit()
-    return cursor.lastrowid
+    try:
+        cursor = db.execute(
+            "INSERT INTO clients(client_code, client_name, company_name, contact_person, mobile, email, "
+            "address, gst_number, pan_number, status) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (
+                client_code, client_name, company_name, contact_person, mobile, email,
+                address, gst_number, pan_number, status,
+            ),
+        )
+        db.commit()
+        return cursor.lastrowid
+    except (sqlite3.Error, KeyError, TypeError):
+        db.rollback()
+        app.logger.exception("Client save failed for %s", company_name)
+        flash(
+            "Unable to save client. "
+            "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+        )
+        return None
 
 
 def _handle_add_vendor_form(db, endpoint, form_hash="", redirect_kwargs=None):
@@ -11934,44 +11943,55 @@ def _handle_daily_timesheet_post(
     except Exception:
         flash("Enter valid time values.")
         return redirect(url_for(endpoint, **nav_q) + "#add-attendance")
-    if record_id:
-        ctx = _module_edit_context(module_id, table, endpoint)
-        if ctx[0] == "redirect":
-            return redirect(ctx[1])
-        rid, edit_role = ctx
+    try:
+        if record_id:
+            ctx = _module_edit_context(module_id, table, endpoint)
+            if ctx[0] == "redirect":
+                return redirect(ctx[1])
+            rid, edit_role = ctx
+            db.execute(
+                "UPDATE attendance SET worker_id=?, worker_source=?, project_id=?, attendance_date=?, "
+                "in_time=?, out_time=?, break_hours=?, total_hours=?, ot_hours=?, status=?, "
+                "trade_id=?, designation_id=? WHERE id=?",
+                (
+                    worker_id, worker_source, project_id or None, attendance_date,
+                    in_time, out_time, break_hours_val, total_hours, ot_hours, status,
+                    trade_id, designation_id, rid,
+                ),
+            )
+            _complete_module_save(db, module_id, table, rid, edit_role)
+            db.commit()
+            flash(f"{entry_label} updated.")
+            return redirect(url_for(endpoint, **nav_q))
         db.execute(
-            "UPDATE attendance SET worker_id=?, worker_source=?, project_id=?, attendance_date=?, "
-            "in_time=?, out_time=?, break_hours=?, total_hours=?, ot_hours=?, status=?, "
-            "trade_id=?, designation_id=? WHERE id=?",
+            "INSERT INTO attendance(worker_id, worker_source, project_id, attendance_date, "
+            "in_time, out_time, break_hours, total_hours, ot_hours, status, approval_status, "
+            "trade_id, designation_id) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 worker_id, worker_source, project_id or None, attendance_date,
                 in_time, out_time, break_hours_val, total_hours, ot_hours, status,
-                trade_id, designation_id, rid,
+                "Pending Checker", trade_id, designation_id,
             ),
         )
-        _complete_module_save(db, module_id, table, rid, edit_role)
+        record_id_new = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        create_approval_request(
+            db, module_id, record_id_new, table,
+            session.get("username", ""), session.get("user_id")
+        )
         db.commit()
-        flash(f"{entry_label} updated.")
-        return redirect(url_for(endpoint, **nav_q))
-    db.execute(
-        "INSERT INTO attendance(worker_id, worker_source, project_id, attendance_date, "
-        "in_time, out_time, break_hours, total_hours, ot_hours, status, approval_status, "
-        "trade_id, designation_id) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (
-            worker_id, worker_source, project_id or None, attendance_date,
-            in_time, out_time, break_hours_val, total_hours, ot_hours, status,
-            "Pending Checker", trade_id, designation_id,
-        ),
-    )
-    record_id_new = db.execute("SELECT last_insert_rowid()").fetchone()[0]
-    create_approval_request(
-        db, module_id, record_id_new, table,
-        session.get("username", ""), session.get("user_id")
-    )
-    db.commit()
-    flash("Saved. Status: Pending Checker.")
-    return redirect(url_for(endpoint, **nav_q) + "#add-attendance")
+        flash("Saved. Status: Pending Checker.")
+        return redirect(url_for(endpoint, **nav_q) + "#add-attendance")
+    except (sqlite3.Error, KeyError, TypeError):
+        db.rollback()
+        app.logger.exception("%s save failed", entry_label)
+        flash(
+            f"Unable to save {entry_label.lower()}. "
+            "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+        )
+        if record_id:
+            return redirect(url_for(endpoint, edit=record_id, **nav_q) + "#add-attendance")
+        return redirect(url_for(endpoint, **nav_q) + "#add-attendance")
 
 
 @app.route("/attendance", methods=["GET", "POST"])
@@ -12084,6 +12104,14 @@ def attendance():
                 return redirect(url_for(endpoint, mode="monthly") + "#monthly-attendance")
             except ValueError as exc:
                 flash(str(exc))
+                return redirect(url_for(endpoint, mode="monthly") + "#monthly-attendance")
+            except (sqlite3.Error, KeyError, TypeError):
+                db.rollback()
+                app.logger.exception("Monthly attendance save failed")
+                flash(
+                    "Unable to save monthly attendance. "
+                    "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+                )
                 return redirect(url_for(endpoint, mode="monthly") + "#monthly-attendance")
 
         return _handle_daily_timesheet_post(
@@ -13373,8 +13401,19 @@ def company_master():
                     db.commit()
                     flash("Document removed.")
                 return redirect(url_for("company_master", company_id=redirect_cid))
-        except (ValueError, sqlite3.IntegrityError) as exc:
+        except (ValueError, sqlite3.IntegrityError, sqlite3.OperationalError) as exc:
+            db.rollback()
             flash(str(exc) if str(exc) else "Unable to save record.")
+            if redirect_cid:
+                return redirect(url_for("company_master", company_id=redirect_cid))
+            return redirect(url_for("company_master"))
+        except (KeyError, TypeError):
+            db.rollback()
+            app.logger.exception("Company master save failed (action=%s)", action)
+            flash(
+                "Unable to save company master record. "
+                "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+            )
             if redirect_cid:
                 return redirect(url_for("company_master", company_id=redirect_cid))
             return redirect(url_for("company_master"))
@@ -14453,10 +14492,27 @@ def material_request():
         except ValueError as exc:
             flash(str(exc))
             return redirect(request.referrer or url_for(endpoint))
-        if record_id:
-            db.execute(
-                "UPDATE material_requests SET project_id=?, request_date=?, material_id=?, item_name=?, "
-                "quantity=?, unit=?, remarks=? WHERE id=?",
+        try:
+            if record_id:
+                db.execute(
+                    "UPDATE material_requests SET project_id=?, request_date=?, material_id=?, item_name=?, "
+                    "quantity=?, unit=?, remarks=? WHERE id=?",
+                    (
+                        request.form.get("project_id") or None,
+                        request.form.get("request_date", ""),
+                        material_id,
+                        item_name,
+                        float(request.form.get("quantity") or 0),
+                        unit,
+                        request.form.get("remarks", ""),
+                        record_id,
+                    ),
+                )
+                _complete_module_save(db, module_id, table, record_id, edit_role)
+                return redirect(url_for(endpoint))
+            _submit_module_request(
+                module_id, table,
+                "project_id, request_date, material_id, item_name, quantity, unit, remarks, created_by, approval_status",
                 (
                     request.form.get("project_id") or None,
                     request.form.get("request_date", ""),
@@ -14465,28 +14521,20 @@ def material_request():
                     float(request.form.get("quantity") or 0),
                     unit,
                     request.form.get("remarks", ""),
-                    record_id,
+                    session.get("username", ""),
+                    "Pending Checker",
                 ),
             )
-            _complete_module_save(db, module_id, table, record_id, edit_role)
+            flash("Saved. Status: Pending Checker.")
             return redirect(url_for(endpoint))
-        _submit_module_request(
-            module_id, table,
-            "project_id, request_date, material_id, item_name, quantity, unit, remarks, created_by, approval_status",
-            (
-                request.form.get("project_id") or None,
-                request.form.get("request_date", ""),
-                material_id,
-                item_name,
-                float(request.form.get("quantity") or 0),
-                unit,
-                request.form.get("remarks", ""),
-                session.get("username", ""),
-                "Pending Checker",
-            ),
-        )
-        flash("Saved. Status: Pending Checker.")
-        return redirect(url_for(endpoint))
+        except (sqlite3.Error, KeyError, TypeError):
+            db.rollback()
+            app.logger.exception("Material request save failed")
+            flash(
+                "Unable to save material request. "
+                "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+            )
+            return redirect(request.referrer or url_for(endpoint))
     rows = query_db(
         "SELECT m.*, p.project_name, mat.code AS material_code "
         "FROM material_requests m "
@@ -17947,6 +17995,14 @@ def purchase_orders():
             return redirect(url_for(endpoint))
         except ValueError as exc:
             flash(str(exc))
+            return redirect(request.referrer or url_for(endpoint, new=1))
+        except (sqlite3.Error, KeyError, TypeError):
+            db.rollback()
+            app.logger.exception("Purchase order save failed")
+            flash(
+                "Unable to save purchase order. "
+                "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
+            )
             return redirect(request.referrer or url_for(endpoint, new=1))
     view_id = request.args.get("view")
     edit_id = request.args.get("edit")
