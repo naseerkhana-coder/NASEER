@@ -285,6 +285,16 @@ def _row_to_dict(row) -> dict[str, Any]:
     return dict(row)
 
 
+def _canonical_department_slug(slug: str) -> str:
+    """Map legacy/alias slugs to canonical portal slug (dedupes dashboard tiles)."""
+    try:
+        from ui_shell_config import resolve_department_portal_slug
+
+        return resolve_department_portal_slug(slug)
+    except Exception:
+        return slug
+
+
 def _parse_department_slugs(raw: Any) -> list[str]:
     if raw is None:
         return []
@@ -305,7 +315,7 @@ def _parse_department_slugs(raw: Any) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
     for item in items:
-        slug = str(item).strip()
+        slug = _canonical_department_slug(str(item).strip())
         if slug in valid and slug not in seen:
             seen.add(slug)
             result.append(slug)
@@ -629,8 +639,16 @@ def ensure_super_admin_schema(db) -> None:
         ("modified_at", "TEXT"),
         ("package_code", "TEXT DEFAULT 'Standard'"),
         ("enabled_departments", "TEXT"),
+        ("logo_path", "TEXT"),
+        ("theme", "TEXT"),
+        ("address", "TEXT"),
+        ("financial_year", "TEXT"),
+        ("currency", "TEXT DEFAULT 'INR'"),
+        ("timezone", "TEXT DEFAULT 'Asia/Kolkata'"),
     ):
         _ensure_column(db, "erp_customers", column, col_type)
+    _ensure_column(db, "users", "email", "TEXT")
+    _ensure_column(db, "users", "mobile", "TEXT")
     for table, columns in (
         (
             "erp_user_limits",
@@ -952,6 +970,8 @@ def ensure_customer_limits(db, customer_id: int, plan: str = "Standard") -> None
 
 
 def list_customers(db, search: str = "") -> list[dict[str, Any]]:
+    if not _table_exists(db, "erp_customers"):
+        return []
     clauses = ["is_platform=0"]
     params: list[Any] = []
     if search:
@@ -961,14 +981,49 @@ def list_customers(db, search: str = "") -> list[dict[str, Any]]:
         like = f"%{search}%"
         params.extend([like, like, like, like])
     where = " AND ".join(clauses)
-    rows = db.execute(
-        f"SELECT * FROM erp_customers WHERE {where} ORDER BY customer_code",
-        params,
-    ).fetchall()
+    try:
+        rows = db.execute(
+            f"SELECT * FROM erp_customers WHERE {where} ORDER BY customer_code",
+            params,
+        ).fetchall()
+    except Exception:
+        return []
     return [_row_to_dict(r) for r in rows]
 
 
+def _count_customer_users(db, customer_id: int) -> int:
+    if not _table_exists(db, "users"):
+        return 0
+    user_cols = {row[1] for row in db.execute("PRAGMA table_info(users)").fetchall()}
+    if "customer_id" not in user_cols:
+        return 0
+    try:
+        return int(
+            db.execute(
+                "SELECT COUNT(*) AS c FROM users WHERE customer_id=?",
+                (customer_id,),
+            ).fetchone()["c"]
+        )
+    except Exception:
+        return 0
+
+
+def _count_customer_licenses(db, customer_id: int) -> int:
+    if not _table_exists(db, "erp_licenses"):
+        return 0
+    try:
+        return int(
+            db.execute(
+                "SELECT COUNT(*) AS c FROM erp_licenses WHERE customer_id=?",
+                (customer_id,),
+            ).fetchone()["c"]
+        )
+    except Exception:
+        return 0
+
+
 def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int:
+    ensure_super_admin_schema(db)
     now = _now_ts()
     code = (data.get("customer_code") or "").strip().upper()
     if not code:
@@ -1029,27 +1084,23 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
 
 def delete_customer(db, customer_id: int) -> None:
     """Remove a tenant customer and related platform rows when safe to do so."""
-    customer = get_customer_by_id(db, customer_id)
-    if not customer:
+    ensure_super_admin_schema(db)
+    customer_row = get_customer_by_id(db, customer_id)
+    if not customer_row:
         raise ValueError("Customer not found.")
+    customer = _row_to_dict(customer_row)
     if int(customer.get("is_platform") or 0):
         raise ValueError("Cannot delete the platform customer.")
     code = str(customer.get("customer_code") or "").strip()
 
-    user_count = db.execute(
-        "SELECT COUNT(*) AS c FROM users WHERE customer_id=?",
-        (customer_id,),
-    ).fetchone()["c"]
+    user_count = _count_customer_users(db, customer_id)
     if user_count:
         raise ValueError(
             f"Cannot delete {code} — {user_count} user account(s) exist. "
             "Set status to Inactive instead."
         )
 
-    license_count = db.execute(
-        "SELECT COUNT(*) AS c FROM erp_licenses WHERE customer_id=?",
-        (customer_id,),
-    ).fetchone()["c"]
+    license_count = _count_customer_licenses(db, customer_id)
     if license_count:
         raise ValueError(
             f"Cannot delete {code} — {license_count} license(s) exist. "
@@ -1063,12 +1114,63 @@ def delete_customer(db, customer_id: int) -> None:
         "erp_subscriptions",
         "erp_support_tickets",
         "erp_change_requests",
+        "erp_licenses",
     ):
         if _table_exists(db, table):
-            db.execute(f"DELETE FROM {table} WHERE customer_id=?", (customer_id,))
+            try:
+                db.execute(f"DELETE FROM {table} WHERE customer_id=?", (customer_id,))
+            except Exception:
+                pass
 
+    if not _table_exists(db, "erp_customers"):
+        raise ValueError("Customer master table is not available.")
     db.execute("DELETE FROM erp_customers WHERE id=? AND is_platform=0", (customer_id,))
     log_audit(db, None, None, "Delete", "Customer Master", f"Deleted customer {code}")
+
+
+def save_customer_tenant_settings(db, customer_id: int, data: dict[str, Any]) -> None:
+    """Per-tenant branding and regional settings (Customer Admin)."""
+    if not customer_id:
+        raise ValueError("Customer context required.")
+    ensure_super_admin_schema(db)
+    fields = {
+        "company_name": (data.get("company_name") or "").strip(),
+        "logo_path": (data.get("logo_path") or "").strip(),
+        "theme": (data.get("theme") or "").strip(),
+        "address": (data.get("address") or "").strip(),
+        "vat_gst_number": (data.get("vat_gst_number") or "").strip(),
+        "financial_year": (data.get("financial_year") or "").strip(),
+        "currency": (data.get("currency") or "INR").strip(),
+        "timezone": (data.get("timezone") or "Asia/Kolkata").strip(),
+    }
+    if not fields["company_name"]:
+        raise ValueError("Company name is required.")
+    now = _now_ts()
+    db.execute(
+        "UPDATE erp_customers SET company_name=?, logo_path=?, theme=?, address=?, "
+        "vat_gst_number=?, financial_year=?, currency=?, timezone=?, modified_at=? "
+        "WHERE id=? AND COALESCE(is_platform, 0)=0",
+        (
+            fields["company_name"],
+            fields["logo_path"] or None,
+            fields["theme"] or None,
+            fields["address"] or None,
+            fields["vat_gst_number"] or None,
+            fields["financial_year"] or None,
+            fields["currency"],
+            fields["timezone"],
+            now,
+            customer_id,
+        ),
+    )
+    log_audit(
+        db,
+        customer_id,
+        None,
+        "Update",
+        "Tenant Settings",
+        f"Updated branding/settings for customer id {customer_id}",
+    )
 
 
 def create_customer_admin_user(
@@ -1079,14 +1181,18 @@ def create_customer_admin_user(
     password: str,
     confirm_password: str,
     display_name: str = "",
+    email: str = "",
+    mobile: str = "",
     hash_password_fn,
 ) -> None:
-    """Create the first Customer Admin for a new tenant (optional onboarding step)."""
+    """Create the first Customer Admin for a new tenant."""
     username = (username or "").strip()
     password = (password or "").strip()
     confirm_password = (confirm_password or "").strip()
+    email = (email or "").strip()
+    mobile = (mobile or "").strip()
     if not username:
-        return
+        raise ValueError("Admin username is required when onboarding a new customer.")
 
     if not password:
         raise ValueError("Admin password is required when creating a first admin account.")
@@ -1094,6 +1200,10 @@ def create_customer_admin_user(
         raise ValueError("Admin password and confirmation do not match.")
     if len(password) < 4:
         raise ValueError("Admin password must be at least 4 characters.")
+    if not email:
+        raise ValueError("Admin email is required for the Customer Administrator account.")
+    if not mobile:
+        raise ValueError("Admin mobile number is required for the Customer Administrator account.")
 
     customer = get_customer_by_id(db, customer_id)
     if not customer:
@@ -1113,14 +1223,16 @@ def create_customer_admin_user(
 
     employee_name = (display_name or "").strip() or username
     db.execute(
-        "INSERT INTO users(username, password, role, workflow_role, employee_name, status, customer_id) "
-        "VALUES(?,?,?,?,?,?,?)",
+        "INSERT INTO users(username, password, role, workflow_role, employee_name, email, mobile, "
+        "status, customer_id) VALUES(?,?,?,?,?,?,?,?,?)",
         (
             username,
             hash_password_fn(password),
             CUSTOMER_ADMIN_ROLE,
             "Administrator",
             employee_name,
+            email,
+            mobile,
             "Active",
             customer_id,
         ),

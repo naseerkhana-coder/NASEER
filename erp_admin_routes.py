@@ -195,27 +195,45 @@ def register_erp_admin_routes(
                 except ValueError as exc:
                     db.rollback()
                     flash(str(exc))
+                except sqlite3.OperationalError as exc:
+                    db.rollback()
+                    logger.exception("Customer delete failed (database): %s", exc)
+                    flash(
+                        "Could not delete customer — database schema may need migration. "
+                        "Try again after restart or contact support."
+                    )
+                except Exception as exc:
+                    db.rollback()
+                    logger.exception("Customer delete failed: %s", exc)
+                    flash(f"Could not delete customer: {exc}")
             else:
                 try:
                     record_id = request.form.get("record_id", type=int)
                     admin_username = request.form.get("admin_username", "").strip()
                     admin_password = request.form.get("admin_password", "").strip()
-                    if not record_id and admin_password and not admin_username:
-                        raise ValueError("Admin username is required when setting a password.")
+                    admin_email = request.form.get("admin_email", "").strip()
+                    admin_mobile = request.form.get("admin_mobile", "").strip()
+                    if not record_id:
+                        if not admin_username:
+                            raise ValueError("Admin username is required for new customers.")
+                        if not admin_password:
+                            raise ValueError("Admin password is required for new customers.")
                     form_data = request.form.to_dict(flat=True)
                     form_data["enabled_departments"] = request.form.getlist("enabled_departments")
                     customer_id = save_customer(db, form_data, record_id=record_id)
-                    if not record_id and admin_username:
+                    if not record_id:
                         create_customer_admin_user(
                             db,
                             customer_id,
                             username=admin_username,
-                            password=request.form.get("admin_password", ""),
+                            password=admin_password,
                             confirm_password=request.form.get("admin_confirm_password", ""),
                             display_name=request.form.get("admin_display_name", ""),
+                            email=admin_email,
+                            mobile=admin_mobile,
                             hash_password_fn=hash_password,
                         )
-                        flash("Customer and first admin account created successfully.")
+                        flash("Customer and Customer Administrator account created successfully.")
                     else:
                         flash("Customer saved successfully.")
                     db.commit()
@@ -226,6 +244,17 @@ def register_erp_admin_routes(
                 except sqlite3.IntegrityError:
                     db.rollback()
                     flash("Username already exists for this customer. Choose a different login ID.")
+                except sqlite3.OperationalError as exc:
+                    db.rollback()
+                    logger.exception("Customer save failed (database): %s", exc)
+                    flash(
+                        "Could not save customer — database schema may need migration. "
+                        "Try again after restart or contact support."
+                    )
+                except Exception as exc:
+                    db.rollback()
+                    logger.exception("Customer save failed: %s", exc)
+                    flash(f"Could not save customer: {exc}")
         search = request.args.get("q", "")
         rows = list_customers(db, search=search)
         for row in rows:
