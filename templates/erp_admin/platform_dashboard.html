@@ -2,7 +2,7 @@
 {% from 'macros/erp_ui.html' import approval_badge, erp_module_grid %}
 
 {% set page_title = 'Platform Command Centre' %}
-{% set breadcrumbs = '<a href="' ~ url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a>' %}
+{% set breadcrumbs = '<a href="' ~ safe_url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a>' %}
 
 {% block content %}
 <div class="erp-platform-dashboard">

@@ -4,7 +4,7 @@
 
 {% set page_title = 'Customer Settings — ' ~ (customer.company_name or customer.customer_code) %}
 
-{% set breadcrumbs = '<a href="' ~ url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a> &gt; <a href="' ~ url_for('erp_admin_customers') ~ '">Customer Master</a> &gt; Settings' %}
+{% set breadcrumbs = '<a href="' ~ safe_url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a> &gt; <a href="' ~ safe_url_for('erp_admin_customers') ~ '">Customer Master</a> &gt; Settings' %}
 
 {% block content %}
 

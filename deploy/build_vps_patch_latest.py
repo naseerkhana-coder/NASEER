@@ -45,6 +45,7 @@ PATCH_UI = [
     "templates/accounts_payment_voucher.html",
     "templates/erp_admin/customers.html",
     "templates/erp_admin/customer_settings.html",
+    "templates/erp_admin/platform_dashboard.html",
     "static/css/maxek-login.css",
     "static/js/login.js",
     "static/css/maxek-table-standards.css",
