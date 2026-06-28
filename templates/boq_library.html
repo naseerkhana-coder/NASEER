@@ -1,0 +1,90 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, erp_module_table_panel %}
+
+{% set page_title = 'Standard BOQ Library' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('boq_management') ~ '">BOQ</a> &gt; Standard Library' %}
+
+{% block page_actions %}
+<a href="{{ url_for('boq_management') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-table-list"></i> BOQ Management</a>
+{% endblock %}
+
+{% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search library items...',
+    search_name='q',
+    new_url=url_for('boq_library') ~ '#library-form',
+    print_target='#library-list',
+    form_panel_id='library-form',
+    table_panel_id='library-list',
+    extra_buttons='<a href="' ~ url_for('bulk_import_template', module_key='boq') ~ '" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-download"></i> BOQ Import Template</a>'
+  ) }}
+
+  <section class="erp-module-form-panel erp-form-card" id="library-form" data-entry-panel data-entry-list="library-list">
+    <h3 class="erp-form-title">{% if edit_item %}Edit{% else %}Add{% endif %} Library Item</h3>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_action" value="save">
+      {% if edit_item %}<input type="hidden" name="item_id" value="{{ edit_item.id }}">{% endif %}
+      <div class="erp-field"><input name="boq_code" required placeholder=" " value="{{ edit_item.boq_code if edit_item else '' }}"><label>BOQ Code *</label></div>
+      <div class="erp-field"><input name="item_number" placeholder=" " value="{{ edit_item.item_number if edit_item else '' }}"><label>Item Number</label></div>
+      <div class="erp-field span-2"><input name="description" required placeholder=" " value="{{ edit_item.description if edit_item else '' }}"><label>Description *</label></div>
+      <div class="erp-field span-2"><textarea name="detailed_specification" placeholder=" ">{{ edit_item.detailed_specification if edit_item else '' }}</textarea><label>Detailed Specification</label></div>
+      <div class="erp-field">
+        <select name="unit" class="has-value">
+          {% for u in boq_units %}
+          <option value="{{ u }}"{% if edit_item and edit_item.unit == u %} selected{% elif not edit_item and u == 'Nos' %} selected{% endif %}>{{ u }}</option>
+          {% endfor %}
+        </select>
+        <label>Unit</label>
+      </div>
+      <div class="erp-field"><input type="number" step="0.01" name="standard_rate" placeholder=" " value="{{ edit_item.standard_rate if edit_item else '0' }}"><label>Standard Rate</label></div>
+      <div class="erp-field">
+        <input name="category" list="lib-categories" placeholder=" " value="{{ edit_item.category if edit_item else '' }}">
+        <label>Category</label>
+        <datalist id="lib-categories">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist>
+      </div>
+      <div class="erp-field"><input name="sub_category" placeholder=" " value="{{ edit_item.sub_category if edit_item else '' }}"><label>Sub Category</label></div>
+      <div class="span-2"><label class="coa-check"><input type="checkbox" name="is_active" value="1"{% if not edit_item or edit_item.is_active %} checked{% endif %}> Active</label></div>
+      <div class="erp-form-actions span-2">
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+        <a href="{{ url_for('boq_library') }}" class="erp-btn erp-btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </section>
+
+  {% call erp_module_table_panel(id='library-list', title='Standard BOQ Library') %}
+  <div class="erp-table-scroll">
+    <table class="erp-table erp-table-module">
+      <thead>
+        <tr>
+          <th>BOQ Code</th><th>Item No.</th><th>Description</th><th>Unit</th><th>Category</th><th>Rate</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.boq_code }}</td>
+          <td>{{ row.item_number or '—' }}</td>
+          <td>{{ row.description }}</td>
+          <td>{{ row.unit or '—' }}</td>
+          <td>{{ row.category or '—' }}</td>
+          <td>{{ '%.2f'|format(row.standard_rate or 0) }}</td>
+          <td>
+            <a href="{{ url_for('boq_library', edit=row.id) }}#library-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+            <form method="post" style="display:inline" onsubmit="return confirm('Delete this library item?');">
+              <input type="hidden" name="form_action" value="delete">
+              <input type="hidden" name="item_id" value="{{ row.id }}">
+              <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No library items yet. Add items for reuse in BOQ creation and Excel import.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endcall %}
+</div>
+{% endblock %}

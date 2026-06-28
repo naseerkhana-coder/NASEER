@@ -143,6 +143,7 @@
             <td>{{ approval_badge(row.status) }}</td>
             <td class="erp-table-col-actions">
               <a href="{{ url_for('erp_admin_customer_settings', customer_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
+              <a href="{{ url_for('erp_admin_migration_wizard', customer_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Migration</a>
             </td>
           </tr>
           {% else %}<tr><td colspan="12">No customers found.</td></tr>{% endfor %}

@@ -386,6 +386,10 @@ from super_admin_service import (
     sync_customer_usage_counts,
 )
 from erp_admin_routes import register_erp_admin_routes
+from bulk_import_routes import register_bulk_import_routes
+from data_import_routes import register_data_import_routes
+from library_service import ensure_library_schema, list_boq_templates, seed_typical_libraries
+from standard_boq_library_service import ensure_standard_boq_library_schema, list_standard_boq_library
 from api_routes import register_api_routes
 from ai_routes import register_ai_routes
 from erp_platform_routes import erp_platform_bp
@@ -15829,6 +15833,12 @@ def boq_management():
         "WHERE COALESCE(m.is_deleted, 0)=0 ORDER BY m.id DESC"
     )
 
+    ensure_library_schema(db)
+    seed_typical_libraries(db)
+    ensure_standard_boq_library_schema(db)
+    boq_templates = list_boq_templates(db)
+    library_items = list_standard_boq_library(db)
+
     return render_template(
         "boq.html",
         projects=projects,
@@ -15848,6 +15858,8 @@ def boq_management():
         edit_role=wf_ctx.get("edit_role"),
         can_reopen=wf_ctx.get("can_reopen", False),
         approval_id=wf_ctx.get("approval_id"),
+        boq_templates=boq_templates,
+        library_items=library_items,
     )
 
 
@@ -22652,6 +22664,29 @@ register_erp_admin_routes(
     support_uploads_dir=SUPPORT_TICKETS_DIR,
     hash_password=hash_password,
     timezone_options=APP_TIMEZONE_OPTIONS,
+)
+
+register_bulk_import_routes(
+    app,
+    login_required=login_required,
+    get_db=get_db,
+    boq_units=BOQ_UNITS,
+    generate_boq_number=generate_boq_number,
+    generate_client_code=generate_client_code,
+    create_approval_request=create_approval_request,
+    record_pending_checker=RECORD_PENDING_CHECKER,
+)
+
+register_data_import_routes(
+    app,
+    login_required=login_required,
+    get_db=get_db,
+    generate_boq_number=generate_boq_number,
+    generate_client_code=generate_client_code,
+    create_approval_request=create_approval_request,
+    insert_boq_lines=_insert_boq_lines,
+    record_pending_checker=RECORD_PENDING_CHECKER,
+    boq_units=BOQ_UNITS,
 )
 
 app.config["GET_DB"] = get_db

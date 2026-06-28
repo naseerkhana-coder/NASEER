@@ -1,0 +1,27 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_form_panel %}
+
+{% set page_title = 'Migration Wizard — ' ~ (customer.company_name or customer.customer_code) %}
+{% set breadcrumbs = '<a href="' ~ safe_url_for('super_admin_platform_dashboard') ~ '">Platform</a> &gt; <a href="' ~ url_for('erp_admin_customers') ~ '">Customers</a> &gt; Migration Wizard' %}
+
+{% block content %}
+<div class="erp-module-layout module-layout--list-only">
+  <div class="erp-validation" style="margin-bottom:1rem;">
+    <strong>Customer:</strong> {{ customer.customer_code }} — {{ customer.company_name or '—' }}.
+    Use this wizard to onboard historical data into the tenant ERP.
+  </div>
+
+  <nav class="erp-wizard-steps" aria-label="Migration steps" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.5rem;">
+    {% for step in steps %}
+    <a href="{{ step.url }}" class="erp-btn erp-btn-sm {% if step.active %}erp-btn-primary{% else %}erp-btn-ghost{% endif %}{% if step.disabled %} disabled{% endif %}"
+       {% if step.disabled %}aria-disabled="true" tabindex="-1"{% endif %}>
+      {{ step.number }}. {{ step.label }}
+    </a>
+    {% endfor %}
+  </nav>
+
+  {% call erp_module_form_panel(id='migration-step', title=step_title, hidden=false, back_url=url_for('erp_admin_customers'), show_nav=true) %}
+    {{ step_content|safe }}
+  {% endcall %}
+</div>
+{% endblock %}

@@ -181,6 +181,11 @@
   {% if not view_boq %}
 
   <div class="erp-module-layout" style="margin-bottom:1rem;">
+    {% set boq_toolbar_extra %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-boq-import-open><i class="fa-solid fa-file-import"></i> Import</button>
+    <a href="{{ url_for('bulk_import_template', module_key='boq') }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-download"></i> Template</a>
+    <a href="{{ url_for('boq_library') }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-book"></i> BOQ Library</a>
+    {% endset %}
     {{ erp_module_toolbar(
       mode='standard',
       search_placeholder='Search BOQ records...',
@@ -190,7 +195,8 @@
       table_panel_id='boq-list',
       new_url=url_for('boq_management') ~ '#boq-form',
       reports_url=url_for('cost_planning_reports'),
-      filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
+      filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver'],
+      extra_buttons=boq_toolbar_extra
     ) }}
   </div>
 
@@ -238,13 +244,24 @@
 
       <div class="erp-field span-2">
         <select id="boq_template_select" data-boq-template-select>
-          <option value="">— Load from Typical BOQ Library —</option>
+          <option value="">— Load from Typical BOQ Template —</option>
           {% for t in boq_templates %}
           <option value="{{ t.id }}">{{ t.template_code }} — {{ t.template_name }} ({{ t.category or 'General' }})</option>
           {% endfor %}
         </select>
         <label>Typical BOQ Template</label>
         <p class="erp-hint" style="margin:0.35rem 0 0;">Select a template to pre-fill line items, then edit quantities and rates.</p>
+      </div>
+
+      <div class="erp-field span-2">
+        <select id="boq_library_select" data-boq-library-select>
+          <option value="">— Pick from Standard BOQ Library —</option>
+          {% for item in library_items %}
+          <option value="{{ item.id }}">{{ item.boq_code }} — {{ item.description }} ({{ item.unit or 'Nos' }})</option>
+          {% endfor %}
+        </select>
+        <label>Standard BOQ Library Item</label>
+        <p class="erp-hint" style="margin:0.35rem 0 0;">Adds one line from the library. <a href="{{ url_for('boq_library') }}">Manage library</a></p>
       </div>
 
       <div class="span-2">
@@ -594,6 +611,56 @@
 
 </div>
 
+<div class="erp-modal" id="boq-import-modal" hidden aria-hidden="true">
+  <div class="erp-modal-backdrop" data-modal-close></div>
+  <div class="erp-modal-card erp-modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="boq-import-title">
+    <div class="erp-modal-header">
+      <div>
+        <h3 id="boq-import-title">Import BOQ from Excel</h3>
+        <p>Upload → validate → preview → save. <a href="{{ url_for('bulk_import_template', module_key='boq') }}">Download template</a></p>
+      </div>
+      <button type="button" class="erp-modal-close" data-modal-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div data-import-step="1">
+      <div class="erp-form-grid">
+        <div class="erp-field span-2">
+          <select data-import-project required class="has-value">
+            <option value="">Select project</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}">{{ p.project_code or p.id }} — {{ p.project_name }}</option>
+            {% endfor %}
+          </select>
+          <label>Project *</label>
+        </div>
+        <div class="erp-field span-2">
+          <input type="file" data-import-file accept=".xlsx,.xls,.csv" required>
+          <label>Excel / CSV file</label>
+        </div>
+      </div>
+      <div class="erp-form-actions">
+        <span data-import-status class="erp-hint"></span>
+        <button type="button" class="erp-btn erp-btn-primary" data-import-validate><i class="fa-solid fa-check"></i> Validate</button>
+        <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Cancel</button>
+      </div>
+    </div>
+    <div data-import-step="2" hidden>
+      <div data-import-errors hidden class="erp-validation" style="margin-bottom:1rem;"></div>
+      <div data-import-preview></div>
+      <div class="erp-form-actions" style="margin-top:1rem;">
+        <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Cancel</button>
+        <button type="button" class="erp-btn erp-btn-primary" data-import-save disabled><i class="fa-solid fa-floppy-disk"></i> Save BOQ</button>
+      </div>
+    </div>
+    <div data-import-step="3" hidden>
+      <p data-import-success class="erp-validation"></p>
+      <div class="erp-form-actions">
+        <a href="#" data-import-view class="erp-btn erp-btn-primary">View BOQ</a>
+        <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {{ workflow_modals() }}
 
 {% endblock %}
@@ -601,7 +668,7 @@
 {% block scripts %}
 
 <script src="{{ url_for('static', filename='js/boq-forms.js') }}"></script>
-
+<script src="{{ url_for('static', filename='js/boq-import.js') }}"></script>
 <script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
 
 {% endblock %}

@@ -371,6 +371,105 @@ def register_erp_admin_routes(
             dashboard_theme_options=DASHBOARD_THEME_SELECT_OPTIONS,
         )
 
+    @app.route("/erp-admin/customers/<int:customer_id>/migration-wizard")
+    @login_required
+    @super_admin_required
+    def erp_admin_migration_wizard(customer_id):
+        db = get_db()
+        ensure_super_admin_schema(db)
+        row = get_customer_by_id(db, customer_id)
+        if not row:
+            flash("Customer not found.")
+            return redirect(url_for("erp_admin_customers"))
+        customer = dict(row)
+        if int(customer.get("is_platform") or 0):
+            flash("Platform customer has no migration wizard.")
+            return redirect(url_for("erp_admin_customers"))
+
+        step_num = request.args.get("step", type=int) or 1
+        step_num = max(1, min(6, step_num))
+        base = url_for("erp_admin_migration_wizard", customer_id=customer_id)
+
+        steps = [
+            {"number": 1, "label": "Company Details", "url": f"{base}?step=1", "active": step_num == 1, "disabled": False},
+            {"number": 2, "label": "Admin User", "url": f"{base}?step=2", "active": step_num == 2, "disabled": False},
+            {"number": 3, "label": "Import Masters", "url": f"{base}?step=3", "active": step_num == 3, "disabled": False},
+            {"number": 4, "label": "Import Transactions", "url": f"{base}?step=4", "active": step_num == 4, "disabled": False},
+            {"number": 5, "label": "Validation", "url": f"{base}?step=5", "active": step_num == 5, "disabled": False},
+            {"number": 6, "label": "Finish", "url": f"{base}?step=6", "active": step_num == 6, "disabled": False},
+        ]
+
+        tpl = lambda key: url_for("bulk_import_template", module_key=key)
+
+        if step_num == 1:
+            step_title = "Step 1 — Company Details"
+            step_content = (
+                f'<p>Configure legal entity, branches, GST/PAN, and bank details in '
+                f'<strong>Company Master</strong> after the tenant admin logs in.</p>'
+                f'<p>Branding for this customer: '
+                f'<a href="{url_for("erp_admin_customer_settings", customer_id=customer_id)}">Customer Settings</a></p>'
+                f'<p class="erp-hint">Existing onboarding flow — company registration lives in the tenant ERP.</p>'
+            )
+        elif step_num == 2:
+            step_title = "Step 2 — Create Admin User"
+            step_content = (
+                "<p>First administrator is created during customer registration on Customer Master.</p>"
+                f'<p><a href="{url_for("erp_admin_customers", edit=customer_id)}">Edit customer</a> to review admin account.</p>'
+            )
+        elif step_num == 3:
+            step_title = "Step 3 — Import Masters"
+            step_content = (
+                "<p>Download templates and import master data. BOQ and materials are wired in Phase A/B.</p>"
+                "<ul>"
+                f'<li><a href="{tpl("boq")}">BOQ lines template</a> — validate &amp; save via '
+                f'<a href="{url_for("boq_management")}">BOQ Management → Import</a></li>'
+                f'<li><a href="{tpl("customers")}">Customers template</a> — '
+                f'<a href="{url_for("data_import_module", module_key="customers")}">Import hub</a> (validate + save)</li>'
+                f'<li><a href="{tpl("vendors")}">Vendors template</a> — '
+                f'<a href="{url_for("data_import_module", module_key="vendors")}">Import hub</a> (validate + save)</li>'
+                f'<li><a href="{tpl("materials")}">Materials template</a> — '
+                f'<a href="{url_for("store_materials")}">Material Master</a> (validate + save)</li>'
+                f'<li><a href="{tpl("employees")}">Employees template</a> — validate only (save Phase 2)</li>'
+                f'<li><a href="{url_for("boq_library")}">Standard BOQ Library</a> — maintain reusable items</li>'
+                "</ul>"
+            )
+        elif step_num == 4:
+            step_title = "Step 4 — Import Transactions"
+            step_content = (
+                "<p>Historical transactions migration.</p>"
+                "<ul>"
+                f'<li><strong>BOQ</strong> — use Excel import on BOQ Management (full workflow)</li>'
+                f'<li><strong>Sales / Purchase / Payments</strong> — Phase 2 (stubs documented)</li>'
+                f'<li><strong>Bank statement CSV/xlsx</strong> — Phase 2 reconciliation module</li>'
+                "</ul>"
+            )
+        elif step_num == 5:
+            step_title = "Step 5 — Validation Summary"
+            step_content = (
+                "<p>After imports, verify totals and workflow status in each module.</p>"
+                "<ul>"
+                "<li>BOQ: pending checker approval on imported masters</li>"
+                "<li>Materials: spot-check codes and GST in Material Master</li>"
+                "<li>Phase 2 modules: run validate endpoint before go-live when save is available</li>"
+                "</ul>"
+                f'<p>See <code>docs/BULK_IMPORT_MIGRATION.md</code> for the full rollout plan.</p>'
+            )
+        else:
+            step_title = "Step 6 — Finish"
+            step_content = (
+                "<p>Migration wizard complete for available modules.</p>"
+                f'<p>Hand off to tenant admin at customer code <strong>{customer["customer_code"]}</strong>.</p>'
+                f'<p><a class="erp-btn erp-btn-primary" href="{url_for("erp_admin_customers")}">Back to Customer Master</a></p>'
+            )
+
+        return render_template(
+            "erp_admin/migration_wizard.html",
+            customer=customer,
+            steps=steps,
+            step_title=step_title,
+            step_content=step_content,
+        )
+
     @app.route("/erp-admin/licenses", methods=["GET", "POST"])
     @login_required
     @super_admin_required

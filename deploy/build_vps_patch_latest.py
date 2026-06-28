@@ -50,12 +50,30 @@ def stabilization_bundle_paths() -> list[str]:
     return rels
 
 
-# Final Stabilization Bundle (excludes aborted bulk import 410b68f5 — not in repo)
+# Final Stabilization Bundle (excludes aborted bulk import 410b68f5 — superseded by this commit)
 STABILIZATION_COMMITS = (
     "32788c9",  # Standard Toolbar Rollout
     "a4ca636",  # Dashboard Themes
     "2e10ed5",  # User Permission Management
 )
+
+# Bulk import module (separate from stabilization bundle — include explicitly)
+BULK_IMPORT_PATCH = [
+    "bulk_import_service.py",
+    "import_audit_service.py",
+    "standard_boq_library_service.py",
+    "boq_import_service.py",
+    "bulk_import_routes.py",
+    "library_service.py",
+    "templates/boq.html",
+    "templates/boq_library.html",
+    "templates/erp_admin/migration_wizard.html",
+    "templates/erp_admin/customers.html",
+    "static/js/boq-import.js",
+    "static/js/boq-forms.js",
+    "docs/BULK_IMPORT_MIGRATION.md",
+    "tests/test_bulk_import.py",
+]
 STABILIZATION_BASE = "114de03"
 
 FROM_IMPORT_RE = re.compile(r"^from ([a-z_][a-z0-9_]*) import", re.M)
@@ -188,6 +206,9 @@ def collect_files() -> list[str]:
             print(f"WARN: patch UI file missing (skipped): {rel}")
     for rel in stabilization_bundle_paths():
         files.add(rel)
+    for rel in BULK_IMPORT_PATCH:
+        if (ROOT / rel).is_file():
+            files.add(rel.replace("\\", "/"))
     return sorted(files)
 
 
@@ -209,9 +230,9 @@ def build() -> None:
     size = ZIP_PATH.stat().st_size
     lines = [
         "MAXEK ERP VPS patch (vps-patch-latest)",
-        "Bundle: Final Stabilization (toolbar + themes + permissions)",
-        f"Commits: {', '.join(STABILIZATION_COMMITS)}",
-        "Excluded: bulk import 410b68f5 (ABORTED — not in repository)",
+        "Bundle: Final Stabilization + Bulk Import & Migration module",
+        f"Stabilization commits: {', '.join(STABILIZATION_COMMITS)}",
+        "Bulk import: separate feature bundle (not part of 410b68f5 aborted attempt)",
         f"Generated: {datetime.now().isoformat()}",
         f"Production files: {len(files)}",
         f"Zip: {ZIP_PATH}",
