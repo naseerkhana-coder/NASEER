@@ -1,132 +1,166 @@
 ﻿# MAXEK ERP v1.1 — Bulk Import & Migration Specification
 
-**Status:** SPEC ONLY (no implementation in this document)  
 **Branch:** `release/v1.1`  
-**Baseline:** Production **`v1.0.2`** (`685d7ab`) — tenant isolation, workflow, dashboard, accounts hotfixes  
-**Last updated:** 2026-06-29  
-
-This document freezes the **user-approved import sequence** for v1.1 tenant migration. Engineering work must not start from this commit alone; it traces requirements for the v1.1 feature line described in `docs/BULK_IMPORT_MIGRATION.md` and `docs/MAXEK_ERP_RELEASE_PLAN.md`.
-
----
-
-## Purpose
-
-Deliver a **phased Excel/CSV migration path** for new or resetting tenants so that:
-
-1. Commercial and planning **library seed data** is loaded in dependency order.
-2. **Party and accounts masters** load after libraries that reference them.
-3. **Validation, audit, and rollback** close each migration before production cutover.
-
-Successful v1.1 import **feeds v1.2 Planning & Costing** per the frozen architecture in `docs/PLANNING_COSTING_V1_2_SPEC.md` on branch `release/v1.2-planning` (master libraries, BOQ auto-load, seven-tab planning). v1.1 does **not** ship the v1.2 planning UI.
+**Production baseline:** `main` @ `v1.0.2` (frozen — emergency Critical hotfixes only)  
+**Depends on:** `sample_data/` Excel templates for dev, UAT, and demos  
+**Feeds:** v1.2 Planning & Costing libraries (frozen spec on `release/v1.2-planning`)
 
 ---
 
-## Mandatory import order (Phases 1–5)
+## Objective
 
-Imports run **strictly in phase order**. Within a phase, run sheets **top to bottom**. Do not skip phases. Later phases assume earlier data exists for cross-reference validation.
-
-### Phase 1 — Commercial baseline (project-scoped)
-
-| Step | Module | Delivers | v1.2 consumer |
-|------|--------|----------|----------------|
-| 1.1 | **BOQ** | Standard BOQ library + project BOQ lines (quantities, rates, workflow) | BOQ integration (v1.2 §7) |
-| 1.2 | **WBS** | Standard WBS template nodes / project WBS snapshot seed | Master libraries, template snapshot (v1.2 §6, §4.3) |
-
-**Gate:** BOQ line keys and WBS node codes stable; project_id resolved for all project-scoped rows.
-
-### Phase 2 — Resource, productivity, and rate libraries
-
-| Step | Module | Delivers | v1.2 consumer |
-|------|--------|----------|----------------|
-| 2.1 | **Labour** | Trade / crew labour norms (hours per unit, trade codes) | Labour planning tab, rate roll-up |
-| 2.2 | **Machinery** | Equipment types, hours per unit, hire/own flags | Machinery planning tab |
-| 2.3 | **Material** | Material master (+ optional store linkage) | Material planning tab, MR/PR |
-| 2.4 | **Productivity** | Output norms (crew/equipment productivity by activity) | Productivity library (v1.2 Phase 1) |
-| 2.5 | **Rate** | Effective-dated labour, machinery, material, subcontract rates | Rate resolution at planning time (v1.2 §4.2) |
-
-**Gate:** Each rate row references valid resource codes from 2.1–2.3; productivity rows reference WBS/BOQ activity keys where applicable.
-
-### Phase 3 — Party masters (tenant-scoped)
-
-| Step | Module | Delivers | Notes |
-|------|--------|----------|-------|
-| 3.1 | **Customer** | Client / customer master | Used by projects, billing, rate scope |
-| 3.2 | **Vendor** | Supplier master | Procurement, subcontract, AP |
-| 3.3 | **Employee** | Employee master | Workforce, attendance, payroll hooks |
-
-**Gate:** GST/PAN/duplicate validators per `bulk_import_service` rules; no orphan project customer references.
-
-### Phase 4 — Accounts opening
-
-| Step | Module | Delivers | Notes |
-|------|--------|----------|-------|
-| 4.1 | **Chart of Accounts (CoA)** | Ledger hierarchy | Required before balances |
-| 4.2 | **Opening balances** | OB vouchers / ledger opening entries | Must tie to CoA; period lock rules apply post-migration |
-
-**Gate:** Trial balance sanity check (debits = credits) before Phase 5 sign-off.
-
-### Phase 5 — Validation, audit, and rollback
-
-| Step | Capability | Delivers |
-|------|------------|----------|
-| 5.1 | **Validation** | Full-file and cross-phase referential checks; row/column error report (Row, Column, Error, Suggested Fix) |
-| 5.2 | **Audit** | `import_audit_log` entries per module/file (user, timestamp, counts, filename, tenant) |
-| 5.3 | **Rollback** | Documented rollback point: DB backup taken before Phase 1; per-phase undo policy (delete-by-import-batch or full restore) |
-
-**Gate:** Migration wizard **Finish** step allowed only when Phase 5.1 reports zero blocking errors and audit records exist for every successful save.
+Deliver a tenant-facing **Bulk Import & Migration** platform so new customers can load master data and opening transactions before go-live. Sprint 1 establishes the core engine; Sprints 2–3 add module saves; Sprint 4 validates and deploys.
 
 ---
 
-## End-to-end sequence (single view)
+## Sprint plan
+
+### Sprint 1 — Core Import Engine ✅ (this release)
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| Import module registry | Done | `data_import_registry.py` |
+| UI routes (hub, module, wizard, audit) | Done | `data_import_routes.py`, `templates/data_import/` |
+| Spreadsheet parse (xlsx/csv) | Done | `bulk_import_service.py` |
+| Shared validators | Done | `bulk_import_service.py` |
+| Error report (Row, Column, Error, Suggested Fix) | Done | validation + module templates |
+| Import audit log | Done | `import_audit_service.py` → `import_audit_log` |
+| Rollback (minimal viable) | Done | `rollback_import()` — customers, vendors, BOQ |
+| REST API (template / validate / save) | Done | `bulk_import_routes.py` |
+| Sample dataset | Done | `sample_data/` + `scripts/build_sample_data_templates.py` |
+
+**Sprint 1 modules with validate + save:** BOQ, customers, vendors, materials (via store import).
+
+### Sprint 2 — Master Data Imports
+
+Import and maintain standard libraries required by v1.2:
+
+| Module | Sample file | Target |
+|--------|-------------|--------|
+| BOQ Library | `BOQ.xlsx` (line items) + library UI | `standard_boq_library` |
+| Standard WBS Library | `WBS_Template.xlsx` | WBS library tables (new) |
+| Labour Library | `Labour_Master.xlsx` | Labour rate library |
+| Machinery Library | `Machinery_Master.xlsx` | Equipment library |
+| Material Library | `Material_Master.xlsx` | `materials` master |
+| Productivity Library | `Productivity.xlsx` | Productivity assumptions |
+| Rate Library | `Rate_Master.xlsx` | Composite rate analysis |
+
+Each module: template download → validate → preview errors → save → audit log → rollback payload.
+
+### Sprint 3 — Business Data Imports
+
+| Module | Sample file | Notes |
+|--------|-------------|-------|
+| Customers | `Customer_Master.xlsx` | ✅ Sprint 1 |
+| Vendors | `Vendor_Master.xlsx` | ✅ Sprint 1 |
+| Employees | `Employee_Master.xlsx` | Validate in Sprint 1; save in Sprint 3 |
+| Chart of Accounts | `COA.xlsx` | Validate in Sprint 1; save in Sprint 3 |
+| Opening Balances | `Opening_Balance.xlsx` | Sprint 3 |
+| Companies / Projects | TBD | Sprint 3 |
+
+### Sprint 4 — Final Validation & Release
+
+1. Staging deploy from `release/v1.1`
+2. Full migration wizard UAT (6 steps)
+3. Performance test large files (10k+ rows per module)
+4. Import audit + rollback spot checks
+5. Customer UAT sign-off
+6. Production deploy (separate bundle — do **not** merge to `main` until approved)
+7. Tag `v1.1.0` on `release/v1.1` after production promotion
+
+---
+
+## Architecture
 
 ```text
-Phase 1:  BOQ → WBS
-Phase 2:  Labour → Machinery → Material → Productivity → Rate
-Phase 3:  Customer → Vendor → Employee
-Phase 4:  CoA → Opening balances
-Phase 5:  Validation → Audit → Rollback readiness
+sample_data/*.xlsx
+        ↓
+bulk_import_service.parse_upload + validators
+        ↓
+module service (boq_import_service, accounts_import_service, …)
+        ↓
+import_audit_service.log_import (+ rollback_payload)
+        ↓
+/data-import hub + /api/bulk-import/* API
+```
+
+### UI entry points
+
+| Route | Purpose |
+|-------|---------|
+| `/data-import` | Import hub — all modules by category |
+| `/data-import/<module_key>` | Upload, validate, save |
+| `/data-import/audit-log` | Audit history + rollback |
+| `/data-import/migration-wizard` | 6-step customer migration |
+| `/api/bulk-import/<module>/template` | Download template |
+| `/api/bulk-import/<module>/validate` | POST multipart validate |
+| `/api/bulk-import/<module>/save` | POST save |
+| `/api/bulk-import/audit/<id>/rollback` | POST undo import |
+
+### Error format
+
+Every validation failure returns:
+
+| Field | Example |
+|-------|---------|
+| row | `5` (Excel row) |
+| column | `GST Number` |
+| error | `Invalid GSTIN: ABC` |
+| suggested_fix | `Enter a valid 15-character GSTIN.` |
+
+### Rollback rules (Sprint 1)
+
+- Recorded only when save succeeds and inserts are tracked.
+- Supported: `customers`, `vendors`, `boq`.
+- Marks audit row `status=rolled_back`; does not re-import automatically.
+- Sprint 2+ modules will extend payload schema.
+
+---
+
+## Sample data
+
+See `sample_data/README.md`. Regenerate templates:
+
+```bash
+python scripts/build_sample_data_templates.py
 ```
 
 ---
 
-## Prerequisite: sample migration dataset
+## Testing
 
-Before staging UAT, maintain a **reference Excel pack** under:
+```bash
+python -m pytest tests/test_bulk_import.py -v
+```
 
-`docs/samples/v1.1-import/`
+Manual:
 
-See `docs/samples/v1.1-import/README.md` for the canonical file list and column expectations. **Real customer data must not be committed**; use anonymized exports only.
-
----
-
-## Dependency on v1.2 (frozen spec)
-
-| v1.1 import output | v1.2 planning use |
-|--------------------|-------------------|
-| BOQ + WBS seed | BOQ-driven auto-load of template, activities, resources |
-| Labour, Machinery, Material libraries | Seven-tab planning workspace norms |
-| Productivity + Rate libraries | Cost roll-up and effective-dated rate resolution |
-| Customer / vendor / employee | Scope for rates, procurement, workforce actuals |
-| CoA + opening balances | Accounts integration after budget lock (execution phase) |
-
-**Reference:** `release/v1.2-planning` → `docs/PLANNING_COSTING_V1_2_SPEC.md` (APPROVED / FROZEN 2026-06-29).
+1. Start app: `python app.py` (or gunicorn locally)
+2. Login → `/data-import`
+3. Import `sample_data/Customer_Master.xlsx` via Customers module — validate then save
+4. Open audit log → Rollback → confirm client removed
 
 ---
 
-## Explicitly out of scope for this spec commit
+## Out of scope for v1.1
 
-- No new Python routes, services, or templates
-- No changes to `bulk_import_service.py`, `data_import_registry.py`, or migration wizard code
-- No production deploy or VPS patch build
+Do **not** implement on `release/v1.1`:
 
-Implementation tracking continues on `release/v1.1` after this document is merged.
+- Planning & Costing screens (v1.2)
+- Cost Engine / WBS execution / Project Cost Control
+- Phase 2 transaction imports (sales, purchase, payments) beyond templates
 
 ---
 
-## Related documents
+## Git policy
 
-| Document | Role |
-|----------|------|
-| `docs/BULK_IMPORT_MIGRATION.md` | Current implemented vs Phase 2 matrix |
-| `docs/MAXEK_ERP_RELEASE_PLAN.md` | Release sequencing and tagging policy |
-| `docs/PLANNING_COSTING_V1_2_SPEC.md` | Downstream planning platform (frozen on `release/v1.2-planning`) |
+- All v1.1 work on **`release/v1.1`** only
+- **Never merge to `main`** until v1.1 staging + customer UAT complete
+- `release/v1.2-planning` remains specification-only until v1.1 ships
+
+---
+
+## Related docs
+
+- `docs/BULK_IMPORT_MIGRATION.md` — Phase A–D history from initial foundation
+- `docs/MAXEK_ERP_RELEASE_PLAN.md` — version roadmap
