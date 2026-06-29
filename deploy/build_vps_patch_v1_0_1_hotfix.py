@@ -82,6 +82,7 @@ def build() -> None:
         "  8. Fix login branding API (sqlite3.Row .get AttributeError on VPS)",
         "  9. Workflow: approved projects stay tenant-visible (customer_id + status=Active)",
         " 10. Checker / approver dashboard pending-approval module cards (tenant-scoped)",
+        " 11. Add /erp/dashboard alias redirect to /dashboard (legacy/nginx URL compatibility)",
         "",
         "Files in archive",
         "----------------",

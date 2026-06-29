@@ -10977,6 +10977,15 @@ def dashboard():
     return render_choice_b_dashboard()
 
 
+@app.route("/erp/dashboard")
+@login_required
+def erp_dashboard():
+    target = url_for("dashboard")
+    if request.query_string:
+        target = f"{target}?{request.query_string.decode()}"
+    return redirect(target)
+
+
 @app.route("/dashboard/choice-b")
 @login_required
 def dashboard_choice_b():
