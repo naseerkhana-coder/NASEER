@@ -737,14 +737,14 @@ Dedicated **Cost Control** view (Projects dept or Reports) for portfolio and pro
 
 End-to-end **project cost control** ties the locked budget baseline to execution actuals and management reporting.
 
-`mermaid
+```mermaid
 flowchart LR
   P[Planning] --> BA[Budget Approved]
   BA --> EX[Execution]
   EX --> AC[Actual costs]
   AC --> DA[Planned vs Actual Dashboard]
   DA --> VA[Variance Analysis]
-`
+```
 
 ### BOQ item variance (standard grid)
 
@@ -758,7 +758,7 @@ Each **BOQ line** exposes planned, actual, variance, and variance % by cost cate
 
 ---
 
-## 12. Phase 7 — Version-controlled libraries
+## 13. Phase 7 — Version-controlled libraries
 
 Templates and norms are **versioned** so historical projects retain the norms that were valid at budget time.
 
