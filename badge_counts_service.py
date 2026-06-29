@@ -7,7 +7,13 @@ from typing import Any
 from store_service import store_dashboard_stats, _pending_approval_count, _table_exists
 
 
-def get_live_badge_counts(db, user_id: int | None, is_admin: bool = False) -> dict[str, int]:
+def get_live_badge_counts(
+    db,
+    user_id: int | None,
+    is_admin: bool = False,
+    customer_id: int | None = None,
+    workflow_role: str | None = None,
+) -> dict[str, int]:
     """Return live counts keyed for UI badges."""
     counts: dict[str, int] = {
         "material_request": 0,
@@ -22,7 +28,11 @@ def get_live_badge_counts(db, user_id: int | None, is_admin: bool = False) -> di
     try:
         from workflow_service import get_pending_counts
 
-        widgets = get_pending_counts(db, user_id, is_admin) if user_id else {
+        widgets = get_pending_counts(
+            db, user_id, is_admin,
+            customer_id=customer_id,
+            workflow_role=workflow_role,
+        ) if user_id else {
             "maker": 0,
             "checker": 0,
             "approver": 0,

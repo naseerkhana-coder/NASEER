@@ -211,3 +211,50 @@ def approval_requests_tenant_clause(
         f"{prefix}maker_user_id IN (SELECT id FROM users WHERE customer_id=?)",
         [ctx["customer_id"]],
     )
+
+
+def backfill_projects_tenant_scope(db) -> None:
+    """Assign customer_id to legacy projects from maker user or created_by."""
+    if not _table_exists(db, "projects"):
+        return
+    cols = [row[1] for row in db.execute("PRAGMA table_info(projects)").fetchall()]
+    if "customer_id" not in cols:
+        return
+    try:
+        db.execute(
+            """
+            UPDATE projects
+            SET customer_id = (
+                SELECT u.customer_id FROM approval_requests ar
+                JOIN users u ON u.id = ar.maker_user_id
+                WHERE ar.record_table = 'projects' AND ar.record_id = projects.id
+                ORDER BY ar.id DESC LIMIT 1
+            ),
+            company_id = COALESCE(company_id, (
+                SELECT u.company_id FROM approval_requests ar
+                JOIN users u ON u.id = ar.maker_user_id
+                WHERE ar.record_table = 'projects' AND ar.record_id = projects.id
+                ORDER BY ar.id DESC LIMIT 1
+            )),
+            branch_id = COALESCE(branch_id, (
+                SELECT u.branch_id FROM approval_requests ar
+                JOIN users u ON u.id = ar.maker_user_id
+                WHERE ar.record_table = 'projects' AND ar.record_id = projects.id
+                ORDER BY ar.id DESC LIMIT 1
+            ))
+            WHERE customer_id IS NULL
+            """
+        )
+        db.execute(
+            """
+            UPDATE projects
+            SET customer_id = (
+                SELECT u.customer_id FROM users u
+                WHERE u.username = projects.created_by
+                ORDER BY u.id LIMIT 1
+            )
+            WHERE customer_id IS NULL AND created_by IS NOT NULL AND TRIM(created_by) != ''
+            """
+        )
+    except Exception:
+        pass

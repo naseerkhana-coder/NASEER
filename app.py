@@ -404,7 +404,12 @@ from api_routes import register_api_routes
 from ai_routes import register_ai_routes
 from erp_platform_routes import erp_platform_bp
 from auth_jwt import ensure_jwt_schema
-from tenant_isolation import append_tenant_filter, ensure_tenant_isolation_schema, get_tenant_context
+from tenant_isolation import (
+    append_tenant_filter,
+    backfill_projects_tenant_scope,
+    ensure_tenant_isolation_schema,
+    get_tenant_context,
+)
 from user_context_service import (
     apply_context_to_session,
     resolve_super_admin_company_id,
@@ -718,6 +723,7 @@ from workflow_service import (
     display_status,
     maker_status_message,
     get_dashboard_counters,
+    get_workflow_dashboard_cards,
     get_approval_summary,
     get_workflow_audit_report,
     get_workflow_access_for_designation,
@@ -5572,6 +5578,7 @@ def ensure_runtime_schema(db=None, force=False):
     try:
         ensure_jwt_schema(db)
         ensure_tenant_isolation_schema(db)
+        backfill_projects_tenant_scope(db)
     except Exception:
         app.logger.exception("JWT / tenant isolation schema bootstrap failed")
     try:
@@ -6497,6 +6504,14 @@ def _session_tenant_context():
 def _dashboard_customer_id():
     ctx = _session_tenant_context()
     return ctx.get("customer_id")
+
+
+def _workflow_scope_kwargs():
+    """Tenant + workflow_role kwargs for approval dashboard queries."""
+    return {
+        "customer_id": _dashboard_customer_id(),
+        "workflow_role": session.get("workflow_role"),
+    }
 
 
 def _append_tenant_filter(sql, params=(), table_alias=""):
@@ -7877,7 +7892,14 @@ def endpoint_uses_pro_shell(endpoint):
 def get_approval_widgets():
     if not session.get("user_id"):
         return {"maker": 0, "checker": 0, "approver": 0}
-    return get_pending_counts(get_db(), session.get("user_id"), is_admin_user())
+    scope = _workflow_scope_kwargs()
+    return get_pending_counts(
+        get_db(),
+        session.get("user_id"),
+        is_admin_user(),
+        customer_id=scope["customer_id"],
+        workflow_role=scope["workflow_role"],
+    )
 
 
 @app.context_processor
@@ -7887,20 +7909,37 @@ def inject_maxek_layout():
     username = session.get("username") or "Administrator"
     user_id = session.get("user_id")
     db = get_db()
+    scope = _workflow_scope_kwargs()
     try:
-        widgets = get_pending_counts(db, user_id, is_admin_user())
+        widgets = get_pending_counts(
+            db, user_id, is_admin_user(),
+            customer_id=scope["customer_id"],
+            workflow_role=scope["workflow_role"],
+        )
     except sqlite3.OperationalError:
         ensure_runtime_schema(db, force=True)
         try:
-            widgets = get_pending_counts(db, user_id, is_admin_user())
+            widgets = get_pending_counts(
+                db, user_id, is_admin_user(),
+                customer_id=scope["customer_id"],
+                workflow_role=scope["workflow_role"],
+            )
         except sqlite3.OperationalError:
             widgets = {"maker": 0, "checker": 0, "approver": 0}
     try:
-        dashboard_counters = get_dashboard_counters(db, user_id, username, is_admin_user())
+        dashboard_counters = get_dashboard_counters(
+            db, user_id, username, is_admin_user(),
+            customer_id=scope["customer_id"],
+            workflow_role=scope["workflow_role"],
+        )
     except sqlite3.OperationalError:
         ensure_runtime_schema(db, force=True)
         try:
-            dashboard_counters = get_dashboard_counters(db, user_id, username, is_admin_user())
+            dashboard_counters = get_dashboard_counters(
+                db, user_id, username, is_admin_user(),
+                customer_id=scope["customer_id"],
+                workflow_role=scope["workflow_role"],
+            )
         except sqlite3.OperationalError:
             dashboard_counters = {
                 "maker": {
@@ -7921,7 +7960,7 @@ def inject_maxek_layout():
                 },
             }
     try:
-        approval_summary = get_approval_summary(db)
+        approval_summary = get_approval_summary(db, customer_id=scope["customer_id"])
     except sqlite3.OperationalError:
         approval_summary = {}
     try:
@@ -8032,7 +8071,11 @@ def inject_maxek_layout():
             for item in section.get("items", [])
         ]
     try:
-        live_badges = get_live_badge_counts(db, user_id, is_admin_user())
+        live_badges = get_live_badge_counts(
+            db, user_id, is_admin_user(),
+            customer_id=scope.get("customer_id"),
+            workflow_role=scope.get("workflow_role"),
+        )
     except Exception:
         live_badges = {}
     for item in sub_toolbar_items:
@@ -9847,17 +9890,24 @@ def _department_workflow_module_ids(slug=None):
     return DEPARTMENT_WORKFLOW_MODULES.get(slug, ())
 
 
-def _pending_workflow_count(db, module_ids):
+def _pending_workflow_count(db, module_ids, workflow_status=None):
     if not module_ids or not _table_exists(db, "approval_requests"):
         return 0
     placeholders = ",".join("?" * len(module_ids))
-    return _safe_scalar_count(
-        db,
+    status_clause = "AND workflow_status IN ('pending_checker', 'pending_approval')"
+    params: list = list(module_ids)
+    if workflow_status == "pending_checker":
+        status_clause = "AND workflow_status=?"
+        params = list(module_ids) + ["pending_checker"]
+    elif workflow_status == "pending_approval":
+        status_clause = "AND workflow_status=?"
+        params = list(module_ids) + ["pending_approval"]
+    sql = (
         "SELECT COUNT(*) AS c FROM approval_requests "
-        f"WHERE module_id IN ({placeholders}) "
-        "AND workflow_status IN ('pending_checker', 'pending_approval')",
-        tuple(module_ids),
+        f"WHERE module_id IN ({placeholders}) {status_clause}"
     )
+    scoped_sql, scoped_params = _approval_count_sql(sql, tuple(params))
+    return _safe_scalar_count(db, scoped_sql, scoped_params)
 
 
 def _workspace_open_items_count(db, slug=None):
@@ -10745,6 +10795,40 @@ def _build_executive_company_summary(stats):
     }
 
 
+def _build_workflow_dashboard_context(db, user_id):
+    """Checker / approver module approval cards for home dashboard."""
+    admin = is_admin_user()
+    scope = _workflow_scope_kwargs()
+    caps = user_workflow_capabilities(db, user_id, admin)
+    wf_role = (scope.get("workflow_role") or "").strip().lower()
+    checker_cards = []
+    approver_cards = []
+    if admin or caps.get("can_verify") or wf_role == "checker":
+        checker_cards = get_workflow_dashboard_cards(
+            db, user_id, "checker", admin,
+            customer_id=scope["customer_id"],
+            workflow_role=scope["workflow_role"],
+        )
+    if admin or caps.get("can_approve") or wf_role == "approver":
+        approver_cards = get_workflow_dashboard_cards(
+            db, user_id, "approver", admin,
+            customer_id=scope["customer_id"],
+            workflow_role=scope["workflow_role"],
+        )
+    for card in checker_cards:
+        card["href"] = url_for(
+            "approvals", role="checker", module=card["module_id"], tab="pending"
+        )
+    for card in approver_cards:
+        card["href"] = url_for(
+            "approvals", role="approver", module=card["module_id"], tab="pending"
+        )
+    return {
+        "workflow_checker_cards": checker_cards,
+        "workflow_approver_cards": approver_cards,
+    }
+
+
 def _build_dashboard_shared_context(db):
     """Shared dashboard payload for all layout themes (no duplicated business logic)."""
 
@@ -10790,6 +10874,11 @@ def _build_dashboard_shared_context(db):
             (approval_summary.get("pending_checker") or 0)
             + (approval_summary.get("pending_approval") or 0)
         )
+    workflow_dashboard = _dashboard_payload(
+        lambda: _build_workflow_dashboard_context(db, user_id),
+        {"workflow_checker_cards": [], "workflow_approver_cards": []},
+        "workflow_dashboard_cards",
+    )
 
     return {
         "command_centre_cards": command_centre_cards,
@@ -10801,6 +10890,7 @@ def _build_dashboard_shared_context(db):
         "financial_summary": _build_executive_financial_summary(db, stats),
         "company_summary": _build_executive_company_summary(stats),
         "pending_approvals_count": pending_approvals,
+        **workflow_dashboard,
         **sidebar_context,
     }
 
@@ -12206,9 +12296,15 @@ def projects():
             "security_deposit_issued_date, security_deposit_maturity_date, agreement_document, "
             "bank_guarantee_document, security_deposit_document, work_order_number, work_order_date, "
             "work_order_amount, project_contact_person, work_order_document, created_by, created_at, "
-            "approval_status"
-            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (project_code,) + project_values + (username, now_ts, RECORD_PENDING_CHECKER),
+            "customer_id, company_id, branch_id, approval_status"
+            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (project_code,) + project_values + (
+                username, now_ts,
+                session.get("customer_id"),
+                session.get("company_id"),
+                session.get("branch_id"),
+                RECORD_PENDING_CHECKER,
+            ),
         )
         new_project_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
         save_err = _save_project_guarantees(db, new_project_id, guarantee_rows)
@@ -15106,8 +15202,17 @@ def approvals(role="checker"):
         tab = "pending"
     module_key = request.args.get("module", "").strip()
     module_ids = APPROVAL_MODULE_GROUPS.get(module_key)
-    counts = get_pending_counts(db, user_id, admin)
-    raw_items = get_pending_items(db, user_id, role, admin)
+    scope = _workflow_scope_kwargs()
+    counts = get_pending_counts(
+        db, user_id, admin,
+        customer_id=scope["customer_id"],
+        workflow_role=scope["workflow_role"],
+    )
+    raw_items = get_pending_items(
+        db, user_id, role, admin,
+        customer_id=scope["customer_id"],
+        workflow_role=scope["workflow_role"],
+    )
     if module_ids:
         raw_items = [item for item in raw_items if item.get("module_id") in module_ids]
     items = _enrich_approval_items(db, raw_items, role=role, include_history=False)

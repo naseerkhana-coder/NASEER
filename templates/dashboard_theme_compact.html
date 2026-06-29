@@ -19,6 +19,8 @@
     {% endif %}
   </header>
 
+  {% include 'partials/workflow_approval_cards.html' %}
+
   {% if command_centre_quick_actions %}
   <section class="pro-dash-compact-actions" aria-label="Quick actions">
     {% for action in command_centre_quick_actions[:4] %}

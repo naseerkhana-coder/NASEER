@@ -1,0 +1,39 @@
+{% if workflow_checker_cards %}
+<section class="pro-dash-exec-section" aria-labelledby="workflow-checker-cards-heading">
+  <h3 id="workflow-checker-cards-heading" class="erp-module-section-title pro-dash-dept-section-title">Pending Checker Approval</h3>
+  <div class="erp-module-grid pro-dash-workflow-card-grid">
+    {% for card in workflow_checker_cards %}
+    <a href="{{ card.href }}" class="erp-module-tile pro-dash-workflow-card">
+      <span class="erp-module-tile-body">
+        <span class="erp-module-tile-label">{{ card.label }}</span>
+        <span class="erp-module-tile-desc">Awaiting verification</span>
+      </span>
+      {% if card.count %}
+      <span class="erp-module-tile-open">{{ card.count }} pending</span>
+      {% endif %}
+      <i class="fa-solid fa-chevron-right erp-module-tile-chevron" aria-hidden="true"></i>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if workflow_approver_cards %}
+<section class="pro-dash-exec-section" aria-labelledby="workflow-approver-cards-heading">
+  <h3 id="workflow-approver-cards-heading" class="erp-module-section-title pro-dash-dept-section-title">Pending Final Approval</h3>
+  <div class="erp-module-grid pro-dash-workflow-card-grid">
+    {% for card in workflow_approver_cards %}
+    <a href="{{ card.href }}" class="erp-module-tile pro-dash-workflow-card">
+      <span class="erp-module-tile-body">
+        <span class="erp-module-tile-label">{{ card.label }}</span>
+        <span class="erp-module-tile-desc">Awaiting final approval</span>
+      </span>
+      {% if card.count %}
+      <span class="erp-module-tile-open">{{ card.count }} pending</span>
+      {% endif %}
+      <i class="fa-solid fa-chevron-right erp-module-tile-chevron" aria-hidden="true"></i>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

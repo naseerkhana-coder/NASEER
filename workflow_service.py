@@ -420,6 +420,72 @@ def _now():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _approval_requests_tenant_sql(customer_id=None, alias="ar"):
+    """Restrict approval_requests rows to makers belonging to a tenant."""
+    if not customer_id:
+        return "", []
+    prefix = f"{alias}." if alias else ""
+    return (
+        f" AND {prefix}maker_user_id IN (SELECT id FROM users WHERE customer_id=?)",
+        [customer_id],
+    )
+
+
+def _role_matches_workflow_stage(workflow_role, role_type):
+    if not workflow_role:
+        return False
+    normalized = str(workflow_role).strip().lower()
+    if role_type == "checker":
+        return normalized == "checker"
+    if role_type == "approver":
+        return normalized == "approver"
+    if role_type == "maker":
+        return normalized == "maker"
+    return False
+
+
+def _backfill_project_tenant_from_maker(db, project_id):
+    """Stamp customer_id on legacy projects from maker user when missing."""
+    try:
+        cols = {row[1] for row in db.execute("PRAGMA table_info(projects)").fetchall()}
+        if "customer_id" not in cols:
+            return
+        row = db.execute(
+            "SELECT customer_id FROM projects WHERE id=?", (project_id,)
+        ).fetchone()
+        if row and row["customer_id"]:
+            return
+        ar = db.execute(
+            "SELECT maker_user_id FROM approval_requests "
+            "WHERE record_table='projects' AND record_id=? ORDER BY id DESC LIMIT 1",
+            (project_id,),
+        ).fetchone()
+        maker_uid = ar["maker_user_id"] if ar else None
+        if maker_uid:
+            user = db.execute(
+                "SELECT customer_id, company_id, branch_id FROM users WHERE id=?",
+                (maker_uid,),
+            ).fetchone()
+        else:
+            proj = db.execute(
+                "SELECT created_by FROM projects WHERE id=?", (project_id,)
+            ).fetchone()
+            user = None
+            if proj and proj["created_by"]:
+                user = db.execute(
+                    "SELECT customer_id, company_id, branch_id FROM users WHERE username=?",
+                    (proj["created_by"],),
+                ).fetchone()
+        if user and user["customer_id"]:
+            db.execute(
+                "UPDATE projects SET customer_id=?, company_id=COALESCE(company_id, ?), "
+                "branch_id=COALESCE(branch_id, ?) WHERE id=? AND customer_id IS NULL",
+                (user["customer_id"], user["company_id"], user["branch_id"], project_id),
+            )
+    except Exception:
+        pass
+
+
 def get_designation_by_id(db, designation_id):
     if not designation_id:
         return None
@@ -555,17 +621,19 @@ def get_approval_request_by_id(db, approval_id):
     return dict(row) if row else None
 
 
-def get_user_workflow_preview(db, user_id, is_admin=False, limit=5):
+def get_user_workflow_preview(db, user_id, is_admin=False, limit=5, customer_id=None):
     """User-scoped pending items for dashboard (minimal fields, no sensitive detail)."""
     designation_id = get_user_designation_id(db, user_id)
+    tenant_sql, tenant_params = _approval_requests_tenant_sql(customer_id, alias="ar")
     rows = []
     if is_admin:
         raw = db.execute(
             "SELECT ar.*, wm.module_name FROM approval_requests ar "
             "JOIN workflow_master wm ON ar.module_id = wm.module_id "
-            "WHERE ar.workflow_status IN (?, ?) "
-            f"ORDER BY {_workflow_queue_order_clause()} LIMIT ?",
-            (STATUS_PENDING_CHECKER, STATUS_PENDING_APPROVAL, limit),
+            "WHERE ar.workflow_status IN (?, ?)"
+            + tenant_sql
+            + f" ORDER BY {_workflow_queue_order_clause()} LIMIT ?",
+            (STATUS_PENDING_CHECKER, STATUS_PENDING_APPROVAL, *tenant_params, limit),
         ).fetchall()
         rows = [dict(r) for r in raw]
     elif designation_id:
@@ -580,14 +648,26 @@ def get_user_workflow_preview(db, user_id, is_admin=False, limit=5):
             w["module_id"] for w in wf_rows if w["approver_designation_id"] == designation_id
         ]
         module_ids = list(dict.fromkeys(checker_mods + approver_mods))
-        if module_ids:
+        wf_role = get_user_workflow_role(db, user_id)
+        if not module_ids and wf_role in ("Checker", "Approver"):
+            raw = db.execute(
+                "SELECT ar.*, wm.module_name FROM approval_requests ar "
+                "JOIN workflow_master wm ON ar.module_id = wm.module_id "
+                "WHERE ar.workflow_status IN (?, ?)"
+                + tenant_sql
+                + f" ORDER BY {_workflow_queue_order_clause()} LIMIT ?",
+                (STATUS_PENDING_CHECKER, STATUS_PENDING_APPROVAL, *tenant_params, limit),
+            ).fetchall()
+            rows = [dict(r) for r in raw]
+        elif module_ids:
             ph = ",".join("?" * len(module_ids))
             raw = db.execute(
                 f"SELECT ar.*, wm.module_name FROM approval_requests ar "
                 f"JOIN workflow_master wm ON ar.module_id = wm.module_id "
-                f"WHERE ar.workflow_status IN (?, ?) AND ar.module_id IN ({ph}) "
-                f"ORDER BY {_workflow_queue_order_clause()} LIMIT ?",
-                [STATUS_PENDING_CHECKER, STATUS_PENDING_APPROVAL] + module_ids + [limit],
+                f"WHERE ar.workflow_status IN (?, ?) AND ar.module_id IN ({ph})"
+                + tenant_sql
+                + f" ORDER BY {_workflow_queue_order_clause()} LIMIT ?",
+                [STATUS_PENDING_CHECKER, STATUS_PENDING_APPROVAL] + module_ids + tenant_params + [limit],
             ).fetchall()
             rows = [dict(r) for r in raw]
     preview = []
@@ -605,17 +685,20 @@ def get_user_workflow_preview(db, user_id, is_admin=False, limit=5):
     return preview
 
 
-def count_user_pending_workflows(db, user_id, is_admin=False):
+def count_user_pending_workflows(db, user_id, is_admin=False, customer_id=None):
     """Total actionable pending count for current user (dashboard badge)."""
     designation_id = get_user_designation_id(db, user_id)
+    tenant_sql, tenant_params = _approval_requests_tenant_sql(customer_id, alias="")
     if is_admin:
         return db.execute(
             "SELECT COUNT(*) AS c FROM approval_requests "
-            "WHERE workflow_status IN (?, ?)",
-            (STATUS_PENDING_CHECKER, STATUS_PENDING_APPROVAL),
+            "WHERE workflow_status IN (?, ?)" + tenant_sql,
+            (STATUS_PENDING_CHECKER, STATUS_PENDING_APPROVAL, *tenant_params),
         ).fetchone()["c"]
     if not designation_id:
-        return 0
+        wf_role = get_user_workflow_role(db, user_id)
+        if wf_role not in ("Checker", "Approver", "Maker"):
+            return 0
     wf_rows = db.execute(
         "SELECT module_id, checker_designation_id, approver_designation_id "
         "FROM workflow_master WHERE status='Active'"
@@ -626,20 +709,33 @@ def count_user_pending_workflows(db, user_id, is_admin=False):
     approver_mods = [
         w["module_id"] for w in wf_rows if w["approver_designation_id"] == designation_id
     ]
+    wf_role = get_user_workflow_role(db, user_id)
     total = 0
     if checker_mods:
         ph = ",".join("?" * len(checker_mods))
         total += db.execute(
             f"SELECT COUNT(*) AS c FROM approval_requests "
-            f"WHERE workflow_status=? AND module_id IN ({ph})",
-            [STATUS_PENDING_CHECKER] + checker_mods,
+            f"WHERE workflow_status=? AND module_id IN ({ph})" + tenant_sql,
+            [STATUS_PENDING_CHECKER] + checker_mods + tenant_params,
+        ).fetchone()["c"]
+    elif wf_role == "Checker":
+        total += db.execute(
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_PENDING_CHECKER, *tenant_params),
         ).fetchone()["c"]
     if approver_mods:
         ph = ",".join("?" * len(approver_mods))
         total += db.execute(
             f"SELECT COUNT(*) AS c FROM approval_requests "
-            f"WHERE workflow_status=? AND module_id IN ({ph})",
-            [STATUS_PENDING_APPROVAL] + approver_mods,
+            f"WHERE workflow_status=? AND module_id IN ({ph})" + tenant_sql,
+            [STATUS_PENDING_APPROVAL] + approver_mods + tenant_params,
+        ).fetchone()["c"]
+    elif wf_role == "Approver":
+        total += db.execute(
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_PENDING_APPROVAL, *tenant_params),
         ).fetchone()["c"]
     return total
 
@@ -647,14 +743,15 @@ def count_user_pending_workflows(db, user_id, is_admin=False):
 def user_matches_stage(db, user_id, module_id, stage, is_admin=False):
     if is_admin:
         return True
-    designation_id = get_user_designation_id(db, user_id)
-    if not designation_id:
-        return False
     workflow = get_workflow_for_module(db, module_id)
     if not workflow:
         return False
+    designation_id = get_user_designation_id(db, user_id)
     stage_field = f"{stage}_designation_id"
-    return workflow.get(stage_field) == designation_id
+    if designation_id and workflow.get(stage_field) == designation_id:
+        return True
+    wf_role = get_user_workflow_role(db, user_id)
+    return _role_matches_workflow_stage(wf_role, stage)
 
 
 def can_maker_edit(approval_status):
@@ -1062,6 +1159,65 @@ def _sync_record_status(db, req, status_label):
             f"UPDATE {table} SET approval_status=? WHERE id=?",
             (status_label, req["record_id"]),
         )
+        if table == "projects":
+            if status_label == RECORD_APPROVED:
+                db.execute(
+                    "UPDATE projects SET status='Active' "
+                    "WHERE id=? AND (status IS NULL OR TRIM(status)='' "
+                    "OR status IN ('Draft', 'Pending', 'Pending Checker', 'Pending Approval'))",
+                    (req["record_id"],),
+                )
+                _backfill_project_tenant_from_maker(db, req["record_id"])
+                ar = db.execute(
+                    "SELECT approver_user_id, approver_action_at, current_stage "
+                    "FROM approval_requests WHERE record_table=? AND record_id=? "
+                    "ORDER BY id DESC LIMIT 1",
+                    (table, req["record_id"]),
+                ).fetchone()
+                if ar:
+                    ar = dict(ar)
+                    if _column_exists(db, "projects", "workflow_stage") and ar.get("current_stage"):
+                        db.execute(
+                            "UPDATE projects SET workflow_stage=? WHERE id=?",
+                            (ar["current_stage"], req["record_id"]),
+                        )
+                    if _column_exists(db, "projects", "approved_at") and ar.get("approver_action_at"):
+                        db.execute(
+                            "UPDATE projects SET approved_at=? WHERE id=?",
+                            (ar["approver_action_at"], req["record_id"]),
+                        )
+                    if _column_exists(db, "projects", "approved_by") and ar.get("approver_user_id"):
+                        db.execute(
+                            "UPDATE projects SET approved_by=? WHERE id=?",
+                            (_username_for_id(db, ar["approver_user_id"]), req["record_id"]),
+                        )
+                    if _column_exists(db, "projects", "checker_status"):
+                        db.execute(
+                            "UPDATE projects SET checker_status='Verified' WHERE id=?",
+                            (req["record_id"],),
+                        )
+                    if _column_exists(db, "projects", "approver_status"):
+                        db.execute(
+                            "UPDATE projects SET approver_status='Approved' WHERE id=?",
+                            (req["record_id"],),
+                        )
+            elif status_label == RECORD_PENDING_CHECKER:
+                if _column_exists(db, "projects", "workflow_stage"):
+                    db.execute(
+                        "UPDATE projects SET workflow_stage='checker' WHERE id=?",
+                        (req["record_id"],),
+                    )
+            elif status_label == RECORD_PENDING_APPROVAL:
+                if _column_exists(db, "projects", "workflow_stage"):
+                    db.execute(
+                        "UPDATE projects SET workflow_stage='approver' WHERE id=?",
+                        (req["record_id"],),
+                    )
+                if _column_exists(db, "projects", "checker_status"):
+                    db.execute(
+                        "UPDATE projects SET checker_status='Verified' WHERE id=?",
+                        (req["record_id"],),
+                    )
         if table == "petty_cash_requests":
             lifecycle = None
             if status_label == RECORD_APPROVED:
@@ -1127,27 +1283,29 @@ def _workflow_queue_order_clause():
     )
 
 
-def get_pending_counts(db, user_id, is_admin=False):
+def get_pending_counts(db, user_id, is_admin=False, customer_id=None, workflow_role=None):
     designation_id = get_user_designation_id(db, user_id)
+    if workflow_role is None and user_id:
+        workflow_role = get_user_workflow_role(db, user_id)
+    tenant_sql, tenant_params = _approval_requests_tenant_sql(customer_id, alias="")
     counts = {"maker": 0, "checker": 0, "approver": 0}
 
     if is_admin:
         counts["maker"] = db.execute(
             "SELECT COUNT(*) AS c FROM approval_requests "
-            "WHERE workflow_status IN (?, ?)",
-            (STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER),
+            "WHERE workflow_status IN (?, ?)" + tenant_sql,
+            (STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER, *tenant_params),
         ).fetchone()["c"]
         counts["checker"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?",
-            (STATUS_PENDING_CHECKER,),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_PENDING_CHECKER, *tenant_params),
         ).fetchone()["c"]
         counts["approver"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?",
-            (STATUS_PENDING_APPROVAL,),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_PENDING_APPROVAL, *tenant_params),
         ).fetchone()["c"]
-        return counts
-
-    if not designation_id:
         return counts
 
     workflows = db.execute(
@@ -1158,42 +1316,61 @@ def get_pending_counts(db, user_id, is_admin=False):
     maker_modules, checker_modules, approver_modules = [], [], []
     for wf in workflows:
         wf = dict(wf)
-        if wf["maker_designation_id"] == designation_id:
+        if designation_id and wf["maker_designation_id"] == designation_id:
             maker_modules.append(wf["module_id"])
-        if wf["checker_designation_id"] == designation_id:
+        if designation_id and wf["checker_designation_id"] == designation_id:
             checker_modules.append(wf["module_id"])
-        if wf["approver_designation_id"] == designation_id:
+        if designation_id and wf["approver_designation_id"] == designation_id:
             approver_modules.append(wf["module_id"])
 
-    if maker_modules:
-        placeholders = ",".join("?" * len(maker_modules))
+    username_row = db.execute(
+        "SELECT username FROM users WHERE id=?", (user_id,)
+    ).fetchone()
+    username = username_row["username"] if username_row else ""
+
+    if username:
         counts["maker"] = db.execute(
-            f"SELECT COUNT(*) AS c FROM approval_requests "
-            f"WHERE workflow_status IN (?, ?) AND module_id IN ({placeholders})",
-            [STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER] + maker_modules,
+            "SELECT COUNT(*) AS c FROM approval_requests "
+            "WHERE workflow_status IN (?, ?) AND created_by=?" + tenant_sql,
+            (STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER, username, *tenant_params),
         ).fetchone()["c"]
 
     if checker_modules:
         placeholders = ",".join("?" * len(checker_modules))
         counts["checker"] = db.execute(
             f"SELECT COUNT(*) AS c FROM approval_requests "
-            f"WHERE workflow_status=? AND module_id IN ({placeholders})",
-            [STATUS_PENDING_CHECKER] + checker_modules,
+            f"WHERE workflow_status=? AND module_id IN ({placeholders})" + tenant_sql,
+            [STATUS_PENDING_CHECKER] + checker_modules + tenant_params,
+        ).fetchone()["c"]
+    elif _role_matches_workflow_stage(workflow_role, "checker"):
+        counts["checker"] = db.execute(
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_PENDING_CHECKER, *tenant_params),
         ).fetchone()["c"]
 
     if approver_modules:
         placeholders = ",".join("?" * len(approver_modules))
         counts["approver"] = db.execute(
             f"SELECT COUNT(*) AS c FROM approval_requests "
-            f"WHERE workflow_status=? AND module_id IN ({placeholders})",
-            [STATUS_PENDING_APPROVAL] + approver_modules,
+            f"WHERE workflow_status=? AND module_id IN ({placeholders})" + tenant_sql,
+            [STATUS_PENDING_APPROVAL] + approver_modules + tenant_params,
+        ).fetchone()["c"]
+    elif _role_matches_workflow_stage(workflow_role, "approver"):
+        counts["approver"] = db.execute(
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_PENDING_APPROVAL, *tenant_params),
         ).fetchone()["c"]
 
     return counts
 
 
-def get_pending_items(db, user_id, role_type, is_admin=False):
+def get_pending_items(db, user_id, role_type, is_admin=False, customer_id=None, workflow_role=None):
     designation_id = get_user_designation_id(db, user_id)
+    if workflow_role is None and user_id:
+        workflow_role = get_user_workflow_role(db, user_id)
+    tenant_sql, tenant_params = _approval_requests_tenant_sql(customer_id, alias="ar")
     status_map = {
         "maker": (
             STATUS_PENDING_CHECKER,
@@ -1236,9 +1413,10 @@ def get_pending_items(db, user_id, role_type, is_admin=False):
                 "LEFT JOIN designations dm ON wm.maker_designation_id = dm.id "
                 "LEFT JOIN designations dc ON wm.checker_designation_id = dc.id "
                 "LEFT JOIN designations da ON wm.approver_designation_id = da.id "
-                f"WHERE ar.workflow_status IN ({status_placeholders}) "
-                f"ORDER BY {_approval_list_order_clause(role_type)} LIMIT 50",
-                list(target_statuses),
+                f"WHERE ar.workflow_status IN ({status_placeholders})"
+                + tenant_sql
+                + f" ORDER BY {_approval_list_order_clause(role_type)} LIMIT 50",
+                list(target_statuses) + tenant_params,
             ).fetchall()
         elif username:
             rows = db.execute(
@@ -1251,9 +1429,10 @@ def get_pending_items(db, user_id, role_type, is_admin=False):
                 "LEFT JOIN designations dm ON wm.maker_designation_id = dm.id "
                 "LEFT JOIN designations dc ON wm.checker_designation_id = dc.id "
                 "LEFT JOIN designations da ON wm.approver_designation_id = da.id "
-                f"WHERE ar.workflow_status IN ({status_placeholders}) AND ar.created_by=? "
-                f"ORDER BY {_approval_list_order_clause(role_type)} LIMIT 50",
-                list(target_statuses) + [username],
+                f"WHERE ar.workflow_status IN ({status_placeholders}) AND ar.created_by=?"
+                + tenant_sql
+                + f" ORDER BY {_approval_list_order_clause(role_type)} LIMIT 50",
+                list(target_statuses) + [username] + tenant_params,
             ).fetchall()
         else:
             return []
@@ -1266,18 +1445,25 @@ def get_pending_items(db, user_id, role_type, is_admin=False):
 
     if is_admin:
         module_filter = ""
-        params = list(target_statuses)
+        params = list(target_statuses) + tenant_params
     elif designation_id:
         modules = db.execute(
             f"SELECT module_id FROM workflow_master WHERE {stage_field}=? AND status='Active'",
             (designation_id,),
         ).fetchall()
-        if not modules:
-            return []
         module_ids = [m["module_id"] for m in modules]
-        placeholders = ",".join("?" * len(module_ids))
-        module_filter = f" AND ar.module_id IN ({placeholders})"
-        params = list(target_statuses) + module_ids
+        if module_ids:
+            placeholders = ",".join("?" * len(module_ids))
+            module_filter = f" AND ar.module_id IN ({placeholders})"
+            params = list(target_statuses) + module_ids + tenant_params
+        elif _role_matches_workflow_stage(workflow_role, role_type):
+            module_filter = ""
+            params = list(target_statuses) + tenant_params
+        else:
+            return []
+    elif _role_matches_workflow_stage(workflow_role, role_type):
+        module_filter = ""
+        params = list(target_statuses) + tenant_params
     else:
         return []
 
@@ -1292,8 +1478,9 @@ def get_pending_items(db, user_id, role_type, is_admin=False):
         "LEFT JOIN designations dm ON wm.maker_designation_id = dm.id "
         "LEFT JOIN designations dc ON wm.checker_designation_id = dc.id "
         "LEFT JOIN designations da ON wm.approver_designation_id = da.id "
-        f"WHERE ar.workflow_status IN ({status_placeholders}){module_filter} "
-        f"ORDER BY {_approval_list_order_clause(role_type)}",
+        f"WHERE ar.workflow_status IN ({status_placeholders}){module_filter}"
+        + tenant_sql
+        + f" ORDER BY {_approval_list_order_clause(role_type)}",
         params,
     ).fetchall()
     return [dict(r) for r in rows]
@@ -1653,107 +1840,269 @@ def get_approval_history(db, module_id, record_id, record_table):
     return history
 
 
-def get_dashboard_counters(db, user_id, username, is_admin=False):
+def get_dashboard_counters(db, user_id, username, is_admin=False, customer_id=None, workflow_role=None):
+    """Role-aware dashboard counters scoped to tenant when customer_id is set."""
     today = _today()
     designation_id = get_user_designation_id(db, user_id)
+    if workflow_role is None and user_id:
+        workflow_role = get_user_workflow_role(db, user_id)
+    tenant_sql, tenant_params = _approval_requests_tenant_sql(customer_id, alias="")
     maker = {"pending_verification": 0, "pending_approval": 0, "approved": 0, "rejected": 0}
     checker = {"pending_verification": 0, "verified_today": 0, "rejected_today": 0}
     approver = {"pending_approval": 0, "approved_today": 0, "rejected_today": 0}
 
     if is_admin:
         maker["pending_verification"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?",
-            (STATUS_PENDING_CHECKER,),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_PENDING_CHECKER, *tenant_params),
         ).fetchone()["c"]
         maker["pending_approval"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?",
-            (STATUS_PENDING_APPROVAL,),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_PENDING_APPROVAL, *tenant_params),
         ).fetchone()["c"]
         maker["approved"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?",
-            (STATUS_APPROVED,),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_sql,
+            (STATUS_APPROVED, *tenant_params),
         ).fetchone()["c"]
         maker["rejected"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status IN (?, ?)",
-            (STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status IN (?, ?)"
+            + tenant_sql,
+            (STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER, *tenant_params),
         ).fetchone()["c"]
         checker["pending_verification"] = maker["pending_verification"]
         checker["verified_today"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status IN (?, ?) AND checker_action_at LIKE ?",
-            (STATUS_PENDING_APPROVAL, STATUS_APPROVED, f"{today}%"),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status IN (?, ?) "
+            "AND checker_action_at LIKE ?" + tenant_sql,
+            (STATUS_PENDING_APPROVAL, STATUS_APPROVED, f"{today}%", *tenant_params),
         ).fetchone()["c"]
         checker["rejected_today"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND checker_action_at LIKE ?",
-            (STATUS_REJECTED_CHECKER, f"{today}%"),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
+            "AND checker_action_at LIKE ?" + tenant_sql,
+            (STATUS_REJECTED_CHECKER, f"{today}%", *tenant_params),
         ).fetchone()["c"]
         approver["pending_approval"] = maker["pending_approval"]
         approver["approved_today"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND approver_action_at LIKE ?",
-            (STATUS_APPROVED, f"{today}%"),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
+            "AND approver_action_at LIKE ?" + tenant_sql,
+            (STATUS_APPROVED, f"{today}%", *tenant_params),
         ).fetchone()["c"]
         approver["rejected_today"] = db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND approver_action_at LIKE ?",
-            (STATUS_REJECTED_APPROVER, f"{today}%"),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
+            "AND approver_action_at LIKE ?" + tenant_sql,
+            (STATUS_REJECTED_APPROVER, f"{today}%", *tenant_params),
         ).fetchone()["c"]
         return {"maker": maker, "checker": checker, "approver": approver}
 
     maker["pending_verification"] = db.execute(
-        "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND created_by=?",
-        (STATUS_PENDING_CHECKER, username),
+        "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND created_by=?"
+        + tenant_sql,
+        (STATUS_PENDING_CHECKER, username, *tenant_params),
     ).fetchone()["c"]
     maker["pending_approval"] = db.execute(
-        "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND created_by=?",
-        (STATUS_PENDING_APPROVAL, username),
+        "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND created_by=?"
+        + tenant_sql,
+        (STATUS_PENDING_APPROVAL, username, *tenant_params),
     ).fetchone()["c"]
     maker["approved"] = db.execute(
-        "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND created_by=?",
-        (STATUS_APPROVED, username),
+        "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND created_by=?"
+        + tenant_sql,
+        (STATUS_APPROVED, username, *tenant_params),
     ).fetchone()["c"]
     maker["rejected"] = db.execute(
-        "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status IN (?, ?) AND created_by=?",
-        (STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER, username),
+        "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status IN (?, ?) AND created_by=?"
+        + tenant_sql,
+        (STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER, username, *tenant_params),
     ).fetchone()["c"]
 
-    if designation_id:
+    if designation_id or _role_matches_workflow_stage(workflow_role, "checker"):
         wf_rows = db.execute(
             "SELECT module_id, checker_designation_id, approver_designation_id FROM workflow_master WHERE status='Active'"
         ).fetchall()
-        checker_mods = [w["module_id"] for w in wf_rows if w["checker_designation_id"] == designation_id]
-        approver_mods = [w["module_id"] for w in wf_rows if w["approver_designation_id"] == designation_id]
+        checker_mods = [
+            w["module_id"] for w in wf_rows
+            if designation_id and w["checker_designation_id"] == designation_id
+        ]
+        approver_mods = [
+            w["module_id"] for w in wf_rows
+            if designation_id and w["approver_designation_id"] == designation_id
+        ]
         if checker_mods:
             ph = ",".join("?" * len(checker_mods))
             checker["pending_verification"] = db.execute(
-                f"SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND module_id IN ({ph})",
-                [STATUS_PENDING_CHECKER] + checker_mods,
+                f"SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
+                f"AND module_id IN ({ph})" + tenant_sql,
+                [STATUS_PENDING_CHECKER] + checker_mods + tenant_params,
             ).fetchone()["c"]
             checker["verified_today"] = db.execute(
                 f"SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status IN (?, ?) "
-                f"AND checker_action_at LIKE ? AND module_id IN ({ph})",
-                [STATUS_PENDING_APPROVAL, STATUS_APPROVED, f"{today}%"] + checker_mods,
+                f"AND checker_action_at LIKE ? AND module_id IN ({ph})" + tenant_sql,
+                [STATUS_PENDING_APPROVAL, STATUS_APPROVED, f"{today}%"] + checker_mods + tenant_params,
             ).fetchone()["c"]
             checker["rejected_today"] = db.execute(
                 f"SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
-                f"AND checker_action_at LIKE ? AND module_id IN ({ph})",
-                [STATUS_REJECTED_CHECKER, f"{today}%"] + checker_mods,
+                f"AND checker_action_at LIKE ? AND module_id IN ({ph})" + tenant_sql,
+                [STATUS_REJECTED_CHECKER, f"{today}%"] + checker_mods + tenant_params,
+            ).fetchone()["c"]
+        elif _role_matches_workflow_stage(workflow_role, "checker"):
+            checker["pending_verification"] = db.execute(
+                "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+                + tenant_sql,
+                (STATUS_PENDING_CHECKER, *tenant_params),
+            ).fetchone()["c"]
+            checker["verified_today"] = db.execute(
+                "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status IN (?, ?) "
+                "AND checker_action_at LIKE ?" + tenant_sql,
+                (STATUS_PENDING_APPROVAL, STATUS_APPROVED, f"{today}%", *tenant_params),
+            ).fetchone()["c"]
+            checker["rejected_today"] = db.execute(
+                "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
+                "AND checker_action_at LIKE ?" + tenant_sql,
+                (STATUS_REJECTED_CHECKER, f"{today}%", *tenant_params),
             ).fetchone()["c"]
         if approver_mods:
             ph = ",".join("?" * len(approver_mods))
             approver["pending_approval"] = db.execute(
-                f"SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND module_id IN ({ph})",
-                [STATUS_PENDING_APPROVAL] + approver_mods,
+                f"SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
+                f"AND module_id IN ({ph})" + tenant_sql,
+                [STATUS_PENDING_APPROVAL] + approver_mods + tenant_params,
             ).fetchone()["c"]
             approver["approved_today"] = db.execute(
                 f"SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
-                f"AND approver_action_at LIKE ? AND module_id IN ({ph})",
-                [STATUS_APPROVED, f"{today}%"] + approver_mods,
+                f"AND approver_action_at LIKE ? AND module_id IN ({ph})" + tenant_sql,
+                [STATUS_APPROVED, f"{today}%"] + approver_mods + tenant_params,
             ).fetchone()["c"]
             approver["rejected_today"] = db.execute(
                 f"SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
-                f"AND approver_action_at LIKE ? AND module_id IN ({ph})",
-                [STATUS_REJECTED_APPROVER, f"{today}%"] + approver_mods,
+                f"AND approver_action_at LIKE ? AND module_id IN ({ph})" + tenant_sql,
+                [STATUS_REJECTED_APPROVER, f"{today}%"] + approver_mods + tenant_params,
+            ).fetchone()["c"]
+        elif _role_matches_workflow_stage(workflow_role, "approver"):
+            approver["pending_approval"] = db.execute(
+                "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+                + tenant_sql,
+                (STATUS_PENDING_APPROVAL, *tenant_params),
+            ).fetchone()["c"]
+            approver["approved_today"] = db.execute(
+                "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
+                "AND approver_action_at LIKE ?" + tenant_sql,
+                (STATUS_APPROVED, f"{today}%", *tenant_params),
+            ).fetchone()["c"]
+            approver["rejected_today"] = db.execute(
+                "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? "
+                "AND approver_action_at LIKE ?" + tenant_sql,
+                (STATUS_REJECTED_APPROVER, f"{today}%", *tenant_params),
             ).fetchone()["c"]
 
     return {"maker": maker, "checker": checker, "approver": approver}
+
+
+WORKFLOW_DASHBOARD_CHECKER_GROUPS = (
+    {"label": "Projects", "module_ids": ("project_creation",)},
+    {"label": "BOQ", "module_ids": ("boq",)},
+    {"label": "Material", "module_ids": ("material_request",)},
+    {"label": "Attendance", "module_ids": ("monthly_staff_attendance", "daily_timesheet")},
+)
+
+WORKFLOW_DASHBOARD_APPROVER_GROUPS = (
+    {"label": "Projects", "module_ids": ("project_creation",)},
+    {"label": "BOQ", "module_ids": ("boq",)},
+    {"label": "Material", "module_ids": ("material_request",)},
+    {"label": "Expenses", "module_ids": ("project_expenses", "head_office_expenses", "account_expense")},
+)
+
+
+def _user_actionable_module_ids(db, user_id, role_type, is_admin=False):
+    """Module IDs the user may act on at checker or approver stage."""
+    if is_admin:
+        rows = db.execute(
+            "SELECT module_id FROM workflow_master WHERE status='Active'"
+        ).fetchall()
+        return {row["module_id"] for row in rows}
+    designation_id = get_user_designation_id(db, user_id)
+    stage_field = {
+        "checker": "checker_designation_id",
+        "approver": "approver_designation_id",
+    }.get(role_type)
+    if not stage_field:
+        return set()
+    if designation_id:
+        rows = db.execute(
+            f"SELECT module_id FROM workflow_master WHERE {stage_field}=? AND status='Active'",
+            (designation_id,),
+        ).fetchall()
+        module_ids = {row["module_id"] for row in rows}
+        if module_ids:
+            return module_ids
+    wf_role = get_user_workflow_role(db, user_id)
+    if _role_matches_workflow_stage(wf_role, role_type):
+        rows = db.execute(
+            "SELECT module_id FROM workflow_master WHERE status='Active'"
+        ).fetchall()
+        return {row["module_id"] for row in rows}
+    return set()
+
+
+def _count_pending_for_modules(db, module_ids, workflow_status, customer_id=None):
+    if not module_ids:
+        return 0
+    tenant_sql, tenant_params = _approval_requests_tenant_sql(customer_id, alias="")
+    placeholders = ",".join("?" * len(module_ids))
+    row = db.execute(
+        f"SELECT COUNT(*) AS c FROM approval_requests "
+        f"WHERE workflow_status=? AND module_id IN ({placeholders})" + tenant_sql,
+        [workflow_status] + list(module_ids) + tenant_params,
+    ).fetchone()
+    return int(row["c"] if row else 0)
+
+
+def get_workflow_dashboard_cards(
+    db,
+    user_id,
+    role_type,
+    is_admin=False,
+    customer_id=None,
+    workflow_role=None,
+):
+    """Module-grouped pending approval cards for checker / approver dashboards."""
+    if role_type not in ("checker", "approver"):
+        return []
+    if workflow_role is None and user_id:
+        workflow_role = get_user_workflow_role(db, user_id)
+    actionable = _user_actionable_module_ids(db, user_id, role_type, is_admin)
+    if not is_admin and not actionable:
+        return []
+    groups = (
+        WORKFLOW_DASHBOARD_CHECKER_GROUPS
+        if role_type == "checker"
+        else WORKFLOW_DASHBOARD_APPROVER_GROUPS
+    )
+    target_status = (
+        STATUS_PENDING_CHECKER if role_type == "checker" else STATUS_PENDING_APPROVAL
+    )
+    cards = []
+    for group in groups:
+        scoped = [mid for mid in group["module_ids"] if mid in actionable]
+        if not scoped and not is_admin:
+            continue
+        count_modules = scoped if scoped else list(group["module_ids"])
+        count = _count_pending_for_modules(
+            db, count_modules, target_status, customer_id=customer_id
+        )
+        if count <= 0 and not is_admin:
+            continue
+        cards.append(
+            {
+                "label": group["label"],
+                "count": count,
+                "role": role_type,
+                "module_id": count_modules[0],
+                "workflow_status": target_status,
+            }
+        )
+    return cards
 
 
 def get_approval_summary(db, customer_id=None):
