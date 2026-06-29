@@ -1,0 +1,48 @@
+MAXEK ERP v1.1 Sprint 2 VPS patch manifest
+Generated (UTC): 2026-06-29 14:23:51
+Git branch: release/v1.1
+Git commit: 4fc48f376ec846a62f3bbd17674eb3a9094b5564
+ZIP: deploy/vps-patch-v1.1-sprint2.zip
+ZIP bytes: 261159
+File count: 38
+
+Paths (relative to /var/www/maxek-erp-flask/):
+
+accounts_import_service.py	9256
+app.py	942048
+boq_import_service.py	9746
+bulk_import_routes.py	24433
+data_import_registry.py	4726
+data_import_routes.py	16223
+deploy/VPS_DEPLOY_v1.1_Sprint2.md	4546
+deploy/vps-patch-v1.1-sprint2_PACKAGE_README.txt	722
+docs/V1_1_BULK_IMPORT_SPEC.md	5561
+docs/samples/v1.1-import/README.md	2229
+import_audit_service.py	7804
+import_tenant_helpers.py	1348
+master_library_import_service.py	23148
+master_library_service.py	11208
+sample_data/BOQ.xlsx	5003
+sample_data/COA.xlsx	4925
+sample_data/Customer_Master.xlsx	5048
+sample_data/Employee_Master.xlsx	4986
+sample_data/Labour_Master.xlsx	4925
+sample_data/Machinery_Master.xlsx	4929
+sample_data/Material_Master.xlsx	4953
+sample_data/Opening_Balance.xlsx	4904
+sample_data/Productivity.xlsx	4927
+sample_data/README.md	2031
+sample_data/Rate_Master.xlsx	4955
+sample_data/Vendor_Master.xlsx	5054
+sample_data/WBS_Template.xlsx	4935
+scripts/build_sample_data_templates.py	3458
+standard_boq_library_import_service.py	11339
+standard_boq_library_service.py	6003
+templates/boq_library.html	5357
+templates/data_import/audit_log.html	2816
+templates/data_import/hub.html	4005
+templates/data_import/migration_wizard.html	6411
+templates/data_import/module_import.html	5260
+tenant_isolation.py	6270
+tests/test_bulk_import.py	9980
+user_context_service.py	8224

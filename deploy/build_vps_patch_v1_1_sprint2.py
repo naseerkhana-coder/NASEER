@@ -137,7 +137,8 @@ No standalone SQL migration script in this patch. Schemas are ensured on first u
 
 See also: `deploy/vps-patch-v1.1-sprint2_MANIFEST.txt` and `deploy/vps-patch-v1.1-sprint2_PACKAGE_README.txt`.
 """
-    DEPLOY_DOC.write_text(body.replace("{file_lines}", file_lines), encoding="utf-8", newline="\n")
+    with open(DEPLOY_DOC, "w", encoding="utf-8", newline="\n") as df:
+        df.write(body.replace("{file_lines}", file_lines) + "\n")
 
 def main() -> None:
     commit = git_commit()
@@ -193,3 +194,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
