@@ -1,0 +1,60 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Import Audit Log' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('data_import_hub') ~ '">Data Import</a> &gt; Audit Log' %}
+{% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search audit log...',
+    export_name='import_audit_log',
+    print_target='#audit-log-table',
+    table_panel_id='audit-log-table',
+  ) }}
+  <div class="erp-form-card">
+    <div style="margin-bottom:1rem;">
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_hub') }}"><i class="fa-solid fa-arrow-left"></i> Back to Import Hub</a>
+    </div>
+    <div class="erp-table-scroll" id="audit-log-table">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Imported At</th><th>Module</th><th>File</th><th>Imported By</th>
+            <th>Total</th><th>Success</th><th>Failed</th><th>Status</th><th>Notes</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr class="erp-selectable-row" data-search-text="{{ log.module_key }} {{ log.filename }} {{ log.imported_by }}">
+            <td>{{ log.imported_at }}</td>
+            <td>{{ log.module_key }}</td>
+            <td>{{ log.filename or '—' }}</td>
+            <td>{{ log.imported_by or '—' }}</td>
+            <td>{{ log.total_rows }}</td>
+            <td>{{ log.success_rows }}</td>
+            <td>{{ log.failed_rows }}</td>
+            <td>
+              {% if log.status == 'rolled_back' %}
+              <span class="approval-badge approval-pending-checker">Rolled back</span>
+              {% else %}
+              <span class="approval-badge approval-approved">Completed</span>
+              {% endif %}
+            </td>
+            <td>{{ (log.notes or '')[:80] }}{% if log.notes and log.notes|length > 80 %}…{% endif %}</td>
+            <td>
+              {% if log.status != 'rolled_back' and log.rollback_payload and log.success_rows > 0 %}
+              <form method="post" action="{{ url_for('data_import_rollback', audit_id=log.id) }}" style="display:inline;" onsubmit="return confirm('Roll back this import? This cannot be undone automatically.');">
+                <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-rotate-left"></i> Rollback</button>
+              </form>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10">No import activity recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

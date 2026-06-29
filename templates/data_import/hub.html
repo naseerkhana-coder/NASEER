@@ -1,0 +1,92 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Data Import & Migration' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Data Import' %}
+{% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search import modules...',
+    export_name='data_import_hub',
+    print_target='#import-modules',
+    table_panel_id='import-modules',
+    print_enabled=false,
+  ) }}
+
+  <div class="erp-form-card" style="margin-bottom:1rem;">
+    <h3 class="erp-form-title">Migration &amp; Audit</h3>
+    <div class="erp-form-actions">
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_migration_wizard') }}"><i class="fa-solid fa-wand-magic-sparkles"></i> Customer Migration Wizard</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('boq_library') }}"><i class="fa-solid fa-book"></i> Standard BOQ Library</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_audit_log') }}"><i class="fa-solid fa-clipboard-list"></i> Import Audit Log</a>
+    </div>
+  </div>
+
+  <div id="import-modules">
+    {% for category, modules in categories.items() %}
+    <div class="erp-form-card" style="margin-bottom:1rem;" data-import-category="{{ category }}">
+      <h3 class="erp-form-title">{{ category }}</h3>
+      <div class="erp-table-scroll">
+        <table class="erp-table">
+          <thead>
+            <tr><th>Module</th><th>Description</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for mod in modules %}
+            <tr class="erp-selectable-row" data-search-text="{{ mod.label }} {{ mod.description }} {{ category }}">
+              <td><strong>{{ mod.label }}</strong></td>
+              <td>{{ mod.description }}</td>
+              <td>
+                {% if mod.implemented %}
+                <span class="approval-badge approval-approved">Ready</span>
+                {% else %}
+                <span class="approval-badge approval-pending-checker">Template only</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if mod.key == 'boq_library' %}
+                <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('boq_library') }}">Open</a>
+                {% else %}
+                <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('data_import_module', module_key=mod.key) }}">Import</a>
+                {% endif %}
+                {% if mod.bulk_api_key %}
+                <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('bulk_import_template', module_key=mod.bulk_api_key) }}">Template</a>
+                {% elif mod.key != 'boq_library' %}
+                <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('data_import_template_download', module_key=mod.key) }}">Template</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if recent_logs %}
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Recent Imports</h3>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr><th>When</th><th>Module</th><th>File</th><th>By</th><th>Success</th><th>Failed</th></tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td>{{ log.imported_at }}</td>
+            <td>{{ log.module_key }}</td>
+            <td>{{ log.filename or '—' }}</td>
+            <td>{{ log.imported_by or '—' }}</td>
+            <td>{{ log.success_rows }}</td>
+            <td>{{ log.failed_rows }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

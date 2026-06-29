@@ -269,6 +269,7 @@ def save_boq_import(
         total_rows=len(parsed_rows),
         success_rows=len(parsed_rows),
         failed_rows=0,
+        rollback_payload={"module_key": "boq", "boq_id": boq_id},
     )
 
     return {

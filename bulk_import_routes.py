@@ -35,7 +35,7 @@ from boq_import_service import (
     save_boq_import,
     validate_boq_import,
 )
-from import_audit_service import log_import
+from import_audit_service import log_import, rollback_import
 
 
 def _username(session_obj) -> str:
@@ -365,6 +365,19 @@ def register_bulk_import_routes(
             ), 501
 
         return jsonify({"error": f"Unknown import module: {module_key}"}), 404
+
+    @app.route("/api/bulk-import/audit/<int:audit_id>/rollback", methods=["POST"])
+    @login_required
+    def bulk_import_rollback(audit_id: int):
+        db = get_db()
+        username = _username(session)
+        try:
+            result = rollback_import(db, audit_id, rolled_back_by=username)
+            db.commit()
+            return jsonify(result)
+        except ValueError as exc:
+            db.rollback()
+            return jsonify({"ok": False, "error": str(exc)}), 400
 
     @app.route("/boq-library", methods=["GET", "POST"])
     @login_required

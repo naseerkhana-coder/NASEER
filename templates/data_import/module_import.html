@@ -1,0 +1,97 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = mod.label ~ ' — Import' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('data_import_hub') ~ '">Data Import</a> &gt; ' ~ mod.label %}
+{% block content %}
+<div class="erp-module-layout" data-import-module>
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search preview rows...',
+    export_name=mod.key ~ '_import',
+    print_target='#import-preview-panel',
+    table_panel_id='import-preview-panel',
+  ) }}
+
+  <div class="erp-form-card" style="margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;">
+      <div>
+        <h3 class="erp-form-title" style="margin:0;">{{ mod.label }}</h3>
+        <p class="erp-hint" style="margin:0.35rem 0 0;">{{ mod.description }}</p>
+        <p class="erp-hint"><span class="approval-badge approval-{{ 'approved' if mod.implemented else 'pending-checker' }}">{{ 'Ready to import' if mod.implemented else 'Template & validation preview only' }}</span> · {{ mod.category }}</p>
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('data_import_hub') }}"><i class="fa-solid fa-arrow-left"></i> Back</a>
+        {% if mod.bulk_api_key %}
+        <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('bulk_import_template', module_key=mod.bulk_api_key) }}"><i class="fa-solid fa-download"></i> Template</a>
+        {% else %}
+        <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('data_import_template_download', module_key=mod.key) }}"><i class="fa-solid fa-download"></i> Template</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="erp-form-grid" id="import-form">
+      {% if mod.requires_project %}
+      <div class="erp-field">
+        <select name="project_id" required class="has-value">
+          <option value="">— Select project —</option>
+          {% for p in projects %}
+          <option value="{{ p.id }}"{% if request.form.get('project_id')|int == p.id %} selected{% endif %}>{{ p.project_code }} — {{ p.project_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Project *</label>
+      </div>
+      {% endif %}
+      <div class="erp-field span-2">
+        <input type="file" name="import_file" accept=".xlsx,.xls,.csv" required>
+        <label>Excel / CSV file</label>
+      </div>
+      <div class="erp-form-actions span-2">
+        <button type="submit" name="form_action" value="validate" class="erp-btn erp-btn-primary"><i class="fa-solid fa-check-double"></i> Validate &amp; Preview</button>
+        {% if mod.implemented %}
+        <button type="submit" name="form_action" value="save" class="erp-btn erp-btn-primary" {% if not preview or not preview.ok %}disabled{% endif %}><i class="fa-solid fa-floppy-disk"></i> Save Import</button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  {% if preview %}
+  <div class="erp-form-card" id="import-preview-panel" style="margin-bottom:1rem;">
+    <h3 class="erp-form-title">Validation Report</h3>
+    <p>Total rows: <strong>{{ preview.total_rows }}</strong>
+      {% if preview.ok %}<span class="approval-badge approval-approved">Ready to save</span>{% else %}<span class="approval-badge approval-rejected">{{ preview.error_count }} issue(s)</span>{% endif %}
+    </p>
+    {% if preview.errors %}
+    <div class="erp-table-scroll" style="margin-bottom:1rem;">
+      <table class="erp-table">
+        <thead><tr><th>Row</th><th>Column</th><th>Error</th><th>Suggested Fix</th></tr></thead>
+        <tbody>
+          {% for err in preview.errors %}
+          <tr>
+            <td>{{ err.row or '—' }}</td>
+            <td>{{ err.column }}</td>
+            <td>{{ err.error }}</td>
+            <td>{{ err.suggested_fix or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if preview.preview %}
+    <h4 class="erp-form-subtitle">Preview</h4>
+    <div class="erp-table-scroll">
+      <pre style="white-space:pre-wrap;font-size:0.85rem;max-height:320px;overflow:auto;">{{ preview.preview[:10]|tojson(indent=2) }}</pre>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if save_result %}
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Import Result</h3>
+    <p>Operation complete. <a href="{{ url_for('data_import_audit_log') }}">View audit log</a></p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

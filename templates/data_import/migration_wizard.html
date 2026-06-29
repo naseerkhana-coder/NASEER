@@ -1,0 +1,104 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Customer Migration Wizard' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('data_import_hub') ~ '">Data Import</a> &gt; Migration Wizard' %}
+{% block content %}
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search wizard steps...',
+    export_name='migration_wizard',
+    print_target='#wizard-content',
+    table_panel_id='wizard-content',
+    print_enabled=false,
+  ) }}
+
+  <div class="erp-form-card" id="wizard-content">
+    <nav class="erp-form-actions" style="flex-wrap:wrap;margin-bottom:1.5rem;" aria-label="Migration steps">
+      {% for s in steps %}
+      <a class="erp-btn erp-btn-sm {% if s.step == current_step %}erp-btn-primary{% else %}erp-btn-ghost{% endif %}"
+         href="{{ url_for('data_import_migration_wizard', step=s.step) }}">
+        {{ s.step }}. {{ s.title }}
+      </a>
+      {% endfor %}
+    </nav>
+
+    {% set step_def = steps[current_step - 1] %}
+    <h3 class="erp-form-title">Step {{ current_step }} — {{ step_def.title }}</h3>
+    <p class="erp-hint">{{ step_def.description }}</p>
+
+    <form method="post" class="erp-form-grid" style="margin-top:1rem;">
+      <input type="hidden" name="step" value="{{ current_step }}">
+
+      {% if current_step == 1 %}
+      <div class="erp-field span-2"><input name="company_name" placeholder=" " value="{{ wizard_data.get('company_name', '') }}"><label>Company Name</label></div>
+      <p class="erp-hint span-2">Also configure branding under <a href="{{ url_for('settings') }}#tenant-branding">Settings → Tenant Branding</a>.</p>
+      {% elif current_step == 2 %}
+      <div class="erp-field"><input name="admin_username" placeholder=" " value="{{ wizard_data.get('admin_username', '') }}"><label>Admin Username</label></div>
+      <div class="erp-field"><input name="admin_email" type="email" placeholder=" " value="{{ wizard_data.get('admin_email', '') }}"><label>Admin Email</label></div>
+      <p class="erp-hint span-2">Create users via <a href="{{ url_for('user_management') }}">User Management</a> if not already set up.</p>
+      {% elif current_step == 3 %}
+      <p class="span-2">Import master data using the modules below:</p>
+      <div class="span-2 erp-form-actions">
+        <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_module', module_key='customers') }}">Customers</a>
+        <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_module', module_key='vendors') }}">Vendors</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('store_materials') }}">Materials</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('staff') }}">Employees</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('boq_library') }}">BOQ Library</a>
+      </div>
+      <div class="span-2"><label class="coa-check"><input type="checkbox" name="masters_done" {% if wizard_data.get('masters_done') %}checked{% endif %}> Masters import completed</label></div>
+      {% elif current_step == 4 %}
+      <p class="span-2">Import transactional data:</p>
+      <div class="span-2 erp-form-actions">
+        <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_module', module_key='boq') }}">BOQ</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('projects') }}">Projects</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='purchase_invoice') }}">Purchase</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='sales_invoice') }}">Sales</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='customer_receipts') }}">Receipts</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='bank_statement') }}">Bank</a>
+      </div>
+      <div class="span-2"><label class="coa-check"><input type="checkbox" name="transactions_done" {% if wizard_data.get('transactions_done') %}checked{% endif %}> Transactions import completed</label></div>
+      {% elif current_step == 5 %}
+      <p class="span-2">Review recent import activity and resolve errors before go-live.</p>
+      <div class="span-2 erp-form-actions">
+        <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_audit_log') }}">Open Audit Log</a>
+      </div>
+      {% if recent_logs %}
+      <div class="span-2 erp-table-scroll">
+        <table class="erp-table">
+          <thead><tr><th>Date</th><th>Module</th><th>Success</th><th>Failed</th></tr></thead>
+          <tbody>
+            {% for log in recent_logs[:10] %}
+            <tr><td>{{ log.imported_at }}</td><td>{{ log.module_key }}</td><td>{{ log.success_rows }}</td><td>{{ log.failed_rows }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      {% elif current_step == 6 %}
+      <p class="span-2">Migration checklist:</p>
+      <ul class="span-2">
+        <li>{% if wizard_data.get('masters_done') %}✓{% else %}○{% endif %} Masters imported</li>
+        <li>{% if wizard_data.get('transactions_done') %}✓{% else %}○{% endif %} Transactions imported</li>
+        <li>Review <a href="{{ url_for('data_import_audit_log') }}">audit log</a> for failed rows</li>
+      </ul>
+      {% if wizard_data.get('completed') %}
+      <p class="span-2"><span class="approval-badge approval-approved">Migration marked complete</span></p>
+      {% endif %}
+      {% endif %}
+
+      <div class="erp-form-actions span-2">
+        {% if current_step > 1 %}
+        <button type="submit" name="wizard_action" value="back" class="erp-btn erp-btn-ghost">Back</button>
+        {% endif %}
+        {% if current_step < 6 %}
+        <button type="submit" name="wizard_action" value="next" class="erp-btn erp-btn-primary">Save &amp; Continue</button>
+        {% else %}
+        <button type="submit" name="wizard_action" value="finish" class="erp-btn erp-btn-primary">Finish Migration</button>
+        {% endif %}
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_hub') }}">Exit Wizard</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

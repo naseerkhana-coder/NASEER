@@ -5,7 +5,7 @@ import unittest
 
 from boq_import_service import validate_boq_import
 from bulk_import_service import validate_duplicates, validate_gst
-from import_audit_service import ensure_import_audit_schema, log_import
+from import_audit_service import ensure_import_audit_schema, log_import, rollback_import
 from standard_boq_library_service import ensure_standard_boq_library_schema, save_standard_boq_item
 
 
@@ -141,6 +141,43 @@ class TestImportAudit(unittest.TestCase):
         row = db.execute("SELECT * FROM import_audit_log").fetchone()
         self.assertIsNotNone(row)
         self.assertEqual(row["success_rows"], 5)
+
+    def test_rollback_customers_removes_inserted_rows(self):
+        db = _memory_db()
+        db.execute("""
+            CREATE TABLE clients(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_code TEXT, client_name TEXT, company_name TEXT,
+                contact_person TEXT, mobile TEXT, email TEXT, address TEXT,
+                gst_number TEXT, pan_number TEXT, status TEXT
+            )
+        """)
+        db.execute(
+            "INSERT INTO clients(client_code, client_name, company_name, contact_person, "
+            "mobile, email, address, gst_number, pan_number, status) "
+            "VALUES('CLT1','Test Co','Test Co','','','','','','','Active')",
+        )
+        client_id = int(db.execute("SELECT last_insert_rowid()").fetchone()[0])
+        audit_id = log_import(
+            db,
+            module_key="customers",
+            imported_by="admin",
+            filename="customers.xlsx",
+            total_rows=1,
+            success_rows=1,
+            failed_rows=0,
+            rollback_payload={
+                "module_key": "customers",
+                "records": [{"table": "clients", "id": client_id}],
+            },
+        )
+        db.commit()
+        result = rollback_import(db, audit_id, rolled_back_by="admin")
+        db.commit()
+        self.assertTrue(result["ok"])
+        self.assertIsNone(db.execute("SELECT id FROM clients WHERE id=?", (client_id,)).fetchone())
+        status = db.execute("SELECT status FROM import_audit_log WHERE id=?", (audit_id,)).fetchone()[0]
+        self.assertEqual(status, "rolled_back")
 
 
 if __name__ == "__main__":
