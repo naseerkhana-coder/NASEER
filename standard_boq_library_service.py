@@ -41,6 +41,7 @@ def ensure_standard_boq_library_schema(db) -> None:
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_standard_boq_library_code "
         "ON standard_boq_library(boq_code)"
     )
+    _ensure_column(db, "standard_boq_library", "customer_id", "INTEGER")
     _ensure_column(db, "boq_items", "detailed_specification", "TEXT")
     _ensure_column(db, "boq_items", "library_item_id", "INTEGER")
     _ensure_column(db, "boq_items", "boq_code", "TEXT")

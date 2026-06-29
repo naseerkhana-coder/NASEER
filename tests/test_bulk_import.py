@@ -6,6 +6,12 @@ import unittest
 from boq_import_service import validate_boq_import
 from bulk_import_service import validate_duplicates, validate_gst
 from import_audit_service import ensure_import_audit_schema, log_import, rollback_import
+from master_library_import_service import save_wbs_library_import, validate_wbs_library_rows
+from master_library_service import ensure_master_library_schemas
+from standard_boq_library_import_service import (
+    save_boq_library_import,
+    validate_boq_library_import,
+)
 from standard_boq_library_service import ensure_standard_boq_library_schema, save_standard_boq_item
 
 
@@ -178,6 +184,73 @@ class TestImportAudit(unittest.TestCase):
         self.assertIsNone(db.execute("SELECT id FROM clients WHERE id=?", (client_id,)).fetchone())
         status = db.execute("SELECT status FROM import_audit_log WHERE id=?", (audit_id,)).fetchone()[0]
         self.assertEqual(status, "rolled_back")
+
+
+class TestBoqLibraryImport(unittest.TestCase):
+    def test_validate_and_save_boq_library(self):
+        db = _memory_db()
+        rows = [{
+            "_row_num": 2,
+            "boq_code": "NEW-001",
+            "item_number": "1",
+            "description": "New item",
+            "specification": "Spec text",
+            "unit": "Cum",
+            "category": "Civil",
+            "standard_rate": "500",
+        }]
+        val = validate_boq_library_import(db, rows, boq_units=BOQ_UNITS)
+        self.assertTrue(val["ok"])
+        result = save_boq_library_import(db, val["parsed_rows"], username="tester", filename="lib.xlsx")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["imported"], 1)
+        row = db.execute("SELECT boq_code FROM standard_boq_library WHERE boq_code='NEW-001'").fetchone()
+        self.assertIsNotNone(row)
+
+    def test_duplicate_boq_code_fails_without_upsert(self):
+        db = _memory_db()
+        rows = [{
+            "_row_num": 2,
+            "boq_code": "EWC-001",
+            "description": "Duplicate",
+            "unit": "Cum",
+            "standard_rate": "100",
+        }]
+        val = validate_boq_library_import(db, rows, boq_units=BOQ_UNITS)
+        self.assertFalse(val["ok"])
+
+    def test_rollback_boq_library_removes_inserts(self):
+        db = _memory_db()
+        rows = [{
+            "_row_num": 2,
+            "boq_code": "RB-001",
+            "description": "Rollback test",
+            "unit": "Nos",
+            "standard_rate": "10",
+        }]
+        val = validate_boq_library_import(db, rows, boq_units=BOQ_UNITS)
+        save_boq_library_import(db, val["parsed_rows"], username="tester", filename="lib.xlsx")
+        audit_id = db.execute("SELECT id FROM import_audit_log ORDER BY id DESC LIMIT 1").fetchone()[0]
+        db.commit()
+        rollback_import(db, audit_id, rolled_back_by="tester")
+        db.commit()
+        self.assertIsNone(db.execute("SELECT id FROM standard_boq_library WHERE boq_code='RB-001'").fetchone())
+
+
+class TestWbsLibraryImport(unittest.TestCase):
+    def test_wbs_import_and_rollback(self):
+        db = _memory_db()
+        ensure_master_library_schemas(db)
+        rows = [{"_row_num": 2, "wbs_code": "1.1", "description": "Foundation", "level": "2", "unit": "LS"}]
+        parsed, errors = validate_wbs_library_rows(db, rows)
+        self.assertFalse(errors)
+        result = save_wbs_library_import(db, parsed, username="tester", filename="wbs.xlsx")
+        self.assertTrue(result["ok"])
+        audit_id = db.execute("SELECT id FROM import_audit_log ORDER BY id DESC LIMIT 1").fetchone()[0]
+        db.commit()
+        rollback_import(db, audit_id, rolled_back_by="tester")
+        db.commit()
+        self.assertIsNone(db.execute("SELECT id FROM standard_wbs_library WHERE wbs_code='1.1'").fetchone())
 
 
 if __name__ == "__main__":

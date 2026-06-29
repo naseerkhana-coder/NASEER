@@ -1,0 +1,19 @@
+﻿MAXEK ERP v1.1 — Sprint 2 VPS patch (partial)
+=============================================
+
+Branch: release/v1.1
+Baseline on VPS: v1.0.2 (main frozen)
+
+This ZIP overlays changed files only. It does NOT replace database/maxek.db or .env.
+
+Before apply:
+  1. Back up database/maxek.db on the VPS.
+  2. Read deploy/VPS_DEPLOY_v1.1_Sprint2.md (included in this zip).
+
+After unzip into /var/www/maxek-erp-flask/:
+  sudo systemctl restart maxek-erp
+
+Schema: import_audit_log is created on first visit to /data-import/audit (ensure_import_audit_schema).
+Standard BOQ library table is ensured on /boq-library (ensure_standard_boq_library_schema).
+
+See manifest: deploy/vps-patch-v1.1-sprint2_MANIFEST.txt on build machine.

@@ -165,6 +165,48 @@ def rollback_import(db, audit_id: int, *, rolled_back_by: str = "") -> dict[str,
             else:
                 db.execute("DELETE FROM boq_master WHERE id=?", (int(boq_id),))
             removed = 1
+    elif module_key in (
+        "boq_library",
+        "wbs_library",
+        "labour_library",
+        "machinery_library",
+        "productivity_library",
+        "rate_library",
+        "materials",
+    ):
+        for record in payload.get("records", []):
+            table = record.get("table")
+            rec_id = record.get("id")
+            action = record.get("action", "insert")
+            if not table or not rec_id:
+                continue
+            allowed = {
+                "standard_boq_library",
+                "standard_wbs_library",
+                "labour_rate_library",
+                "machinery_rate_library",
+                "productivity_library",
+                "rate_master_library",
+                "materials",
+                "clients",
+                "vendors",
+            }
+            if table not in allowed:
+                continue
+            if action == "insert":
+                db.execute(f"DELETE FROM {table} WHERE id=?", (int(rec_id),))
+                removed += 1
+            elif action == "update":
+                snapshot = record.get("snapshot")
+                if snapshot:
+                    cols = [k for k in snapshot if k != "id"]
+                    if cols:
+                        sets = ", ".join(f"{c}=?" for c in cols)
+                        db.execute(
+                            f"UPDATE {table} SET {sets} WHERE id=?",
+                            [snapshot[c] for c in cols] + [int(rec_id)],
+                        )
+                        removed += 1
     else:
         raise ValueError(f"Rollback is not implemented for module: {module_key}")
 

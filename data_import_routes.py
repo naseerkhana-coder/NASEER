@@ -22,16 +22,56 @@ from import_audit_service import (
     log_import,
     rollback_import,
 )
+from import_tenant_helpers import get_import_customer_id
+from master_library_import_service import (
+    labour_library_template,
+    machinery_library_template,
+    productivity_library_template,
+    rate_library_template,
+    save_labour_library_import,
+    save_machinery_library_import,
+    save_materials_library_import,
+    save_productivity_library_import,
+    save_rate_library_import,
+    save_wbs_library_import,
+    validate_labour_library_rows,
+    validate_machinery_library_rows,
+    validate_productivity_library_rows,
+    validate_rate_library_rows,
+    validate_wbs_library_rows,
+    wbs_library_template,
+)
+from standard_boq_library_import_service import (
+    boq_library_import_template,
+    save_boq_library_import,
+    validate_boq_library_import,
+)
 
 
 MIGRATION_WIZARD_STEPS = [
     {"step": 1, "title": "Company Details", "description": "Confirm company profile and regional settings."},
     {"step": 2, "title": "Create Admin User", "description": "Set up the primary administrator account."},
-    {"step": 3, "title": "Import Masters", "description": "Customers, vendors, employees, materials, equipment."},
-    {"step": 4, "title": "Import Transactions", "description": "BOQ, projects, purchase, sales, receipts, payments, bank."},
+    {"step": 3, "title": "Import Master Libraries", "description": "Customers, BOQ, WBS, Labour, Machinery, Materials, Productivity, Rates."},
+    {"step": 4, "title": "Import Projects", "description": "Projects and BOQ line items for active jobs."},
     {"step": 5, "title": "Validation", "description": "Review import audit log and fix errors."},
     {"step": 6, "title": "Finish Migration", "description": "Complete migration and go live."},
 ]
+
+MASTER_LIBRARY_IMPORT_ORDER = [
+    ("customers", "Customers"),
+    ("boq_library", "Standard BOQ Library"),
+    ("wbs_library", "WBS Library"),
+    ("labour_library", "Labour Library"),
+    ("machinery_library", "Machinery Library"),
+    ("materials", "Material Library"),
+    ("productivity_library", "Productivity Library"),
+    ("rate_library", "Rate Library"),
+]
+
+LIBRARY_MODULE_KEYS = frozenset({
+    "boq_library", "wbs_library", "labour_library", "machinery_library",
+    "materials", "productivity_library", "rate_library",
+})
 
 
 def _wizard_state_key(user_id) -> str:
@@ -133,9 +173,17 @@ def register_data_import_routes(
             wizard_data=wizard_data.get("data", {}),
             categories=modules_by_category(),
             recent_logs=list_import_audit(db, limit=20),
+            master_library_order=MASTER_LIBRARY_IMPORT_ORDER,
         )
 
+    def _tenant_kwargs():
+        return {
+            "customer_id": get_import_customer_id(session),
+            "upsert": request.form.get("upsert") == "1",
+        }
+
     def _run_validate(db, module_key: str, rows: list, extra: dict):
+        tk = _tenant_kwargs()
         if module_key == "boq":
             project_id = extra.get("project_id")
             return validate_boq_import(db, rows, boq_units=boq_units, project_id=project_id)
@@ -146,6 +194,20 @@ def register_data_import_routes(
         if module_key == "materials":
             from bulk_import_routes import _validate_materials_rows
             parsed, errors = _validate_materials_rows(db, rows)
+            result = validation_result(parsed, errors)
+            result["parsed_rows"] = parsed
+            return result
+        if module_key == "boq_library":
+            return validate_boq_library_import(db, rows, boq_units=boq_units, **tk)
+        library_validators = {
+            "wbs_library": validate_wbs_library_rows,
+            "labour_library": validate_labour_library_rows,
+            "machinery_library": validate_machinery_library_rows,
+            "productivity_library": validate_productivity_library_rows,
+            "rate_library": validate_rate_library_rows,
+        }
+        if module_key in library_validators:
+            parsed, errors = library_validators[module_key](db, rows, **tk)
             result = validation_result(parsed, errors)
             result["parsed_rows"] = parsed
             return result
@@ -168,6 +230,7 @@ def register_data_import_routes(
 
     def _run_save(db, module_key: str, parsed_rows: list, filename: str, extra: dict):
         username = session.get("username", "")
+        tk = _tenant_kwargs()
         if module_key == "boq":
             project_id = extra.get("project_id")
             if not project_id:
@@ -193,17 +256,24 @@ def register_data_import_routes(
         if module_key == "vendors":
             return save_vendor_import(db, parsed_rows, username=username, filename=filename)
         if module_key == "materials":
-            from store_service import import_materials_excel
-            upload = extra.get("_upload")
-            if not upload:
-                raise ValueError("File required for materials import.")
-            count, errors = import_materials_excel(db, upload, username)
-            log_import(
-                db, module_key="materials", imported_by=username, filename=filename,
-                total_rows=len(parsed_rows), success_rows=count, failed_rows=len(errors),
-                notes="; ".join(errors[:5]),
+            return save_materials_library_import(
+                db, parsed_rows, username=username, filename=filename, **tk,
             )
-            return {"ok": not errors, "imported": count, "errors": errors}
+        if module_key == "boq_library":
+            return save_boq_library_import(
+                db, parsed_rows, username=username, filename=filename, **tk,
+            )
+        library_savers = {
+            "wbs_library": save_wbs_library_import,
+            "labour_library": save_labour_library_import,
+            "machinery_library": save_machinery_library_import,
+            "productivity_library": save_productivity_library_import,
+            "rate_library": save_rate_library_import,
+        }
+        if module_key in library_savers:
+            return library_savers[module_key](
+                db, parsed_rows, username=username, filename=filename, **tk,
+            )
         raise ValueError("Import save not implemented for this module.")
 
     @app.route("/data-import/<module_key>", methods=["GET", "POST"])
@@ -213,8 +283,6 @@ def register_data_import_routes(
         if not mod:
             flash("Unknown import module.")
             return redirect(url_for("data_import_hub"))
-        if module_key == "boq_library":
-            return redirect(url_for("boq_library"))
         db = get_db()
         _prepare(db)
         preview = None
@@ -252,6 +320,11 @@ def register_data_import_routes(
                         db.commit()
                         if module_key == "boq":
                             flash(f"BOQ {save_result.get('boq_number')} imported with {save_result.get('line_count')} lines.")
+                        elif save_result.get("updated"):
+                            flash(
+                                f"Imported {save_result.get('imported', 0)} new and "
+                                f"updated {save_result.get('updated', 0)} record(s)."
+                            )
                         else:
                             flash(f"Imported {save_result.get('imported', 0)} record(s).")
                     except ValueError as exc:
@@ -268,6 +341,7 @@ def register_data_import_routes(
             preview=preview,
             save_result=save_result,
             projects=[dict(p) for p in projects],
+            is_library_module=module_key in LIBRARY_MODULE_KEYS,
         )
 
     @app.route("/data-import/<module_key>/template")
@@ -275,6 +349,12 @@ def register_data_import_routes(
     def data_import_template_download(module_key):
         factories = {
             "boq": boq_import_template,
+            "boq_library": boq_library_import_template,
+            "wbs_library": wbs_library_template,
+            "labour_library": labour_library_template,
+            "machinery_library": machinery_library_template,
+            "productivity_library": productivity_library_template,
+            "rate_library": rate_library_template,
             "customers": customer_import_template,
             "vendors": vendor_import_template,
         }

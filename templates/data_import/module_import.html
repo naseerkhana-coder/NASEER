@@ -23,6 +23,9 @@
         <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('data_import_hub') }}"><i class="fa-solid fa-arrow-left"></i> Back</a>
         {% if mod.bulk_api_key %}
         <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('bulk_import_template', module_key=mod.bulk_api_key) }}"><i class="fa-solid fa-download"></i> Template</a>
+        {% if is_library_module %}
+        <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('bulk_import_export', module_key=mod.bulk_api_key) }}"><i class="fa-solid fa-file-export"></i> Export</a>
+        {% endif %}
         {% else %}
         <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('data_import_template_download', module_key=mod.key) }}"><i class="fa-solid fa-download"></i> Template</a>
         {% endif %}
@@ -45,6 +48,9 @@
         <input type="file" name="import_file" accept=".xlsx,.xls,.csv" required>
         <label>Excel / CSV file</label>
       </div>
+      {% if is_library_module %}
+      <div class="span-2"><label class="coa-check"><input type="checkbox" name="upsert" value="1"{% if request.form.get('upsert') %} checked{% endif %}> Update existing records (upsert by code)</label></div>
+      {% endif %}
       <div class="erp-form-actions span-2">
         <button type="submit" name="form_action" value="validate" class="erp-btn erp-btn-primary"><i class="fa-solid fa-check-double"></i> Validate &amp; Preview</button>
         {% if mod.implemented %}

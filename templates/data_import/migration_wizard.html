@@ -38,26 +38,29 @@
       <div class="erp-field"><input name="admin_email" type="email" placeholder=" " value="{{ wizard_data.get('admin_email', '') }}"><label>Admin Email</label></div>
       <p class="erp-hint span-2">Create users via <a href="{{ url_for('user_management') }}">User Management</a> if not already set up.</p>
       {% elif current_step == 3 %}
-      <p class="span-2">Import master data using the modules below:</p>
+      <p class="span-2">Import master libraries in this order:</p>
+      <ol class="span-2" style="margin:0 0 1rem 1.25rem;">
+        {% for key, label in master_library_order %}
+        <li style="margin-bottom:0.35rem;"><a href="{{ url_for('data_import_module', module_key=key) }}">{{ label }}</a></li>
+        {% endfor %}
+      </ol>
       <div class="span-2 erp-form-actions">
-        <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_module', module_key='customers') }}">Customers</a>
-        <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_module', module_key='vendors') }}">Vendors</a>
-        <a class="erp-btn erp-btn-ghost" href="{{ url_for('store_materials') }}">Materials</a>
-        <a class="erp-btn erp-btn-ghost" href="{{ url_for('staff') }}">Employees</a>
-        <a class="erp-btn erp-btn-ghost" href="{{ url_for('boq_library') }}">BOQ Library</a>
+        {% for key, label in master_library_order %}
+        <a class="erp-btn {% if loop.index <= 2 %}erp-btn-primary{% else %}erp-btn-ghost{% endif %} erp-btn-sm" href="{{ url_for('data_import_module', module_key=key) }}">{{ label }}</a>
+        {% endfor %}
+        <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('data_import_module', module_key='vendors') }}">Vendors</a>
+        <a class="erp-btn erp-btn-ghost erp-btn-sm" href="{{ url_for('boq_library') }}">BOQ Library CRUD</a>
       </div>
-      <div class="span-2"><label class="coa-check"><input type="checkbox" name="masters_done" {% if wizard_data.get('masters_done') %}checked{% endif %}> Masters import completed</label></div>
+      <div class="span-2"><label class="coa-check"><input type="checkbox" name="masters_done" {% if wizard_data.get('masters_done') %}checked{% endif %}> Master libraries import completed</label></div>
       {% elif current_step == 4 %}
-      <p class="span-2">Import transactional data:</p>
+      <p class="span-2">Import projects and project BOQ:</p>
       <div class="span-2 erp-form-actions">
-        <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_module', module_key='boq') }}">BOQ</a>
-        <a class="erp-btn erp-btn-ghost" href="{{ url_for('projects') }}">Projects</a>
-        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='purchase_invoice') }}">Purchase</a>
-        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='sales_invoice') }}">Sales</a>
-        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='customer_receipts') }}">Receipts</a>
-        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='bank_statement') }}">Bank</a>
+        <a class="erp-btn erp-btn-primary" href="{{ url_for('projects') }}">Projects</a>
+        <a class="erp-btn erp-btn-primary" href="{{ url_for('data_import_module', module_key='boq') }}">BOQ Line Items</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='purchase_invoice') }}">Purchase (stub)</a>
+        <a class="erp-btn erp-btn-ghost" href="{{ url_for('data_import_module', module_key='sales_invoice') }}">Sales (stub)</a>
       </div>
-      <div class="span-2"><label class="coa-check"><input type="checkbox" name="transactions_done" {% if wizard_data.get('transactions_done') %}checked{% endif %}> Transactions import completed</label></div>
+      <div class="span-2"><label class="coa-check"><input type="checkbox" name="transactions_done" {% if wizard_data.get('transactions_done') %}checked{% endif %}> Projects &amp; BOQ import completed</label></div>
       {% elif current_step == 5 %}
       <p class="span-2">Review recent import activity and resolve errors before go-live.</p>
       <div class="span-2 erp-form-actions">

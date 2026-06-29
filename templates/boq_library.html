@@ -18,7 +18,8 @@
     print_target='#library-list',
     form_panel_id='library-form',
     table_panel_id='library-list',
-    extra_buttons='<a href="' ~ url_for('bulk_import_template', module_key='boq') ~ '" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-download"></i> BOQ Import Template</a>'
+    extra_buttons='<a href="' ~ url_for('data_import_module', module_key='boq_library') ~ '" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-file-import"></i> Bulk Import</a>'
+      ~ '<a href="' ~ url_for('bulk_import_export', module_key='boq_library') ~ '" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-download"></i> Export</a>'
   ) }}
 
   <section class="erp-module-form-panel erp-form-card" id="library-form" data-entry-panel data-entry-list="library-list">

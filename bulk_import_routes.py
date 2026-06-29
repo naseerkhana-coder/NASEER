@@ -36,6 +36,40 @@ from boq_import_service import (
     validate_boq_import,
 )
 from import_audit_service import log_import, rollback_import
+from import_tenant_helpers import get_import_customer_id
+from master_library_import_service import (
+    labour_library_template,
+    machinery_library_template,
+    productivity_library_template,
+    rate_library_template,
+    save_labour_library_import,
+    save_machinery_library_import,
+    save_materials_library_import,
+    save_productivity_library_import,
+    save_rate_library_import,
+    save_wbs_library_import,
+    validate_labour_library_rows,
+    validate_machinery_library_rows,
+    validate_productivity_library_rows,
+    validate_rate_library_rows,
+    validate_wbs_library_rows,
+    wbs_library_template,
+)
+from master_library_service import (
+    ensure_master_library_schemas,
+    export_labour_library_excel,
+    export_machinery_library_excel,
+    export_productivity_library_excel,
+    export_rate_library_excel,
+    export_wbs_library_excel,
+)
+from standard_boq_library_import_service import (
+    boq_library_import_template,
+    export_boq_library_excel,
+    save_boq_library_import,
+    validate_boq_library_import,
+    validate_boq_library_import_rows,
+)
 
 
 def _username(session_obj) -> str:
@@ -134,6 +168,12 @@ def _validate_opening_balance_rows(db, rows: list[dict]) -> tuple[list[dict], li
 
 MODULE_TEMPLATES: dict[str, Callable[[], Any]] = {
     "boq": boq_import_template,
+    "boq_library": boq_library_import_template,
+    "wbs_library": wbs_library_template,
+    "labour_library": labour_library_template,
+    "machinery_library": machinery_library_template,
+    "productivity_library": productivity_library_template,
+    "rate_library": rate_library_template,
     "customers": customer_import_template,
     "vendors": vendor_import_template,
     "employees": lambda: build_xlsx_template(
@@ -159,6 +199,12 @@ MODULE_TEMPLATES: dict[str, Callable[[], Any]] = {
 }
 
 MODULE_VALIDATORS: dict[str, Callable] = {
+    "boq_library": validate_boq_library_import_rows,
+    "wbs_library": validate_wbs_library_rows,
+    "labour_library": validate_labour_library_rows,
+    "machinery_library": validate_machinery_library_rows,
+    "productivity_library": validate_productivity_library_rows,
+    "rate_library": validate_rate_library_rows,
     "customers": validate_customer_import_rows,
     "vendors": validate_vendor_import_rows,
     "employees": _validate_employees_rows,
@@ -171,6 +217,46 @@ MODULE_VALIDATORS: dict[str, Callable] = {
 PHASE2_SAVE_MODULES = frozenset(
     {"employees", "coa", "opening_balances", "bank_accounts", "sales", "purchase", "payments", "bank_statement"}
 )
+
+LIBRARY_EXPORT_MODULES = frozenset({
+    "boq_library", "wbs_library", "labour_library", "machinery_library",
+    "productivity_library", "rate_library", "materials",
+})
+
+
+def _upsert_flag() -> bool:
+    return request.form.get("upsert") == "1" or request.args.get("upsert") == "1"
+
+
+def _library_validate_kwargs(session_obj, boq_units: list[str]) -> dict[str, Any]:
+    return {
+        "customer_id": get_import_customer_id(session_obj),
+        "upsert": _upsert_flag(),
+        "boq_units": boq_units,
+    }
+
+
+def _save_library_import(db, key: str, parsed_rows: list, username: str, filename: str, session_obj, boq_units: list[str]):
+    kwargs = {
+        "username": username,
+        "filename": filename,
+        "customer_id": get_import_customer_id(session_obj),
+        "upsert": _upsert_flag(),
+    }
+    savers = {
+        "boq_library": lambda: save_boq_library_import(db, parsed_rows, **kwargs),
+        "wbs_library": lambda: save_wbs_library_import(db, parsed_rows, **kwargs),
+        "labour_library": lambda: save_labour_library_import(db, parsed_rows, **kwargs),
+        "machinery_library": lambda: save_machinery_library_import(db, parsed_rows, **kwargs),
+        "productivity_library": lambda: save_productivity_library_import(db, parsed_rows, **kwargs),
+        "rate_library": lambda: save_rate_library_import(db, parsed_rows, **kwargs),
+        "materials": lambda: save_materials_library_import(db, parsed_rows, **kwargs),
+    }
+    if key == "boq_library":
+        return save_boq_library_import(db, parsed_rows, **kwargs)
+    if key in savers:
+        return savers[key]()
+    raise ValueError(f"Unknown library module: {key}")
 
 
 def register_bulk_import_routes(
@@ -214,7 +300,8 @@ def register_bulk_import_routes(
         if not validator:
             return jsonify({"error": f"Validate not available for: {module_key}"}), 404
 
-        parsed, errors = validator(db, rows)
+        vkwargs = _library_validate_kwargs(session, boq_units) if key.endswith("_library") or key == "boq_library" else {}
+        parsed, errors = validator(db, rows, **vkwargs) if vkwargs else validator(db, rows)
         result = validation_result(parsed, errors)
         result["parsed_rows"] = parsed
         return jsonify(result)
@@ -320,8 +407,6 @@ def register_bulk_import_routes(
                 return jsonify({"ok": False, "error": str(exc)}), 400
 
         if key == "materials":
-            from store_service import import_materials_excel
-
             upload = request.files.get("file")
             if not upload:
                 return jsonify({"ok": False, "error": "No file uploaded."}), 400
@@ -332,19 +417,47 @@ def register_bulk_import_routes(
             val = validation_result(parsed, errors)
             if not val.get("ok"):
                 return jsonify(val), 400
-            count, import_errors = import_materials_excel(db, upload, username)
-            log_import(
-                db,
-                module_key="materials",
-                imported_by=username,
-                filename=upload.filename or "",
-                total_rows=len(parsed),
-                success_rows=count,
-                failed_rows=len(import_errors),
-                notes="; ".join(import_errors[:5]),
-            )
-            db.commit()
-            return jsonify({"ok": True, "imported": count, "errors": import_errors})
+            try:
+                result = save_materials_library_import(
+                    db,
+                    parsed,
+                    username=username,
+                    filename=upload.filename or "",
+                    customer_id=get_import_customer_id(session),
+                    upsert=_upsert_flag(),
+                )
+                db.commit()
+                return jsonify(result)
+            except ValueError as exc:
+                db.rollback()
+                return jsonify({"ok": False, "error": str(exc)}), 400
+
+        library_keys = {
+            "boq_library", "wbs_library", "labour_library", "machinery_library",
+            "productivity_library", "rate_library",
+        }
+        if key in library_keys:
+            upload = request.files.get("file")
+            rows, parse_err = parse_upload(upload) if upload else ([], "No file uploaded.")
+            if parse_err:
+                return jsonify({"ok": False, "error": parse_err}), 400
+            validator = MODULE_VALIDATORS[key]
+            vkwargs = _library_validate_kwargs(session, boq_units)
+            parsed, errors = validator(db, rows, **vkwargs)
+            val = validation_result(parsed, errors)
+            if not val.get("ok"):
+                return jsonify(val), 400
+            try:
+                result = _save_library_import(
+                    db, key, parsed, username,
+                    (upload.filename if upload else "") or "import.json",
+                    session, boq_units,
+                )
+                db.commit()
+                return jsonify(result)
+            except ValueError as exc:
+                db.rollback()
+                return jsonify({"ok": False, "error": str(exc)}), 400
 
         if key in PHASE2_SAVE_MODULES:
             upload = request.files.get("file")
@@ -365,6 +478,31 @@ def register_bulk_import_routes(
             ), 501
 
         return jsonify({"error": f"Unknown import module: {module_key}"}), 404
+
+    @app.route("/api/bulk-import/<module_key>/export")
+    @login_required
+    def bulk_import_export(module_key: str):
+        key = module_key.lower().strip()
+        if key not in LIBRARY_EXPORT_MODULES:
+            return jsonify({"error": f"Export not available for: {module_key}"}), 404
+        db = get_db()
+        ensure_master_library_schemas(db)
+        customer_id = get_import_customer_id(session)
+        exporters = {
+            "boq_library": export_boq_library_excel,
+            "wbs_library": export_wbs_library_excel,
+            "labour_library": export_labour_library_excel,
+            "machinery_library": export_machinery_library_excel,
+            "productivity_library": export_productivity_library_excel,
+            "rate_library": export_rate_library_excel,
+        }
+        if key == "materials":
+            from store_service import export_materials_excel
+            buf = export_materials_excel(db)
+        else:
+            buf = exporters[key](db, customer_id=customer_id)
+        filename = f"maxek_export_{key}.xlsx"
+        return send_file(buf, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     @app.route("/api/bulk-import/audit/<int:audit_id>/rollback", methods=["POST"])
     @login_required
