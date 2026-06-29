@@ -1756,17 +1756,24 @@ def get_dashboard_counters(db, user_id, username, is_admin=False):
     return {"maker": maker, "checker": checker, "approver": approver}
 
 
-def get_approval_summary(db):
+def get_approval_summary(db, customer_id=None):
     """Unified dashboard approval summary."""
     today = _today()
+    tenant_clause = ""
+    tenant_params: list = []
+    if customer_id:
+        tenant_clause = " AND maker_user_id IN (SELECT id FROM users WHERE customer_id=?)"
+        tenant_params = [customer_id]
     rejected_today = (
         db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND checker_action_at LIKE ?",
-            (STATUS_REJECTED_CHECKER, f"{today}%"),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND checker_action_at LIKE ?"
+            + tenant_clause,
+            (STATUS_REJECTED_CHECKER, f"{today}%", *tenant_params),
         ).fetchone()["c"]
         + db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND approver_action_at LIKE ?",
-            (STATUS_REJECTED_APPROVER, f"{today}%"),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND approver_action_at LIKE ?"
+            + tenant_clause,
+            (STATUS_REJECTED_APPROVER, f"{today}%", *tenant_params),
         ).fetchone()["c"]
     )
     reopened_today = 0
@@ -1779,16 +1786,19 @@ def get_approval_summary(db):
         pass
     return {
         "pending_checker": db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?",
-            (STATUS_PENDING_CHECKER,),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_clause,
+            (STATUS_PENDING_CHECKER, *tenant_params),
         ).fetchone()["c"],
         "pending_approval": db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?",
-            (STATUS_PENDING_APPROVAL,),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=?"
+            + tenant_clause,
+            (STATUS_PENDING_APPROVAL, *tenant_params),
         ).fetchone()["c"],
         "approved_today": db.execute(
-            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND approver_action_at LIKE ?",
-            (STATUS_APPROVED, f"{today}%"),
+            "SELECT COUNT(*) AS c FROM approval_requests WHERE workflow_status=? AND approver_action_at LIKE ?"
+            + tenant_clause,
+            (STATUS_APPROVED, f"{today}%", *tenant_params),
         ).fetchone()["c"],
         "rejected_today": rejected_today,
         "reopened_today": reopened_today,

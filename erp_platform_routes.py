@@ -94,7 +94,9 @@ def api_erp_context():
                 },
                 "companies": list_context_companies(db, customer_filter),
                 "branches": list_context_branches(db, company_id),
-                "projects": list_context_projects(db, ctx.get("branch_id")),
+                "projects": list_context_projects(
+                    db, ctx.get("branch_id"), customer_id=customer_filter
+                ),
             }
         )
     data = request.get_json(silent=True) or {}

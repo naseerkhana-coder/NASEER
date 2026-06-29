@@ -163,3 +163,51 @@ def tenant_where_clause(
         clauses.append(f"({prefix}branch_id IS NULL OR {prefix}branch_id=?)")
         params.append(ctx["branch_id"])
     return " AND ".join(clauses), params
+
+
+_INSERT_AFTER_WHERE_KEYWORDS = (" ORDER BY ", " GROUP BY ", " LIMIT ", " HAVING ")
+
+
+def append_tenant_filter(
+    sql: str,
+    params: tuple | list = (),
+    table_alias: str = "",
+    ctx: dict[str, Any] | None = None,
+) -> tuple[str, tuple]:
+    """Append customer_id filter to SQL when ctx carries customer_id."""
+    if not ctx or not ctx.get("customer_id"):
+        return sql, tuple(params)
+    tenant_sql, tenant_params = tenant_where_clause(table_alias, ctx)
+    if not tenant_sql:
+        return sql, tuple(params)
+
+    sql_stripped = sql.rstrip().rstrip(";")
+    upper = sql_stripped.upper()
+    cut_pos = len(sql_stripped)
+    for keyword in _INSERT_AFTER_WHERE_KEYWORDS:
+        idx = upper.find(keyword)
+        if idx != -1 and idx < cut_pos:
+            cut_pos = idx
+
+    base = sql_stripped[:cut_pos].rstrip()
+    suffix = sql_stripped[cut_pos:]
+    if " WHERE " in base.upper():
+        scoped = f"{base} AND {tenant_sql}{suffix}"
+    else:
+        scoped = f"{base} WHERE {tenant_sql}{suffix}"
+    return scoped, tuple(params) + tuple(tenant_params)
+
+
+def approval_requests_tenant_clause(
+    ctx: dict[str, Any],
+    *,
+    alias: str = "",
+) -> tuple[str, list[Any]]:
+    """Restrict approval_requests rows to users belonging to the tenant."""
+    if not ctx.get("customer_id"):
+        return "", []
+    prefix = f"{alias}." if alias else ""
+    return (
+        f"{prefix}maker_user_id IN (SELECT id FROM users WHERE customer_id=?)",
+        [ctx["customer_id"]],
+    )

@@ -17,6 +17,8 @@ HOTFIX_FILES = [
     "api_routes.py",
     "super_admin_service.py",
     "user_context_service.py",
+    "tenant_isolation.py",
+    "erp_platform_routes.py",
     "workflow_service.py",
     "ui_shell_config.py",
     "erp_admin_routes.py",

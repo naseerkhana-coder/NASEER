@@ -215,7 +215,12 @@ def list_context_branches(db, company_id: int | None) -> list[dict[str, Any]]:
         return []
 
 
-def list_context_projects(db, branch_id: int | None = None, limit: int = 100) -> list[dict[str, Any]]:
+def list_context_projects(
+    db,
+    branch_id: int | None = None,
+    limit: int = 100,
+    customer_id: int | None = None,
+) -> list[dict[str, Any]]:
     if not _table_exists(db, "projects"):
         return []
     deleted = ""
@@ -227,9 +232,14 @@ def list_context_projects(db, branch_id: int | None = None, limit: int = 100) ->
     if branch_id and "branch_id" in cols:
         branch_filter = " AND branch_id=?"
         params.append(branch_id)
+    customer_filter = ""
+    if customer_id and "customer_id" in cols:
+        customer_filter = " AND customer_id=?"
+        params.append(customer_id)
     params.append(limit)
     sql = (
-        f"SELECT id, project_name FROM projects WHERE status != 'Closed'{deleted}{branch_filter} "
+        f"SELECT id, project_name FROM projects WHERE status != 'Closed'{deleted}"
+        f"{branch_filter}{customer_filter} "
         "ORDER BY project_name LIMIT ?"
     )
     try:

@@ -404,7 +404,7 @@ from api_routes import register_api_routes
 from ai_routes import register_ai_routes
 from erp_platform_routes import erp_platform_bp
 from auth_jwt import ensure_jwt_schema
-from tenant_isolation import ensure_tenant_isolation_schema
+from tenant_isolation import append_tenant_filter, ensure_tenant_isolation_schema, get_tenant_context
 from user_context_service import (
     apply_context_to_session,
     resolve_super_admin_company_id,
@@ -4863,9 +4863,10 @@ def _push_dpr_to_project_costing(db, measurement_id):
 
 
 def get_project_options_for_boq():
-    return query_db(
+    return _tenant_query_db(
         "SELECT id, project_code, project_name FROM projects "
-        "WHERE status IS NULL OR status != 'Inactive' ORDER BY project_name"
+        "WHERE status IS NULL OR status != 'Inactive' ORDER BY project_name",
+        table_alias="",
     )
 
 
@@ -6483,6 +6484,46 @@ def _safe_scalar_count(db, sql, params=(), default=0):
         return default
 
 
+def _session_tenant_context():
+    """Tenant scope for queries — platform super admin bypasses customer_id filter."""
+    try:
+        if is_platform_super_admin_user():
+            return {"customer_id": None, "company_id": None, "branch_id": None}
+    except Exception:
+        pass
+    return get_tenant_context(session=session)
+
+
+def _dashboard_customer_id():
+    ctx = _session_tenant_context()
+    return ctx.get("customer_id")
+
+
+def _append_tenant_filter(sql, params=(), table_alias=""):
+    return append_tenant_filter(sql, params, table_alias, _session_tenant_context())
+
+
+def _tenant_scalar_count(db, sql, params=(), table_alias="", default=0):
+    scoped_sql, scoped_params = _append_tenant_filter(sql, params, table_alias)
+    return _safe_scalar_count(db, scoped_sql, scoped_params, default)
+
+
+def _tenant_query_db(query, args=(), one=False, table_alias=""):
+    scoped, params = _append_tenant_filter(query, args, table_alias)
+    return query_db(scoped, params, one=one)
+
+
+def _approval_count_sql(base_sql, params=()):
+    """Append tenant filter for approval_requests COUNT queries."""
+    ctx = _session_tenant_context()
+    customer_id = ctx.get("customer_id")
+    if not customer_id:
+        return base_sql, params
+    if " WHERE " in base_sql.upper():
+        return f"{base_sql} AND maker_user_id IN (SELECT id FROM users WHERE customer_id=?)", (*params, customer_id)
+    return f"{base_sql} WHERE maker_user_id IN (SELECT id FROM users WHERE customer_id=?)", (customer_id, *params)
+
+
 def _render_department_hub(
     title,
     section,
@@ -8005,12 +8046,16 @@ def inject_maxek_layout():
         if context_branches
         else ["Head Office", "Chennai Site", "Walajabad Unit"]
     )
-    header_projects = list_context_projects(db, session.get("branch_id"))
+    header_projects = list_context_projects(
+        db, session.get("branch_id"), customer_id=context_customer_filter
+    )
     if not header_projects:
         try:
-            project_rows = db.execute(
-                "SELECT id, project_name FROM projects WHERE status != 'Closed' ORDER BY project_name LIMIT 50"
-            ).fetchall()
+            project_sql, project_params = _append_tenant_filter(
+                "SELECT id, project_name FROM projects WHERE status != 'Closed' ORDER BY project_name LIMIT 50",
+                table_alias="",
+            )
+            project_rows = db.execute(project_sql, project_params).fetchall()
             header_projects = [
                 {"id": row["id"], "name": row["project_name"]} for row in project_rows
             ]
@@ -9007,6 +9052,7 @@ def get_accounts_department_stat_cards(db):
 
 def department_portal_stat_cards(slug, db):
     slug = resolve_department_portal_slug(slug)
+    _count = _tenant_scalar_count
     if slug == "accounts":
         try:
             return get_accounts_department_stat_cards(db)
@@ -9014,21 +9060,31 @@ def department_portal_stat_cards(slug, db):
             app.logger.exception("Accounts department stat cards failed")
             return []
     if slug == "projects":
-        total = _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects")
-        active = _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")
+        total = _count(db, "SELECT COUNT(*) AS c FROM projects")
+        active = _count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")
         progress_pct = f"{min(99, max(0, int(active / total * 100)))}%" if total else "—"
-        total_boqs = _safe_scalar_count(
-            db, "SELECT COUNT(*) AS c FROM boq_master WHERE COALESCE(is_deleted, 0)=0"
-        )
-        open_boqs = _safe_scalar_count(
+        total_boqs = _count(
             db,
-            "SELECT COUNT(*) AS c FROM boq_master "
-            "WHERE COALESCE(is_deleted, 0)=0 AND approval_status NOT IN ('Approved', 'approved')",
+            "SELECT COUNT(*) AS c FROM boq_master m "
+            "INNER JOIN projects p ON m.project_id = p.id "
+            "WHERE COALESCE(m.is_deleted, 0)=0",
+            table_alias="p",
         )
-        dpr_today = _safe_scalar_count(
-            db, "SELECT COUNT(*) AS c FROM dpr_measurements WHERE report_date=date('now')"
+        open_boqs = _count(
+            db,
+            "SELECT COUNT(*) AS c FROM boq_master m "
+            "INNER JOIN projects p ON m.project_id = p.id "
+            "WHERE COALESCE(m.is_deleted, 0)=0 AND m.approval_status NOT IN ('Approved', 'approved')",
+            table_alias="p",
         )
-        wbs_count = _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM wbs_nodes") if _table_exists(db, "wbs_nodes") else 0
+        dpr_today = _count(
+            db,
+            "SELECT COUNT(*) AS c FROM dpr_measurements m "
+            "INNER JOIN projects p ON m.project_id = p.id "
+            "WHERE m.report_date=date('now')",
+            table_alias="p",
+        )
+        wbs_count = _count(db, "SELECT COUNT(*) AS c FROM wbs_nodes") if _table_exists(db, "wbs_nodes") else 0
         return [
             {"label": "Project Progress", "value": f"{active}/{total} active ({progress_pct})"},
             {"label": "BOQ Status", "value": f"{total_boqs - open_boqs}/{total_boqs} approved" if total_boqs else "—"},
@@ -9039,12 +9095,12 @@ def department_portal_stat_cards(slug, db):
         try:
             _prepare_store_db(db)
             stats = store_dashboard_stats(db)
-            pending_po = _safe_scalar_count(
+            pending_po = _count(
                 db,
                 "SELECT COUNT(*) AS c FROM purchase_orders "
                 "WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending', 'Draft')",
             )
-            pending_grn = _safe_scalar_count(
+            pending_grn = _count(
                 db,
                 "SELECT COUNT(*) AS c FROM store_receipts "
                 "WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')",
@@ -9059,10 +9115,18 @@ def department_portal_stat_cards(slug, db):
             return []
     if slug == "hr-payroll":
         return [
-            {"label": "Active Staff", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM staff WHERE status='Active'")},
-            {"label": "Present Today", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM attendance WHERE attendance_date=date('now') AND status='Present'")},
-            {"label": "Pending Leave", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM leave_requests WHERE approval_status IN ('Pending', 'Pending Checker', 'Pending Approval')")},
-            {"label": "Open Payroll", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM payroll_runs WHERE status IN ('Draft', 'Pending Checker', 'Pending Approval')")},
+            {"label": "Active Staff", "value": _count(db, "SELECT COUNT(*) AS c FROM staff WHERE status='Active'")},
+            {"label": "Present Today", "value": _count(
+                db,
+                "SELECT COUNT(*) AS c FROM attendance a "
+                "INNER JOIN staff s ON s.id = a.worker_id "
+                "WHERE a.attendance_date=date('now') AND a.status='Present'",
+                table_alias="s",
+            ) if _dashboard_customer_id() else _safe_scalar_count(
+                db, "SELECT COUNT(*) AS c FROM attendance WHERE attendance_date=date('now') AND status='Present'"
+            )},
+            {"label": "Pending Leave", "value": _count(db, "SELECT COUNT(*) AS c FROM leave_requests WHERE approval_status IN ('Pending', 'Pending Checker', 'Pending Approval')")},
+            {"label": "Open Payroll", "value": _count(db, "SELECT COUNT(*) AS c FROM payroll_runs WHERE status IN ('Draft', 'Pending Checker', 'Pending Approval')")},
         ]
     if slug == "plant-operations":
         try:
@@ -9078,10 +9142,10 @@ def department_portal_stat_cards(slug, db):
             return []
     if slug == "procurement":
         return [
-            {"label": "Pending PR", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM purchase_requests WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
-            {"label": "Pending PO", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM purchase_orders WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
-            {"label": "Pending GRN", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM store_receipts WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
-            {"label": "Vendors", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM vendors WHERE status='Active'")},
+            {"label": "Pending PR", "value": _count(db, "SELECT COUNT(*) AS c FROM purchase_requests WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
+            {"label": "Pending PO", "value": _count(db, "SELECT COUNT(*) AS c FROM purchase_orders WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
+            {"label": "Pending GRN", "value": _count(db, "SELECT COUNT(*) AS c FROM store_receipts WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')")},
+            {"label": "Vendors", "value": _count(db, "SELECT COUNT(*) AS c FROM vendors WHERE status='Active'")},
         ]
     if slug == "qc":
         return [
@@ -9093,30 +9157,48 @@ def department_portal_stat_cards(slug, db):
     if slug == "reports":
         pending_approvals = 0
         if _table_exists(db, "approval_requests"):
-            pending_approvals = _safe_scalar_count(
-                db,
+            pa_sql, pa_params = _approval_count_sql(
                 "SELECT COUNT(*) AS c FROM approval_requests "
-                "WHERE workflow_status NOT IN ('approved', 'rejected')",
+                "WHERE workflow_status NOT IN ('approved', 'rejected')"
             )
+            pending_approvals = _safe_scalar_count(db, pa_sql, pa_params)
         return [
-            {"label": "Projects", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects")},
-            {"label": "Employees", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM staff WHERE status='Active'")},
+            {"label": "Projects", "value": _count(db, "SELECT COUNT(*) AS c FROM projects")},
+            {"label": "Employees", "value": _count(db, "SELECT COUNT(*) AS c FROM staff WHERE status='Active'")},
             {"label": "Pending Approvals", "value": pending_approvals, "warn": pending_approvals > 0},
-            {"label": "Active Vendors", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM vendors WHERE status='Active'")},
+            {"label": "Active Vendors", "value": _count(db, "SELECT COUNT(*) AS c FROM vendors WHERE status='Active'")},
         ]
     if slug in ("engineering", "planning-wbs"):
         return [
-            {"label": "Active BOQs", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM boq_master WHERE COALESCE(is_deleted, 0)=0")},
-            {"label": "Open BOQs", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM boq_master WHERE COALESCE(is_deleted, 0)=0 AND approval_status NOT IN ('Approved', 'approved')")},
-            {"label": "Active Projects", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")},
-            {"label": "Drawings", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM project_documents") if _table_exists(db, "project_documents") else 0},
+            {"label": "Active BOQs", "value": _count(
+                db,
+                "SELECT COUNT(*) AS c FROM boq_master m "
+                "INNER JOIN projects p ON m.project_id = p.id "
+                "WHERE COALESCE(m.is_deleted, 0)=0",
+                table_alias="p",
+            )},
+            {"label": "Open BOQs", "value": _count(
+                db,
+                "SELECT COUNT(*) AS c FROM boq_master m "
+                "INNER JOIN projects p ON m.project_id = p.id "
+                "WHERE COALESCE(m.is_deleted, 0)=0 AND m.approval_status NOT IN ('Approved', 'approved')",
+                table_alias="p",
+            )},
+            {"label": "Active Projects", "value": _count(db, "SELECT COUNT(*) AS c FROM projects WHERE status='Active'")},
+            {"label": "Drawings", "value": _count(db, "SELECT COUNT(*) AS c FROM project_documents") if _table_exists(db, "project_documents") else 0},
         ]
     if slug == "subcontract":
         return [
-            {"label": "Subcontractors", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM subcontractors")},
-            {"label": "Active Workers", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM workers WHERE status='Active'")},
-            {"label": "Pending Bills", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM subcontractor_bills WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')") if _table_exists(db, "subcontractor_bills") else 0},
-            {"label": "Open Payments", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM subcontract_payments WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')") if _table_exists(db, "subcontract_payments") else 0},
+            {"label": "Subcontractors", "value": _count(db, "SELECT COUNT(*) AS c FROM subcontractors")},
+            {"label": "Active Workers", "value": _count(
+                db,
+                "SELECT COUNT(*) AS c FROM workers w "
+                "INNER JOIN subcontractors s ON w.subcontractor_id = s.id "
+                "WHERE w.status='Active'",
+                table_alias="s",
+            ) if _dashboard_customer_id() else _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM workers WHERE status='Active'")},
+            {"label": "Pending Bills", "value": _count(db, "SELECT COUNT(*) AS c FROM subcontractor_bills WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')") if _table_exists(db, "subcontractor_bills") else 0},
+            {"label": "Open Payments", "value": _count(db, "SELECT COUNT(*) AS c FROM subcontract_payments WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending')") if _table_exists(db, "subcontract_payments") else 0},
         ]
     if slug == "vehicle":
         return [
@@ -9445,57 +9527,78 @@ def _dashboard_cash_balance(db):
 def get_dashboard_stats(db):
     """Aggregate KPI and chart data for the home dashboard."""
     try:
-        total_projects = query_db("SELECT COUNT(*) AS count FROM projects", one=True)["count"]
-        active_projects = query_db(
-            "SELECT COUNT(*) AS count FROM projects WHERE status='Active'", one=True
+        total_projects = _tenant_query_db(
+            "SELECT COUNT(*) AS count FROM projects", one=True, table_alias=""
         )["count"]
-        active_workers = query_db(
-            "SELECT COUNT(*) AS count FROM workers WHERE status='Active'", one=True
+        active_projects = _tenant_query_db(
+            "SELECT COUNT(*) AS count FROM projects WHERE status='Active'", one=True, table_alias=""
         )["count"]
-        active_staff = query_db(
-            "SELECT COUNT(*) AS count FROM staff WHERE status='Active'", one=True
-        )["count"]
+        active_workers = _tenant_scalar_count(
+            db,
+            "SELECT COUNT(*) AS count FROM workers w "
+            "INNER JOIN subcontractors s ON w.subcontractor_id = s.id "
+            "WHERE w.status='Active'",
+            table_alias="s",
+        )
+        if not _dashboard_customer_id():
+            active_workers = query_db(
+                "SELECT COUNT(*) AS count FROM workers WHERE status='Active'", one=True
+            )["count"]
+        active_staff = _tenant_scalar_count(
+            db, "SELECT COUNT(*) AS count FROM staff WHERE status='Active'", table_alias=""
+        )
     except Exception:
         app.logger.exception("Dashboard base counts query failed")
         total_projects = active_projects = active_workers = active_staff = 0
     pending_mrs = 0
     material_requests_total = 0
     try:
-        pending_mrs = db.execute(
+        pending_mrs = _tenant_scalar_count(
+            db,
             "SELECT COUNT(*) AS c FROM material_requests "
-            "WHERE approval_status IN ('Pending Checker', 'Pending Approval')"
-        ).fetchone()["c"]
-        material_requests_total = db.execute(
-            "SELECT COUNT(*) AS c FROM material_requests"
-        ).fetchone()["c"]
+            "WHERE approval_status IN ('Pending Checker', 'Pending Approval')",
+        )
+        material_requests_total = _tenant_scalar_count(
+            db, "SELECT COUNT(*) AS c FROM material_requests"
+        )
     except Exception:
         pass
     dpr_today_count = 0
     try:
-        dpr_today_count = db.execute(
-            "SELECT COUNT(*) AS c FROM dpr_measurements WHERE report_date=date('now')"
-        ).fetchone()["c"]
+        dpr_today_count = _tenant_scalar_count(
+            db,
+            "SELECT COUNT(*) AS c FROM dpr_measurements m "
+            "INNER JOIN projects p ON m.project_id = p.id "
+            "WHERE m.report_date=date('now')",
+            table_alias="p",
+        )
     except Exception:
         try:
-            dpr_today_count = db.execute(
-                "SELECT COUNT(*) AS c FROM dpr_entries WHERE report_date=date('now')"
-            ).fetchone()["c"]
+            dpr_today_count = _tenant_scalar_count(
+                db,
+                "SELECT COUNT(*) AS c FROM dpr_entries e "
+                "INNER JOIN projects p ON e.project_id = p.id "
+                "WHERE e.report_date=date('now')",
+                table_alias="p",
+            )
         except Exception:
             pass
     workflow_tasks = 0
     try:
-        workflow_tasks = db.execute(
+        wf_sql, wf_params = _approval_count_sql(
             "SELECT COUNT(*) AS c FROM approval_requests "
             "WHERE workflow_status NOT IN ('approved')"
-        ).fetchone()["c"]
+        )
+        workflow_tasks = db.execute(wf_sql, wf_params).fetchone()["c"]
     except Exception:
         app.logger.exception("Dashboard workflow task count query failed")
     pending_approvals_count = 0
     try:
-        pending_approvals_count = db.execute(
+        pa_sql, pa_params = _approval_count_sql(
             "SELECT COUNT(*) AS c FROM approval_requests "
             "WHERE workflow_status NOT IN ('approved', 'rejected')"
-        ).fetchone()["c"]
+        )
+        pending_approvals_count = db.execute(pa_sql, pa_params).fetchone()["c"]
     except Exception:
         pending_approvals_count = workflow_tasks
     cash_balance = _dashboard_cash_balance(db)
@@ -9509,10 +9612,11 @@ def get_dashboard_stats(db):
 
     featured = None
     try:
-        featured = query_db(
+        featured = _tenant_query_db(
             "SELECT project_name, location, status FROM projects "
             "WHERE status='Active' ORDER BY id DESC LIMIT 1",
             one=True,
+            table_alias="",
         )
     except Exception:
         app.logger.exception("Dashboard featured project query failed")
@@ -9521,11 +9625,21 @@ def get_dashboard_stats(db):
         progress_pct = min(95, 50 + active_projects * 10)
 
     try:
-        attendance_rows = query_db(
-            "SELECT attendance_date, COUNT(*) AS cnt FROM attendance "
-            "WHERE attendance_date >= date('now', '-6 days') "
-            "GROUP BY attendance_date ORDER BY attendance_date ASC"
-        )
+        if _dashboard_customer_id():
+            attendance_sql, attendance_params = _append_tenant_filter(
+                "SELECT attendance_date, COUNT(*) AS cnt FROM attendance a "
+                "INNER JOIN staff s ON s.id = a.worker_id "
+                "WHERE a.attendance_date >= date('now', '-6 days') "
+                "GROUP BY a.attendance_date ORDER BY a.attendance_date ASC",
+                table_alias="s",
+            )
+            attendance_rows = query_db(attendance_sql, attendance_params)
+        else:
+            attendance_rows = query_db(
+                "SELECT attendance_date, COUNT(*) AS cnt FROM attendance "
+                "WHERE attendance_date >= date('now', '-6 days') "
+                "GROUP BY attendance_date ORDER BY attendance_date ASC"
+            )
     except Exception:
         app.logger.exception("Dashboard attendance trend query failed")
         attendance_rows = []
@@ -9550,9 +9664,18 @@ def get_dashboard_stats(db):
 
     present_today = 0
     try:
-        present_today = db.execute(
-            "SELECT COUNT(*) AS c FROM attendance WHERE attendance_date=date('now') AND status='Present'"
-        ).fetchone()["c"]
+        if _dashboard_customer_id():
+            present_today = _tenant_scalar_count(
+                db,
+                "SELECT COUNT(*) AS c FROM attendance a "
+                "INNER JOIN staff s ON s.id = a.worker_id "
+                "WHERE a.attendance_date=date('now') AND a.status='Present'",
+                table_alias="s",
+            )
+        else:
+            present_today = db.execute(
+                "SELECT COUNT(*) AS c FROM attendance WHERE attendance_date=date('now') AND status='Present'"
+            ).fetchone()["c"]
     except Exception:
         pass
 
@@ -10184,7 +10307,7 @@ def get_command_centre_kpis(db):
             "SELECT COUNT(*) AS c FROM journal_entries "
             "WHERE approval_status IN ('Pending Checker', 'Pending Approval')",
         )
-    open_pos = _safe_scalar_count(
+    open_pos = _tenant_scalar_count(
         db,
         "SELECT COUNT(*) AS c FROM purchase_orders "
         "WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending', 'Draft')",
@@ -10192,7 +10315,7 @@ def get_command_centre_kpis(db):
     overdue_pos = 0
     if _table_exists(db, "purchase_orders"):
         try:
-            overdue_pos = _safe_scalar_count(
+            overdue_pos = _tenant_scalar_count(
                 db,
                 "SELECT COUNT(*) AS c FROM purchase_orders "
                 "WHERE due_date IS NOT NULL AND due_date < date('now') "
@@ -10203,15 +10326,18 @@ def get_command_centre_kpis(db):
     revenue_cr = None
     if _table_exists(db, "client_bills"):
         try:
-            row = db.execute(
-                "SELECT COALESCE(SUM(net_amount), 0) AS total FROM client_bills "
-                "WHERE approval_status IN ('Approved', 'Certified', 'Paid')"
-            ).fetchone()
+            bill_sql, bill_params = _append_tenant_filter(
+                "SELECT COALESCE(SUM(net_amount), 0) AS total FROM client_bills cb "
+                "INNER JOIN projects p ON cb.project_id = p.id "
+                "WHERE cb.approval_status IN ('Approved', 'Certified', 'Paid')",
+                table_alias="p",
+            )
+            row = db.execute(bill_sql, bill_params).fetchone()
             total = float(row["total"] or 0)
             revenue_cr = round(total / 10000000, 1) if total else 0
         except Exception:
             revenue_cr = None
-    new_joins = _safe_scalar_count(
+    new_joins = _tenant_scalar_count(
         db,
         "SELECT COUNT(*) AS c FROM staff WHERE date(created_at) >= date('now', 'start of month')",
     ) if _table_exists(db, "staff") else 0
@@ -10590,12 +10716,12 @@ def _build_executive_financial_summary(db, stats):
     except Exception:
         pass
     if _table_exists(db, "journal_entries"):
-        summary["journal_pending"] = _safe_scalar_count(
+        summary["journal_pending"] = _tenant_scalar_count(
             db,
             "SELECT COUNT(*) AS c FROM journal_entries "
             "WHERE approval_status IN ('Pending Checker', 'Pending Approval')",
         )
-    summary["open_pos"] = _safe_scalar_count(
+    summary["open_pos"] = _tenant_scalar_count(
         db,
         "SELECT COUNT(*) AS c FROM purchase_orders "
         "WHERE approval_status IN ('Pending Checker', 'Pending Approval', 'Pending', 'Draft')",
@@ -10645,7 +10771,7 @@ def _build_dashboard_shared_context(db):
         user_prefs.get("quick_actions"),
     )
     approval_summary = _dashboard_payload(
-        lambda: get_approval_summary(db),
+        lambda: get_approval_summary(db, customer_id=_dashboard_customer_id()),
         {},
         "approval_summary",
     )
@@ -10772,10 +10898,18 @@ def dashboard_choice_b():
 def workforce_dashboard():
     db = get_db()
     stat_cards = [
-        {"label": "Active Employees", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM staff WHERE status='Active'")},
-        {"label": "Present Today", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM attendance WHERE attendance_date=date('now') AND status='Present'")},
-        {"label": "Pending Leave", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM leave_requests WHERE approval_status IN ('Pending', 'Pending Checker', 'Pending Approval')")},
-        {"label": "Open Timesheets", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM employee_monthly_timesheets WHERE approval_status IN ('Draft', 'Pending Checker', 'Pending Approval')")},
+        {"label": "Active Employees", "value": _tenant_scalar_count(db, "SELECT COUNT(*) AS c FROM staff WHERE status='Active'")},
+        {"label": "Present Today", "value": _tenant_scalar_count(
+            db,
+            "SELECT COUNT(*) AS c FROM attendance a "
+            "INNER JOIN staff s ON s.id = a.worker_id "
+            "WHERE a.attendance_date=date('now') AND a.status='Present'",
+            table_alias="s",
+        ) if _dashboard_customer_id() else _safe_scalar_count(
+            db, "SELECT COUNT(*) AS c FROM attendance WHERE attendance_date=date('now') AND status='Present'"
+        )},
+        {"label": "Pending Leave", "value": _tenant_scalar_count(db, "SELECT COUNT(*) AS c FROM leave_requests WHERE approval_status IN ('Pending', 'Pending Checker', 'Pending Approval')")},
+        {"label": "Open Timesheets", "value": _tenant_scalar_count(db, "SELECT COUNT(*) AS c FROM employee_monthly_timesheets WHERE approval_status IN ('Draft', 'Pending Checker', 'Pending Approval')")},
     ]
     modules = [
         {"endpoint": "staff", "label": "Employees", "icon": "fa-user-tie", "description": "Employee master, profiles & bonus"},
@@ -10812,7 +10946,10 @@ def staff():
         "SELECT id, designation_name FROM designations WHERE status='Active' ORDER BY designation_name"
     )
     departments = get_departments()
-    staff_list = query_db("SELECT staff_name FROM staff WHERE status='Active' ORDER BY staff_name")
+    staff_list = _tenant_query_db(
+        "SELECT staff_name FROM staff WHERE status='Active' ORDER BY staff_name",
+        table_alias="",
+    )
     if request.method == "POST":
         form_action = request.form.get("form_action", "").strip()
         if form_action == "add_increment":
@@ -11032,10 +11169,11 @@ def staff():
             redirect_target = url_for("staff", edit=staff_id) if staff_id else url_for("staff")
             return redirect(redirect_target)
         return redirect(url_for("staff"))
-    rows_raw = query_db(
+    rows_raw = _tenant_query_db(
         "SELECT s.*, d.designation_name AS designation_label "
         "FROM staff s LEFT JOIN designations d ON s.designation_id = d.id "
-        "ORDER BY s.id DESC"
+        "ORDER BY s.id DESC",
+        table_alias="s",
     )
     rows = []
     for r in rows_raw:
@@ -11769,8 +11907,9 @@ def projects():
     user_id = session.get("user_id")
     admin = is_admin_user()
     wf_ctx = {}
-    clients = query_db(
-        "SELECT id, client_name, company_name, contact_person FROM clients ORDER BY company_name, client_name"
+    clients = _tenant_query_db(
+        "SELECT id, client_name, company_name, contact_person FROM clients ORDER BY company_name, client_name",
+        table_alias="",
     )
     edit_id = request.args.get("edit", type=int)
     view_project_id = request.args.get("view", type=int)
@@ -12083,9 +12222,10 @@ def projects():
         flash(f"Project saved — Pending Checker. Project Number: {project_code}")
         return redirect(url_for(endpoint, view=new_project_id))
 
-    rows = query_db(
+    rows = _tenant_query_db(
         "SELECT p.*, c.client_name, c.company_name FROM projects p "
-        "LEFT JOIN clients c ON p.client_id = c.id ORDER BY p.id DESC"
+        "LEFT JOIN clients c ON p.client_id = c.id ORDER BY p.id DESC",
+        table_alias="p",
     )
     project_ids = [row["id"] for row in rows]
     hub_index = _build_project_hub_index(db, project_ids)
@@ -12109,9 +12249,10 @@ def projects():
     pending_bill_options = []
     project_bill_submissions = []
     bill_submission_summary = _bill_submission_summary([])
-    gov_projects = query_db(
+    gov_projects = _tenant_query_db(
         "SELECT id, project_code, project_name, gov_department FROM projects "
-        "WHERE project_type='Government' ORDER BY project_name, id DESC"
+        "WHERE project_type='Government' ORDER BY project_name, id DESC",
+        table_alias="",
     )
     if editing_project:
         project_guarantees = _load_project_guarantees(db, editing_project["id"])
@@ -15956,10 +16097,11 @@ def boq_management():
         editing_boq["boq_number"] if editing_boq
         else (peek_boq_number(db, preview_project_id) if preview_project_id else "Select project")
     )
-    rows = query_db(
+    rows = _tenant_query_db(
         "SELECT m.*, p.project_code, p.project_name FROM boq_master m "
-        "LEFT JOIN projects p ON m.project_id = p.id "
-        "WHERE COALESCE(m.is_deleted, 0)=0 ORDER BY m.id DESC"
+        "INNER JOIN projects p ON m.project_id = p.id "
+        "WHERE COALESCE(m.is_deleted, 0)=0 ORDER BY m.id DESC",
+        table_alias="p",
     )
 
     ensure_library_schema(db)

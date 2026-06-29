@@ -1,5 +1,5 @@
 MAXEK ERP — VPS Patch v1.0.1 Hotfix (UAT fixes)
-Generated: 2026-06-29 01:42
+Generated: 2026-06-29 10:33
 Archive: deploy/dist/vps-patch-v1.0.1-hotfix.zip
 
 Purpose
@@ -20,6 +20,8 @@ Files in archive
   api_routes.py
   super_admin_service.py
   user_context_service.py
+  tenant_isolation.py
+  erp_platform_routes.py
   workflow_service.py
   ui_shell_config.py
   erp_admin_routes.py
@@ -60,31 +62,33 @@ LOCAL -> VPS
    2. C:\Users\rajee\Documents\New project\MAXEK_ERP\api_routes.py -> /var/www/maxek-erp-flask/api_routes.py
    3. C:\Users\rajee\Documents\New project\MAXEK_ERP\super_admin_service.py -> /var/www/maxek-erp-flask/super_admin_service.py
    4. C:\Users\rajee\Documents\New project\MAXEK_ERP\user_context_service.py -> /var/www/maxek-erp-flask/user_context_service.py
-   5. C:\Users\rajee\Documents\New project\MAXEK_ERP\workflow_service.py -> /var/www/maxek-erp-flask/workflow_service.py
-   6. C:\Users\rajee\Documents\New project\MAXEK_ERP\ui_shell_config.py -> /var/www/maxek-erp-flask/ui_shell_config.py
-   7. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_admin_routes.py -> /var/www/maxek-erp-flask/erp_admin_routes.py
-   8. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_platform_routes.py -> /var/www/maxek-erp-flask/erp_platform_routes.py
-   9. C:\Users\rajee\Documents\New project\MAXEK_ERP\dashboard_prefs_service.py -> /var/www/maxek-erp-flask/dashboard_prefs_service.py
-  10. C:\Users\rajee\Documents\New project\MAXEK_ERP\standard_boq_library_service.py -> /var/www/maxek-erp-flask/standard_boq_library_service.py
-  11. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\settings.html -> /var/www/maxek-erp-flask/templates/settings.html
-  12. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\accounts_receipt_voucher.html -> /var/www/maxek-erp-flask/templates/accounts_receipt_voucher.html
-  13. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\accounts_book.html -> /var/www/maxek-erp-flask/templates/accounts_book.html
-  14. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\accounts_book_v2.html -> /var/www/maxek-erp-flask/templates/accounts_book_v2.html
-  15. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\accounts_tds_register.html -> /var/www/maxek-erp-flask/templates/accounts_tds_register.html
-  16. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\customers.html -> /var/www/maxek-erp-flask/templates/erp_admin/customers.html
-  17. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\licenses.html -> /var/www/maxek-erp-flask/templates/erp_admin/licenses.html
-  18. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\subscriptions.html -> /var/www/maxek-erp-flask/templates/erp_admin/subscriptions.html
-  19. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\change_requests.html -> /var/www/maxek-erp-flask/templates/erp_admin/change_requests.html
-  20. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\support_tickets.html -> /var/www/maxek-erp-flask/templates/erp_admin/support_tickets.html
-  21. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\platform_dashboard.html -> /var/www/maxek-erp-flask/templates/erp_admin/platform_dashboard.html
-  22. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\customer_settings.html -> /var/www/maxek-erp-flask/templates/erp_admin/customer_settings.html
-  23. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\macros\erp_ui.html -> /var/www/maxek-erp-flask/templates/macros/erp_ui.html
-  24. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\dashboard_shell_sidebar.html -> /var/www/maxek-erp-flask/templates/partials/dashboard_shell_sidebar.html
-  25. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\dashboard_shell_header.html -> /var/www/maxek-erp-flask/templates/partials/dashboard_shell_header.html
-  26. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\dashboard_shell_module_header.html -> /var/www/maxek-erp-flask/templates/partials/dashboard_shell_module_header.html
-  27. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\command_centre_dept_tiles.html -> /var/www/maxek-erp-flask/templates/partials/command_centre_dept_tiles.html
-  28. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard.html -> /var/www/maxek-erp-flask/templates/dashboard.html
-  29. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_executive.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_executive.html
-  30. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_compact.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_compact.html
-  31. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\css\maxek-dashboard.css -> /var/www/maxek-erp-flask/static/css/maxek-dashboard.css
-  32. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\js\maxek-ui.js -> /var/www/maxek-erp-flask/static/js/maxek-ui.js
+   5. C:\Users\rajee\Documents\New project\MAXEK_ERP\tenant_isolation.py -> /var/www/maxek-erp-flask/tenant_isolation.py
+   6. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_platform_routes.py -> /var/www/maxek-erp-flask/erp_platform_routes.py
+   7. C:\Users\rajee\Documents\New project\MAXEK_ERP\workflow_service.py -> /var/www/maxek-erp-flask/workflow_service.py
+   8. C:\Users\rajee\Documents\New project\MAXEK_ERP\ui_shell_config.py -> /var/www/maxek-erp-flask/ui_shell_config.py
+   9. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_admin_routes.py -> /var/www/maxek-erp-flask/erp_admin_routes.py
+  10. C:\Users\rajee\Documents\New project\MAXEK_ERP\erp_platform_routes.py -> /var/www/maxek-erp-flask/erp_platform_routes.py
+  11. C:\Users\rajee\Documents\New project\MAXEK_ERP\dashboard_prefs_service.py -> /var/www/maxek-erp-flask/dashboard_prefs_service.py
+  12. C:\Users\rajee\Documents\New project\MAXEK_ERP\standard_boq_library_service.py -> /var/www/maxek-erp-flask/standard_boq_library_service.py
+  13. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\settings.html -> /var/www/maxek-erp-flask/templates/settings.html
+  14. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\accounts_receipt_voucher.html -> /var/www/maxek-erp-flask/templates/accounts_receipt_voucher.html
+  15. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\accounts_book.html -> /var/www/maxek-erp-flask/templates/accounts_book.html
+  16. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\accounts_book_v2.html -> /var/www/maxek-erp-flask/templates/accounts_book_v2.html
+  17. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\accounts_tds_register.html -> /var/www/maxek-erp-flask/templates/accounts_tds_register.html
+  18. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\customers.html -> /var/www/maxek-erp-flask/templates/erp_admin/customers.html
+  19. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\licenses.html -> /var/www/maxek-erp-flask/templates/erp_admin/licenses.html
+  20. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\subscriptions.html -> /var/www/maxek-erp-flask/templates/erp_admin/subscriptions.html
+  21. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\change_requests.html -> /var/www/maxek-erp-flask/templates/erp_admin/change_requests.html
+  22. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\support_tickets.html -> /var/www/maxek-erp-flask/templates/erp_admin/support_tickets.html
+  23. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\platform_dashboard.html -> /var/www/maxek-erp-flask/templates/erp_admin/platform_dashboard.html
+  24. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\erp_admin\customer_settings.html -> /var/www/maxek-erp-flask/templates/erp_admin/customer_settings.html
+  25. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\macros\erp_ui.html -> /var/www/maxek-erp-flask/templates/macros/erp_ui.html
+  26. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\dashboard_shell_sidebar.html -> /var/www/maxek-erp-flask/templates/partials/dashboard_shell_sidebar.html
+  27. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\dashboard_shell_header.html -> /var/www/maxek-erp-flask/templates/partials/dashboard_shell_header.html
+  28. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\dashboard_shell_module_header.html -> /var/www/maxek-erp-flask/templates/partials/dashboard_shell_module_header.html
+  29. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\partials\command_centre_dept_tiles.html -> /var/www/maxek-erp-flask/templates/partials/command_centre_dept_tiles.html
+  30. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard.html -> /var/www/maxek-erp-flask/templates/dashboard.html
+  31. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_executive.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_executive.html
+  32. C:\Users\rajee\Documents\New project\MAXEK_ERP\templates\dashboard_theme_compact.html -> /var/www/maxek-erp-flask/templates/dashboard_theme_compact.html
+  33. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\css\maxek-dashboard.css -> /var/www/maxek-erp-flask/static/css/maxek-dashboard.css
+  34. C:\Users\rajee\Documents\New project\MAXEK_ERP\static\js\maxek-ui.js -> /var/www/maxek-erp-flask/static/js/maxek-ui.js
