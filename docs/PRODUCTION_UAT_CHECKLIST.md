@@ -250,3 +250,20 @@ Run separate **staging**, **UAT**, and **production** deployment for v1.1. See `
 |----|---------|--------------|-------------------|----------|--------|----------|
 | | | | | | | |
 | | | | | | | |
+
+---
+
+## v1.0.2 Production sign-off
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-06-29 |
+| **Status** | **APPROVED FOR PRODUCTION** |
+| **Tag** | 1.0.2 |
+| **main HEAD** | 685d7ab — fix(routing): add /erp/dashboard alias redirect to /dashboard |
+| **Production commits** | 37f3884 (workflow), e102103 / 2077f2b (tenant isolation), 685d7ab (dashboard) |
+
+**Freeze policy:** After this sign-off, production stabilization changes land on main only when explicitly approved for production release (v1.0.2 sign-off approved 2026-06-29). Do not merge elease/v1.2-planning to main as part of this release. v1.1 feature work remains out of scope until a separate release plan is executed.
+
+**Signed:** VPS production UAT — v1.0.2 stabilization (tenant isolation, workflow, dashboard, accounts hotfixes).
+
