@@ -68,6 +68,51 @@ def main() -> int:
                 return 1
             print(f"OK: platform dashboard projects={stats_all['total_projects']}")
 
+        # Empty tenant: dashboard page must not 500 (inject_maxek_layout tenant filter)
+        empty_row = db.execute(
+            "SELECT id FROM erp_customers WHERE customer_code='SMOKE_EMPTY' LIMIT 1"
+        ).fetchone()
+        if not empty_row:
+            from datetime import datetime
+
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cur = db.execute(
+                "INSERT INTO erp_customers(customer_code, company_name, country, status, "
+                "created_at, modified_at) VALUES('SMOKE_EMPTY','Smoke Empty Tenant','India',"
+                "'Active',?,?)",
+                (now, now),
+            )
+            empty_id = cur.lastrowid
+            db.execute(
+                "INSERT INTO users(username, password, role, status, customer_id) "
+                "VALUES('smoke_empty_admin','x','Customer Admin','Active',?)",
+                (empty_id,),
+            )
+            empty_uid = db.execute(
+                "SELECT id FROM users WHERE username='smoke_empty_admin' AND customer_id=?",
+                (empty_id,),
+            ).fetchone()["id"]
+            db.commit()
+        else:
+            empty_id = empty_row["id"]
+            empty_uid = db.execute(
+                "SELECT id FROM users WHERE username='smoke_empty_admin' AND customer_id=?",
+                (empty_id,),
+            ).fetchone()["id"]
+
+        with app.test_client() as client:
+            with client.session_transaction() as sess:
+                sess["user_id"] = empty_uid
+                sess["customer_id"] = empty_id
+                sess["username"] = "smoke_empty_admin"
+                sess["role"] = "Customer Admin"
+            resp = client.get("/dashboard", follow_redirects=False)
+            if resp.status_code >= 400:
+                print(f"FAIL: empty tenant dashboard HTTP {resp.status_code}")
+                print(resp.data[:1500].decode("utf-8", errors="replace"))
+                return 1
+            print(f"OK: empty tenant dashboard HTTP {resp.status_code}")
+
     return 0
 
 

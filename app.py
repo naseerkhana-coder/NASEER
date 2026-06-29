@@ -8040,6 +8040,7 @@ def inject_maxek_layout():
         if badge_val:
             item["badge"] = badge_val
     company_id = session.get("company_id")
+    context_customer_filter = None if platform_super_admin else session.get("customer_id")
     context_branches = list_context_branches(db, company_id)
     branch_options = (
         [b["name"] for b in context_branches]
@@ -8061,7 +8062,6 @@ def inject_maxek_layout():
             ]
         except sqlite3.OperationalError:
             header_projects = []
-    context_customer_filter = None if platform_super_admin else session.get("customer_id")
     context_companies = list_context_companies(db, context_customer_filter)
     company_display_name = (
         session.get("customer_name")

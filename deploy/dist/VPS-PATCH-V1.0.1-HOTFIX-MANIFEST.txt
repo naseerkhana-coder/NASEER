@@ -1,5 +1,5 @@
 MAXEK ERP — VPS Patch v1.0.1 Hotfix (UAT fixes)
-Generated: 2026-06-29 10:33
+Generated: 2026-06-29 11:23
 Archive: deploy/dist/vps-patch-v1.0.1-hotfix.zip
 
 Purpose
