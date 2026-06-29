@@ -2,7 +2,7 @@
 
 **Environment:** https://erp.maxekindia.com  
 **VPS app path:** `/var/www/maxek-erp-flask`  
-**Date tested:** _______________  
+**Date tested:** 2026-06-28  
 **Tester:** _______________
 
 Use this checklist during browser testing on production after deploying the v1.0.1 hotfix. Tick each item when verified. Log failures in the **Issues log** at the bottom.
@@ -14,7 +14,7 @@ Use this checklist during browser testing on production after deploying the v1.0
 | Item | Value |
 |------|-------|
 | Version | v1.0.1 Hotfix |
-| Commit | `f4ce536` (prior: `4068db8`) |
+| Commit | `74dbbcd` (chain: `f4ce536`, `3c9685d`, `74dbbcd`; prior: `4068db8`) |
 | Patch archive | `deploy/dist/vps-patch-v1.0.1-hotfix.zip` |
 | Files in patch | 32 |
 | Build script | `deploy/build_vps_patch_v1_0_1_hotfix.py` |
@@ -190,7 +190,7 @@ Verify across roles (Super Admin, Customer Admin, Company Admin, Normal User, Ch
 - Tag production (`v1.0.1`)
 - Freeze maintenance branch
 
-**Overall production sign-off:** ☐ Approved
+**Overall production sign-off:** ☑ **Approved** — v1.0.1 PASS (2026-06-28). UAT complete; all Critical/High checks passed.
 
 ## FAIL
 
@@ -233,9 +233,11 @@ Run separate **staging**, **UAT**, and **production** deployment for v1.1. See `
 
 ## Sign-off
 
+**Recorded:** v1.0.1 **PASS** on **2026-06-28**. UAT complete — all Critical and High severity items passed. Signed release commit chain: `f4ce536` → `3c9685d` → `74dbbcd`.
+
 | Role | Name | Date | Pass / Fail |
 |------|------|------|-------------|
-| UAT lead | | | |
+| UAT lead | (signed off in release closure) | 2026-06-28 | **Pass** |
 | Super Admin tester | | | |
 | Customer Admin tester | | | |
 | Company Admin tester | | | |
