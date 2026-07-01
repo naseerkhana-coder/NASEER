@@ -872,11 +872,3 @@
 {% macro erp_field_class(kind) %}erp-field--{{ kind }}{% endmacro %}
 {% macro erp_input_class(kind) %}erp-input--{{ kind }}{% endmacro %}
 {% macro erp_col_class(kind) %}erp-col-{{ kind }}{% endmacro %}
-
-{# Spreadsheet-style editable grid wrapper — auto-enhanced by erp-spreadsheet-grid.js #}
-{% macro erp_spreadsheet_grid_open(extra_class='', compact=false) %}
-<div class="erp-table-scroll erp-spreadsheet-grid-open {{ extra_class }}{% if compact %} erp-spreadsheet-grid--compact{% endif %}">
-{% endmacro %}
-{% macro erp_spreadsheet_grid_close() %}
-</div>
-{% endmacro %}

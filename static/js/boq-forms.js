@@ -163,22 +163,10 @@
     if (addBtn && template && container) {
       addBtn.addEventListener("click", function () {
         if (countRows(container) >= maxLines) return;
-        var table = container.closest("table");
-        var newRow = cloneRowFromTemplate(template);
-        if (table && window.MaxekSpreadsheetGrid && window.MaxekSpreadsheetGrid.insertRowAfterCurrent) {
-          window.MaxekSpreadsheetGrid.insertRowAfterCurrent(table, newRow);
-        } else {
-          container.appendChild(newRow);
-          if (window.MaxekDataEntry && window.MaxekDataEntry.focusFirstField) {
-            window.MaxekDataEntry.focusFirstField(newRow);
-          }
-        }
+        container.appendChild(cloneRowFromTemplate(template));
         renumberRows(container);
         syncAddButton();
         recalcForm(form);
-        if (table) {
-          table.dispatchEvent(new CustomEvent("maxek:row-added", { bubbles: true, detail: { row: newRow } }));
-        }
       });
 
       container.addEventListener("click", function (e) {
@@ -186,10 +174,7 @@
         if (!btn) return;
         var row = btn.closest("[data-boq-row]");
         if (!row || countRows(container) <= 1) return;
-        var table = container.closest("table");
-        if (table && window.MaxekSpreadsheetGrid) window.MaxekSpreadsheetGrid.saveScrollPosition(table);
         row.remove();
-        if (table && window.MaxekSpreadsheetGrid) window.MaxekSpreadsheetGrid.restoreScrollPosition(table);
         renumberRows(container);
         syncAddButton();
         recalcForm(form);

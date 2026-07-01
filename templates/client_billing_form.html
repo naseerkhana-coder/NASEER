@@ -98,8 +98,8 @@
 
     <div id="cb-panel-measurement">
     <h4>Measurement Sheet <small style="font-weight:normal;color:#64748b;">DPR items with Bill Client = Yes (pending)</small></h4>
-    <div class="erp-table-wrap erp-table-scroll" style="margin-bottom:1rem;">
-      <table class="erp-table erp-table-entry" id="measurement-sheet-table" data-entry-table>
+    <div class="erp-table-wrap" style="overflow-x:auto;margin-bottom:1rem;">
+      <table class="erp-table" id="measurement-sheet-table">
         <thead>
           <tr>
             <th>Date</th><th>BOQ No.</th><th>Description</th><th>Unit</th>
@@ -113,8 +113,8 @@
 
     <div id="cb-panel-ra-bill" hidden>
     <h4>RA Bill Lines</h4>
-    <div class="erp-table-wrap erp-table-scroll">
-      <table class="erp-table erp-table-entry" id="boq-lines-table" data-entry-table>
+    <div class="erp-table-wrap" style="overflow-x:auto;">
+      <table class="erp-table" id="boq-lines-table">
         <thead>
           <tr>
             <th>BOQ No.</th><th>Description</th><th>Unit</th>
@@ -149,8 +149,8 @@
     </div>
 
     <h4 style="margin-top:1.25rem;">Additional Items</h4>
-    <div class="erp-table-wrap erp-table-scroll">
-      <table class="erp-table erp-table-entry" id="extra-lines-table" data-entry-table>
+    <div class="erp-table-wrap">
+      <table class="erp-table" id="extra-lines-table">
         <thead><tr><th>Type</th><th>Description</th><th>Unit</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th><th></th></tr></thead>
         <tbody id="extra-lines-body">
           {% for ex in (edit_record.extra_lines if edit_record else []) %}
@@ -255,14 +255,6 @@
     btn.addEventListener('click', () => switchTab(btn.dataset.cbTab));
   });
 
-  function reinitSpreadsheetTables() {
-    if (!window.MaxekSpreadsheetGrid) return;
-    ['measurement-sheet-table', 'boq-lines-table', 'extra-lines-table'].forEach(function (id) {
-      var table = document.getElementById(id);
-      if (table) window.MaxekSpreadsheetGrid.initGrid(table);
-    });
-  }
-
   function addBoqLine(line) {
     const tbody = document.getElementById('boq-lines-body');
     const tr = document.createElement('tr');
@@ -285,7 +277,6 @@
       <input type="hidden" name="line_remarks[]" value="">`;
     tbody.appendChild(tr);
     bindLineRow(tr);
-    reinitSpreadsheetTables();
   }
 
   function renderMeasurementSheet(rows) {
@@ -323,7 +314,6 @@
       });
     });
     rebuildRaLinesFromMeasurements();
-    reinitSpreadsheetTables();
   }
 
   function rebuildRaLinesFromMeasurements() {
@@ -414,15 +404,8 @@
       <td class="num ex-amount">0.00</td>
       <td><button type="button" class="erp-btn erp-btn-ghost erp-btn-sm js-remove-extra">×</button></td>
       <input type="hidden" name="extra_remarks[]" value="">`;
-    var extraTable = document.getElementById('extra-lines-table');
-    if (window.MaxekSpreadsheetGrid && window.MaxekSpreadsheetGrid.insertRowAfterCurrent && extraTable) {
-      window.MaxekSpreadsheetGrid.insertRowAfterCurrent(extraTable, tr);
-    } else {
-      tbody.appendChild(tr);
-      if (window.MaxekDataEntry) window.MaxekDataEntry.focusFirstField(tr);
-    }
+    tbody.appendChild(tr);
     tr.querySelector('.js-remove-extra').addEventListener('click', () => tr.remove());
-    reinitSpreadsheetTables();
   });
 })();
 </script>

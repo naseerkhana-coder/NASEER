@@ -4,19 +4,6 @@
     var table = root.querySelector('[data-lines-table]');
     if (!table) return;
     var tbody = table.querySelector('tbody');
-
-    function insertRow(clone) {
-      if (window.MaxekSpreadsheetGrid && window.MaxekSpreadsheetGrid.insertRowAfterCurrent) {
-        window.MaxekSpreadsheetGrid.insertRowAfterCurrent(table, clone);
-      } else {
-        tbody.appendChild(clone);
-        if (window.MaxekDataEntry && window.MaxekDataEntry.focusFirstField) {
-          window.MaxekDataEntry.focusFirstField(clone);
-        }
-      }
-      table.dispatchEvent(new CustomEvent('maxek:row-added', { bubbles: true, detail: { row: clone } }));
-    }
-
     root.addEventListener('click', function (e) {
       var addBtn = e.target.closest('[data-add-line]');
       if (addBtn) {
@@ -29,20 +16,14 @@
           else inp.value = '';
         });
         clone.querySelectorAll('select').forEach(function (sel) { sel.selectedIndex = 0; });
-        insertRow(clone);
-        if (window.MaxekSpreadsheetGrid) window.MaxekSpreadsheetGrid.markDirty(table);
+        tbody.appendChild(clone);
       }
       var rmBtn = e.target.closest('[data-remove-line]');
       if (rmBtn) {
         e.preventDefault();
         var rows = tbody.querySelectorAll('[data-line-row]');
         if (rows.length <= 1) return;
-        if (window.MaxekSpreadsheetGrid) window.MaxekSpreadsheetGrid.saveScrollPosition(table);
         rmBtn.closest('[data-line-row]').remove();
-        if (window.MaxekSpreadsheetGrid) {
-          window.MaxekSpreadsheetGrid.restoreScrollPosition(table);
-          window.MaxekSpreadsheetGrid.markDirty(table);
-        }
       }
     });
     table.addEventListener('change', function (e) {
