@@ -696,6 +696,10 @@
         box.addEventListener('change', updateWorkerCount);
       });
       updateWorkerCount();
+      var bulkTable = bulkForm.querySelector('#bulk_worker_table');
+      if (bulkTable && window.MaxekSpreadsheetGrid) {
+        window.MaxekSpreadsheetGrid.initGrid(bulkTable);
+      }
     }
 
     function loadTrades(subId) {

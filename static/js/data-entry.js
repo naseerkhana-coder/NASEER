@@ -265,10 +265,18 @@
     return true;
   }
 
+  function isSpreadsheetManaged(table) {
+    return table && (
+      table.hasAttribute('data-spreadsheet-grid')
+      || table.closest('.erp-spreadsheet-grid')
+    );
+  }
+
   function moveTableFocus(input, direction) {
     var pos = cellPosition(input);
     if (!pos) return false;
     var table = pos.table;
+    if (isSpreadsheetManaged(table)) return false;
     if (!table || (!table.hasAttribute('data-entry-table') && !table.classList.contains('erp-table-module'))) {
       return false;
     }
@@ -302,11 +310,22 @@
       if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT' && el.tagName !== 'TEXTAREA') return;
 
       if (event.key === 'Enter' && !event.shiftKey && el.tagName === 'INPUT' && el.type !== 'textarea') {
+        if (moveTableFocus(el, 'down')) {
+          event.preventDefault();
+        } else if (moveTableFocus(el, 'next')) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (event.key === 'Tab' && !isSpreadsheetManaged(el.closest('table'))) {
         if (moveTableFocus(el, 'next')) {
           event.preventDefault();
         }
         return;
       }
+
+      if (isSpreadsheetManaged(el.closest('table'))) return;
 
       if (event.key === 'ArrowDown') {
         if (moveTableFocus(el, 'down')) event.preventDefault();
