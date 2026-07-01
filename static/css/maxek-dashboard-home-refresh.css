@@ -1,0 +1,383 @@
+/* MAXEK ERP — Dashboard home visual refresh (CSS only, scoped to .dashboard-mode) */
+
+.maxek-layout.dashboard-mode {
+  --dash-refresh-accent: #e30613;
+  --dash-refresh-accent-soft: rgba(227, 6, 19, 0.1);
+  --dash-refresh-accent-border: rgba(227, 6, 19, 0.22);
+  --dash-refresh-surface: #ffffff;
+  --dash-refresh-surface-muted: #f8fafc;
+  --dash-refresh-border: rgba(15, 23, 42, 0.08);
+  --dash-refresh-text: #0f172a;
+  --dash-refresh-muted: #64748b;
+  --dash-refresh-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --dash-refresh-shadow-md: 0 4px 20px -6px rgba(15, 23, 42, 0.1);
+  --dash-refresh-shadow-lg: 0 12px 40px -12px rgba(15, 23, 42, 0.14);
+  --dash-refresh-radius: 14px;
+  --dash-refresh-radius-lg: 18px;
+}
+
+/* ── Pro shell home dashboard ── */
+.maxek-layout.pro-dashboard-mode.dashboard-mode:not(.dept-workspace-mode) .dashboard-body {
+  background:
+    radial-gradient(ellipse 120% 80% at 100% -20%, rgba(20, 184, 166, 0.06), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 0% 0%, rgba(227, 6, 19, 0.04), transparent 50%),
+    var(--pro-bg, #f4f6f8);
+}
+
+.maxek-layout.pro-dashboard-mode.dashboard-mode:not(.dept-workspace-mode) .pro-dash-content--home {
+  padding: clamp(18px, 2.5vw, 28px) clamp(20px, 3vw, 32px) clamp(28px, 4vw, 40px);
+}
+
+/* Greeting */
+.maxek-layout.dashboard-mode .pro-dash-greeting-row {
+  align-items: center;
+  margin-bottom: clamp(18px, 2.5vw, 28px);
+  padding-bottom: clamp(16px, 2vw, 22px);
+  border-bottom: 1px solid var(--dash-refresh-border);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-greeting-text h1 {
+  font-size: clamp(1.45rem, 2.5vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--dash-refresh-text);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-greeting-sub {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--dash-refresh-muted);
+  max-width: 52ch;
+}
+
+.maxek-layout.dashboard-mode .pro-dash-greeting-sub strong {
+  color: var(--dash-refresh-text);
+  font-weight: 600;
+}
+
+.maxek-layout.dashboard-mode .pro-dash-date-chip {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--dash-refresh-border);
+  background: var(--dash-refresh-surface);
+  box-shadow: var(--dash-refresh-shadow-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-refresh-text);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.maxek-layout.dashboard-mode .pro-dash-date-chip:hover {
+  box-shadow: var(--dash-refresh-shadow-md);
+  border-color: rgba(20, 184, 166, 0.25);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-date-chip i.fa-calendar {
+  color: #14b8a6;
+}
+
+/* Section headers */
+.maxek-layout.dashboard-mode .pro-dash-dept-section-head {
+  margin-bottom: 16px;
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-section-title,
+.maxek-layout.dashboard-mode .erp-module-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dash-refresh-muted);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-section-sub {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--dash-refresh-muted);
+}
+
+/* Department workspace tiles */
+.maxek-layout.dashboard-mode .pro-dash-dept-tile-grid--mockup {
+  gap: clamp(12px, 1.5vw, 18px);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup {
+  min-height: 128px;
+  padding: 18px 18px 16px;
+  border-radius: var(--dash-refresh-radius-lg);
+  background: var(--dash-refresh-surface);
+  border: 1px solid var(--dash-refresh-border);
+  box-shadow: var(--dash-refresh-shadow-sm);
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--dept-accent, var(--dash-refresh-accent)),
+    color-mix(in srgb, var(--dept-accent, #14b8a6) 55%, #ffffff)
+  );
+  opacity: 0.9;
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--dept-accent, #14b8a6) 28%, var(--dash-refresh-border));
+  box-shadow: var(--dash-refresh-shadow-lg);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup .erp-module-tile-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--dept-accent, #14b8a6) 12%, #ffffff);
+  color: var(--dept-accent, #0d9488);
+  border: 1px solid color-mix(in srgb, var(--dept-accent, #14b8a6) 18%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transition: transform 0.2s ease;
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup:hover .erp-module-tile-icon {
+  transform: scale(1.05);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup .erp-module-tile-label {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--dash-refresh-text);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup .erp-module-tile-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--dash-refresh-muted);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup .erp-module-tile-open {
+  margin-top: auto;
+  padding: 0.3rem 0.7rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--dept-accent, #0d9488) 80%, #0f172a);
+  background: color-mix(in srgb, var(--dept-accent, #14b8a6) 10%, #f8fafc);
+  border: 1px solid color-mix(in srgb, var(--dept-accent, #14b8a6) 20%, transparent);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--locked {
+  opacity: 0.72;
+  filter: grayscale(0.15);
+}
+
+.maxek-layout.dashboard-mode .pro-dash-dept-tile--locked::before {
+  background: linear-gradient(90deg, #94a3b8, #cbd5e1);
+}
+
+/* Executive dashboard theme */
+.maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-kpi-grid {
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-kpi-card {
+  border-radius: var(--dash-refresh-radius);
+  background: var(--dash-refresh-surface);
+  border: 1px solid var(--dash-refresh-border);
+  box-shadow: var(--dash-refresh-shadow-sm);
+  padding: 16px 18px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-kpi-card:hover {
+  box-shadow: var(--dash-refresh-shadow-md);
+  transform: translateY(-2px);
+}
+
+.maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-kpi-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-kpi-card--warn {
+  border-left: 4px solid #f59e0b;
+}
+
+.maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-panel {
+  border-radius: var(--dash-refresh-radius-lg);
+  background: var(--dash-refresh-surface);
+  border: 1px solid var(--dash-refresh-border);
+  box-shadow: var(--dash-refresh-shadow-sm);
+  padding: 18px 20px;
+}
+
+.maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-stat-list li {
+  padding: 10px 0;
+  border-bottom-color: var(--dash-refresh-border);
+}
+
+.maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-stat-list strong {
+  font-weight: 800;
+  color: var(--dash-refresh-text);
+}
+
+/* Command centre / department hub (legacy layout) */
+.maxek-layout.dashboard-mode .erp-stat-card {
+  border-radius: var(--dash-refresh-radius);
+  border: 1px solid var(--dash-refresh-border);
+  border-left: 4px solid var(--dash-refresh-accent);
+  background: var(--dash-refresh-surface);
+  box-shadow: var(--dash-refresh-shadow-sm);
+  padding: 14px 16px;
+  min-height: 72px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.maxek-layout.dashboard-mode .erp-stat-card:hover {
+  box-shadow: var(--dash-refresh-shadow-md);
+  transform: translateY(-2px);
+}
+
+.maxek-layout.dashboard-mode .erp-stat-card span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.maxek-layout.dashboard-mode .erp-stat-card strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.maxek-layout.dashboard-mode .erp-module-tile {
+  border-radius: var(--dash-refresh-radius);
+  background: var(--dash-refresh-surface);
+  border: 1px solid var(--dash-refresh-border);
+  box-shadow: var(--dash-refresh-shadow-sm);
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.maxek-layout.dashboard-mode .erp-module-tile:hover {
+  transform: translateY(-3px);
+  border-color: var(--dash-refresh-accent-border);
+  box-shadow: var(--dash-refresh-shadow-lg);
+}
+
+.maxek-layout.dashboard-mode .erp-module-tile-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  font-size: 17px;
+  background: var(--dash-refresh-accent-soft);
+  color: var(--dash-refresh-accent);
+  border: 1px solid var(--dash-refresh-accent-border);
+}
+
+.maxek-layout.dashboard-mode .erp-module-tile-label {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.maxek-layout.dashboard-mode .erp-module-tile-open,
+.maxek-layout.dashboard-mode .erp-module-tile-run {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+}
+
+/* Classic dashboard KPI row (dashboard-mode dark widgets) */
+.maxek-layout.dashboard-mode .dash-kpi-card,
+.maxek-layout.dashboard-mode .dash-chart-card,
+.maxek-layout.dashboard-mode .dash-table-panel {
+  border-radius: var(--dash-refresh-radius);
+  box-shadow: var(--dash-refresh-shadow-sm);
+}
+
+.maxek-layout.dashboard-mode .dash-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--dash-refresh-shadow-md);
+}
+
+/* Sidebar polish — main dashboard landing only */
+.maxek-layout.pro-dashboard-mode.dashboard-mode:not(.dept-workspace-mode) .pro-dash-sidebar {
+  border-right: 1px solid var(--dash-refresh-border);
+  box-shadow: 4px 0 24px -12px rgba(15, 23, 42, 0.08);
+}
+
+.maxek-layout.pro-dashboard-mode.dashboard-mode:not(.dept-workspace-mode) .pro-dash-nav-item.is-active {
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--pro-nav-active-bg, #14b8a6) 45%, transparent);
+}
+
+.maxek-layout.pro-dashboard-mode.dashboard-mode:not(.dept-workspace-mode) .pro-dash-header {
+  border-bottom: 1px solid var(--dash-refresh-border);
+  background: color-mix(in srgb, var(--pro-bg-elevated, #fff) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .maxek-layout.dashboard-mode .pro-dash-greeting-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .maxek-layout.dashboard-mode .pro-dash-date-chip {
+    align-self: flex-start;
+  }
+
+  .maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup {
+    min-height: 112px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .maxek-layout.dashboard-mode .erp-summary-grid--stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup,
+  .maxek-layout.dashboard-mode .erp-module-tile,
+  .maxek-layout.dashboard-mode .erp-stat-card,
+  .maxek-layout.dashboard-mode [data-dashboard-theme="executive"] .pro-dash-exec-kpi-card {
+    transition: none;
+  }
+
+  .maxek-layout.dashboard-mode .pro-dash-dept-tile--mockup:hover,
+  .maxek-layout.dashboard-mode .erp-module-tile:hover,
+  .maxek-layout.dashboard-mode .erp-stat-card:hover {
+    transform: none;
+  }
+}

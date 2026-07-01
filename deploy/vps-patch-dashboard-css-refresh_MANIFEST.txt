@@ -1,0 +1,13 @@
+MAXEK ERP — Dashboard CSS refresh (UI only)
+Generated (UTC): 2026-07-01 09:09:19
+Git branch: release/v1.1
+Git commit: 886284d6a659d6028196ac323e3c16bada6a211a
+ZIP: deploy/vps-patch-dashboard-css-refresh.zip
+ZIP bytes: 7954
+File count: 3
+
+Paths (relative to /var/www/maxek-erp-flask/):
+
+deploy/VPS_DEPLOY_DASHBOARD_CSS_REFRESH.md	2335
+static/css/maxek-dashboard-home-refresh.css	12151
+templates/base_maxek.html	19345

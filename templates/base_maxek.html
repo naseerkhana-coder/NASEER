@@ -58,6 +58,7 @@
 
     {% if use_pro_shell|default(false) %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-pro-dashboard.css') }}?v=20260628-header-signout3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-dashboard-home-refresh.css') }}?v=20260701-dash-refresh">
     {% endif %}
 
     {% block head_extra %}{% endblock %}
