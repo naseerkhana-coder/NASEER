@@ -848,6 +848,32 @@ def authenticate_tenant_user(
             "SELECT * FROM users WHERE username=? AND customer_id=?",
             (username, customer["id"]),
         ).fetchone()
+        if not user and not customer["is_platform"]:
+            legacy_user = db.execute(
+                "SELECT * FROM users WHERE username=? AND (customer_id IS NULL OR customer_id=0)",
+                (username,),
+            ).fetchone()
+            legacy_role = (
+                str(legacy_user["role"] or "").strip().lower()
+                if legacy_user and "role" in legacy_user.keys()
+                else ""
+            )
+            if (
+                legacy_user
+                and username.lower() not in ("admin", "superadmin")
+                and legacy_role not in ("super admin", "platform super admin")
+                and user_is_active_fn(legacy_user)
+                and verify_password_fn(legacy_user["password"], password)
+            ):
+                db.execute(
+                    "UPDATE users SET customer_id=? WHERE id=?",
+                    (customer["id"], legacy_user["id"]),
+                )
+                sync_customer_usage_counts(db, customer["id"])
+                user = db.execute(
+                    "SELECT * FROM users WHERE id=?",
+                    (legacy_user["id"],),
+                ).fetchone()
         if not user and customer["is_platform"]:
             user = db.execute(
                 "SELECT * FROM users WHERE username=? AND (customer_id=? OR customer_id IS NULL)",

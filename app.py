@@ -8306,6 +8306,10 @@ def login():
         remember = request.form.get("remember") == "on"
         user = authenticate_user(get_db(), username, password, company_code=company_code)
         if user:
+            try:
+                get_db().commit()
+            except Exception:
+                app.logger.exception("Failed to commit authenticated user tenant repair")
             session.clear()
             user_id = get_user_id(user)
             session["user_id"] = user_id
@@ -14870,6 +14874,8 @@ def api_user_department_tabs_save(user_id):
 @admin_required
 def user_settings():
     db = get_db()
+    tenant_customer_id = session.get("customer_id")
+    tenant_user_filter = tenant_customer_id if tenant_customer_id and not is_super_admin_user() else None
     designations = query_db(
         "SELECT id, designation_name FROM designations WHERE status='Active' ORDER BY designation_name"
     )
@@ -14881,7 +14887,13 @@ def user_settings():
         action = request.form.get("action", "save")
         user_id = request.form.get("user_id", "").strip()
         if action == "toggle" and user_id:
-            row = db.execute("SELECT status FROM users WHERE id=?", (user_id,)).fetchone()
+            if tenant_user_filter:
+                row = db.execute(
+                    "SELECT status FROM users WHERE id=? AND customer_id=?",
+                    (user_id, tenant_user_filter),
+                ).fetchone()
+            else:
+                row = db.execute("SELECT status FROM users WHERE id=?", (user_id,)).fetchone()
             if row:
                 new_status = "Inactive" if row["status"] == "Active" else "Active"
                 db.execute("UPDATE users SET status=? WHERE id=?", (new_status, user_id))
@@ -14913,13 +14925,35 @@ def user_settings():
             flash("Select employee from master and ensure username is set.")
             return redirect(url_for("user_settings"))
 
+        existing_params = [username]
+        existing_sql = "SELECT id FROM users WHERE username=?"
+        if tenant_user_filter:
+            existing_sql += " AND customer_id=?"
+            existing_params.append(tenant_user_filter)
+        else:
+            existing_sql += " AND (customer_id IS NULL OR customer_id=0)"
+        if user_id:
+            existing_sql += " AND id<>?"
+            existing_params.append(user_id)
+        if db.execute(existing_sql, tuple(existing_params)).fetchone():
+            flash("Username already exists. Choose a different login ID.")
+            return redirect(url_for("user_settings"))
+
         saved_user_id = user_id
         if user_id:
+            if tenant_user_filter:
+                owned = db.execute(
+                    "SELECT id FROM users WHERE id=? AND customer_id=?",
+                    (user_id, tenant_user_filter),
+                ).fetchone()
+                if not owned:
+                    flash("User not found for this customer.")
+                    return redirect(url_for("user_settings"))
             if password:
                 db.execute(
                     "UPDATE users SET username=?, password=?, staff_id=?, employee_name=?, department=?, "
                     "designation_id=?, role=?, workflow_role=?, status=? WHERE id=?",
-                    (username, password, staff_id, employee_name, department, designation_id,
+                    (username, hash_password(password), staff_id, employee_name, department, designation_id,
                      role, workflow_role, status, user_id),
                 )
             else:
@@ -14935,12 +14969,18 @@ def user_settings():
             if not password:
                 flash("Password is required for new users.")
                 return redirect(url_for("user_settings"))
+            if tenant_user_filter:
+                try:
+                    assert_user_limit_not_exceeded(db, tenant_user_filter)
+                except ValueError as exc:
+                    flash(str(exc))
+                    return redirect(url_for("user_settings"))
             try:
                 cur = db.execute(
                     "INSERT INTO users(username, password, staff_id, employee_name, department, "
-                    "designation_id, role, workflow_role, status) VALUES(?,?,?,?,?,?,?,?,?)",
-                    (username, password, staff_id, employee_name, department, designation_id,
-                     role, workflow_role, status),
+                    "designation_id, role, workflow_role, status, customer_id) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    (username, hash_password(password), staff_id, employee_name, department, designation_id,
+                     role, workflow_role, status, tenant_user_filter),
                 )
                 saved_user_id = cur.lastrowid
                 flash("User created successfully.")
@@ -14957,6 +14997,9 @@ def user_settings():
             db.execute("DELETE FROM user_maker_assignments WHERE user_id=?", (saved_user_id,))
 
         db.commit()
+        if saved_user_id and tenant_user_filter:
+            sync_customer_usage_counts(db, tenant_user_filter)
+            db.commit()
         if saved_user_id and not user_id:
             return redirect(url_for("user_settings", edit=saved_user_id) + "#user-permissions")
         return redirect(url_for("user_settings"))
@@ -14966,12 +15009,15 @@ def user_settings():
     edit_user_is_super_admin = False
     maker_assignments = []
     if edit_id:
-        edit_user = query_db(
+        edit_sql = (
             "SELECT u.*, d.designation_name FROM users u "
-            "LEFT JOIN designations d ON u.designation_id = d.id WHERE u.id=?",
-            (edit_id,),
-            one=True,
+            "LEFT JOIN designations d ON u.designation_id = d.id WHERE u.id=?"
         )
+        edit_params = [edit_id]
+        if tenant_user_filter:
+            edit_sql += " AND u.customer_id=?"
+            edit_params.append(tenant_user_filter)
+        edit_user = query_db(edit_sql, tuple(edit_params), one=True)
         if edit_user:
             maker_assignments = get_user_maker_assignments(db, edit_id)
             edit_user_is_super_admin = _is_super_admin_row(db, edit_user)
@@ -14984,10 +15030,16 @@ def user_settings():
     )
     workflow_modules = get_workflow_modules()
 
-    rows = query_db(
+    rows_sql = (
         "SELECT u.*, d.designation_name FROM users u "
-        "LEFT JOIN designations d ON u.designation_id = d.id ORDER BY u.id DESC"
+        "LEFT JOIN designations d ON u.designation_id = d.id"
     )
+    rows_params = ()
+    if tenant_user_filter:
+        rows_sql += " WHERE u.customer_id=?"
+        rows_params = (tenant_user_filter,)
+    rows_sql += " ORDER BY u.id DESC"
+    rows = query_db(rows_sql, rows_params)
     enriched = []
     for row in rows:
         r = dict(row)
