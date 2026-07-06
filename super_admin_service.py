@@ -1055,13 +1055,36 @@ def _count_customer_licenses(db, customer_id: int) -> int:
         return 0
 
 
+def _customer_code_prefix(company_name: str) -> str:
+    letters = "".join(ch for ch in (company_name or "").upper() if ch.isalnum())
+    if len(letters) >= 3:
+        return letters[:3]
+    return (letters + "CUS")[:3]
+
+
+def _next_customer_sequence(db) -> int:
+    rows = db.execute(
+        "SELECT customer_code FROM erp_customers WHERE customer_code NOT LIKE 'MAXEK%'"
+    ).fetchall()
+    max_num = 0
+    for row in rows:
+        code = str(row["customer_code"] or "").upper()
+        suffix = code[3:] if len(code) > 3 else ""
+        if suffix.isdigit():
+            max_num = max(max_num, int(suffix))
+    return max_num + 1
+
+
 def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int:
     ensure_super_admin_schema(db)
     now = _now_ts()
+    company_name = (data.get("company_name") or "").strip()
     code = (data.get("customer_code") or "").strip().upper()
+    if not record_id:
+        code = next_customer_code(db, company_name)
     if not code:
         raise ValueError("Customer code is required.")
-    if not (data.get("company_name") or "").strip():
+    if not company_name:
         raise ValueError("Company name is required.")
     package_code = (data.get("package_code") or data.get("plan") or "Standard").strip()
     if package_code not in CUSTOMER_PLANS:
@@ -1074,7 +1097,7 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
     enabled_json = _serialize_department_slugs(enabled_departments)
     fields = (
         code,
-        (data.get("company_name") or "").strip(),
+        company_name,
         (data.get("country") or "").strip(),
         (data.get("contact_person") or "").strip(),
         (data.get("mobile") or "").strip(),
@@ -1911,18 +1934,9 @@ def get_system_health(db, db_path: str) -> dict[str, Any]:
     }
 
 
-def next_customer_code(db) -> str:
-    rows = db.execute(
-        "SELECT customer_code FROM erp_customers WHERE customer_code NOT LIKE 'MAXEK%'"
-    ).fetchall()
-    max_num = 0
-    for row in rows:
-        code = str(row["customer_code"] or "").upper()
-        suffix = code[3:] if len(code) > 3 else ""
-        if suffix.isdigit():
-            max_num = max(max_num, int(suffix))
-    prefix = "TRD" if max_num < 100 else "MAX"
-    return f"{prefix}{max_num + 1:03d}"
+def next_customer_code(db, company_name: str = "") -> str:
+    prefix = _customer_code_prefix(company_name)
+    return f"{prefix}{_next_customer_sequence(db):03d}"
 
 
 def _seed_report() -> dict[str, list[str]]:

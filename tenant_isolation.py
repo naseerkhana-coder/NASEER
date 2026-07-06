@@ -191,8 +191,11 @@ def append_tenant_filter(
 
     base = sql_stripped[:cut_pos].rstrip()
     suffix = sql_stripped[cut_pos:]
-    if " WHERE " in base.upper():
-        scoped = f"{base} AND {tenant_sql}{suffix}"
+    where_idx = base.upper().find(" WHERE ")
+    if where_idx != -1:
+        before_where = base[:where_idx]
+        where_clause = base[where_idx + len(" WHERE "):].strip()
+        scoped = f"{before_where} WHERE ({where_clause}) AND {tenant_sql}{suffix}"
     else:
         scoped = f"{base} WHERE {tenant_sql}{suffix}"
     return scoped, tuple(params) + tuple(tenant_params)
@@ -245,16 +248,25 @@ def backfill_projects_tenant_scope(db) -> None:
             WHERE customer_id IS NULL
             """
         )
-        db.execute(
-            """
-            UPDATE projects
-            SET customer_id = (
-                SELECT u.customer_id FROM users u
-                WHERE u.username = projects.created_by
-                ORDER BY u.id LIMIT 1
+        if _table_exists(db, "erp_customers") and _table_exists(db, "approval_requests"):
+            db.execute(
+                """
+                UPDATE projects
+                SET customer_id=NULL, company_id=NULL, branch_id=NULL
+                WHERE customer_id IS NOT NULL
+                  AND created_at IS NOT NULL
+                  AND created_at < COALESCE((
+                      SELECT c.created_at FROM erp_customers c WHERE c.id = projects.customer_id
+                  ), created_at)
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM approval_requests ar
+                      JOIN users u ON u.id = ar.maker_user_id
+                      WHERE ar.record_table = 'projects'
+                        AND ar.record_id = projects.id
+                        AND u.customer_id = projects.customer_id
+                  )
+                """
             )
-            WHERE customer_id IS NULL AND created_by IS NOT NULL AND TRIM(created_by) != ''
-            """
-        )
     except Exception:
         pass

@@ -1117,10 +1117,17 @@ def _validate_dpr_upload(file_storage):
     return ext, size, None
 
 
-def generate_employee_code(db):
-    rows = db.execute(
-        "SELECT employee_code FROM staff WHERE employee_code LIKE 'EMP%'"
-    ).fetchall()
+def generate_employee_code(db, customer_id=None):
+    if customer_id:
+        rows = db.execute(
+            "SELECT employee_code FROM staff WHERE employee_code LIKE 'EMP%' AND customer_id=?",
+            (customer_id,),
+        ).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT employee_code FROM staff WHERE employee_code LIKE 'EMP%' "
+            "AND (customer_id IS NULL OR customer_id=0)"
+        ).fetchall()
     max_code = 100
     for row in rows:
         code = str(row["employee_code"] or "").strip().upper()
@@ -1647,16 +1654,42 @@ def peek_next_prefixed_number(db, prefix):
     return f"{prefix}{max(counter_next, existing_max + 1)}"
 
 
-def generate_project_code(db, project_name):
+def _max_project_number_for_prefix(db, prefix, customer_id=None):
+    max_num = 99
+    prefix = str(prefix or "").upper()
+    like_pattern = f"{prefix}%"
+    if customer_id:
+        rows = db.execute(
+            "SELECT project_code AS code FROM projects WHERE project_code LIKE ? AND customer_id=?",
+            (like_pattern, customer_id),
+        ).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT project_code AS code FROM projects WHERE project_code LIKE ? "
+            "AND (customer_id IS NULL OR customer_id=0)",
+            (like_pattern,),
+        ).fetchall()
+    for row in rows:
+        row_prefix, number = parse_prefixed_number(row["code"])
+        if row_prefix == prefix and number is not None:
+            max_num = max(max_num, number)
+    return max_num
+
+
+def generate_project_code(db, project_name, customer_id=None):
     """Return next project number: 2-letter prefix from name + running sequence from 100."""
     prefix = extract_name_prefix(project_name)
+    if customer_id:
+        return f"{prefix}{_max_project_number_for_prefix(db, prefix, customer_id) + 1}"
     return allocate_next_prefixed_number(db, prefix)
 
 
-def peek_project_code(db, project_name):
+def peek_project_code(db, project_name, customer_id=None):
     if not str(project_name or "").strip():
-        return "—"
+        return "-"
     prefix = extract_name_prefix(project_name)
+    if customer_id:
+        return f"{prefix}{_max_project_number_for_prefix(db, prefix, customer_id) + 1}"
     return peek_next_prefixed_number(db, prefix)
 
 
@@ -11111,13 +11144,20 @@ def workforce_dashboard():
 def staff():
     db = get_db()
     prepare_staff_page_db(db)
+    tenant_customer_id = _dashboard_customer_id()
     edit_id = request.args.get("edit", type=int)
     editing_staff = None
     editing_components = []
     editing_travel_tiers = []
     editing_salary_increments = []
     if edit_id:
-        editing_staff = db.execute("SELECT * FROM staff WHERE id=?", (edit_id,)).fetchone()
+        if tenant_customer_id:
+            editing_staff = db.execute(
+                "SELECT * FROM staff WHERE id=? AND customer_id=?",
+                (edit_id, tenant_customer_id),
+            ).fetchone()
+        else:
+            editing_staff = db.execute("SELECT * FROM staff WHERE id=?", (edit_id,)).fetchone()
         if not editing_staff:
             flash("Employee record not found.")
             return redirect(url_for("staff"))
@@ -11142,7 +11182,13 @@ def staff():
             if not inc_staff_id:
                 flash("Employee not found for increment.")
                 return redirect(url_for("staff"))
-            staff_row = db.execute("SELECT * FROM staff WHERE id=?", (inc_staff_id,)).fetchone()
+            if tenant_customer_id:
+                staff_row = db.execute(
+                    "SELECT * FROM staff WHERE id=? AND customer_id=?",
+                    (inc_staff_id, tenant_customer_id),
+                ).fetchone()
+            else:
+                staff_row = db.execute("SELECT * FROM staff WHERE id=?", (inc_staff_id,)).fetchone()
             if not staff_row:
                 flash("Employee not found.")
                 return redirect(url_for("staff"))
@@ -11263,7 +11309,13 @@ def staff():
                     pass
         existing_staff = None
         if staff_id:
-            existing_staff = db.execute("SELECT * FROM staff WHERE id=?", (staff_id,)).fetchone()
+            if tenant_customer_id:
+                existing_staff = db.execute(
+                    "SELECT * FROM staff WHERE id=? AND customer_id=?",
+                    (staff_id, tenant_customer_id),
+                ).fetchone()
+            else:
+                existing_staff = db.execute("SELECT * FROM staff WHERE id=?", (staff_id,)).fetchone()
             if not existing_staff:
                 flash("Employee record not found.")
                 return redirect(url_for("staff"))
@@ -11276,7 +11328,11 @@ def staff():
             id_proof = id_proof or existing_staff["id_proof"]
             aadhaar_document = aadhaar_document or existing_staff["aadhaar_document"]
             pan_document = pan_document or existing_staff["pan_document"]
-        employee_code = existing_staff["employee_code"] if existing_staff else generate_employee_code(db)
+        employee_code = (
+            existing_staff["employee_code"]
+            if existing_staff
+            else generate_employee_code(db, tenant_customer_id)
+        )
         designation_name = ""
         if designation_id:
             drow = db.execute(
@@ -11387,7 +11443,7 @@ def staff():
         designations=designations,
         departments=departments,
         staff_list=staff_list,
-        next_employee_code=generate_employee_code(db),
+        next_employee_code=generate_employee_code(db, tenant_customer_id),
         editing_staff=editing_staff,
         editing_components=editing_components,
         editing_travel_tiers=editing_travel_tiers,
@@ -12115,6 +12171,7 @@ def projects():
     module_id, table, endpoint = "project_creation", "projects", "projects"
     user_id = session.get("user_id")
     admin = is_admin_user()
+    tenant_customer_id = _dashboard_customer_id()
     wf_ctx = {}
     clients = _tenant_query_db(
         "SELECT id, client_name, company_name, contact_person FROM clients ORDER BY company_name, client_name",
@@ -12128,9 +12185,13 @@ def projects():
         "SELECT p.*, c.client_name, c.company_name FROM projects p "
         "LEFT JOIN clients c ON p.client_id = c.id WHERE p.id=?"
     )
+    project_params_extra = ()
+    if tenant_customer_id:
+        project_sql += " AND p.customer_id=?"
+        project_params_extra = (tenant_customer_id,)
 
     if edit_id:
-        editing_project = query_db(project_sql, (edit_id,), one=True)
+        editing_project = query_db(project_sql, (edit_id, *project_params_extra), one=True)
         if not editing_project:
             flash("Project record not found.")
             return redirect(url_for("projects"))
@@ -12143,7 +12204,7 @@ def projects():
             return redirect(url_for(endpoint, view=edit_id))
         wf_ctx = {"edit_role": edit_role}
     elif view_project_id:
-        view_project = query_db(project_sql, (view_project_id,), one=True)
+        view_project = query_db(project_sql, (view_project_id, *project_params_extra), one=True)
         if not view_project:
             flash("Project record not found.")
             return redirect(url_for("projects"))
@@ -12168,8 +12229,9 @@ def projects():
                 flash("Select a government project.")
                 return redirect(url_for("projects") + "#client-bill-pending")
             project_row = db.execute(
-                "SELECT id, project_type FROM projects WHERE id=?",
-                (int(bill_project_id),),
+                "SELECT id, project_type FROM projects WHERE id=?"
+                + (" AND customer_id=?" if tenant_customer_id else ""),
+                (int(bill_project_id), tenant_customer_id) if tenant_customer_id else (int(bill_project_id),),
             ).fetchone()
             if not project_row or project_row["project_type"] != "Government":
                 flash("Bill submissions apply to government projects only.")
@@ -12190,9 +12252,15 @@ def projects():
         project_id = request.form.get("project_id", "").strip()
         existing_project = None
         if project_id:
-            existing_project = db.execute(
-                "SELECT * FROM projects WHERE id=?", (project_id,)
-            ).fetchone()
+            if tenant_customer_id:
+                existing_project = db.execute(
+                    "SELECT * FROM projects WHERE id=? AND customer_id=?",
+                    (project_id, tenant_customer_id),
+                ).fetchone()
+            else:
+                existing_project = db.execute(
+                    "SELECT * FROM projects WHERE id=?", (project_id,)
+                ).fetchone()
             if not existing_project:
                 flash("Project record not found.")
                 return redirect(url_for("projects"))
@@ -12287,7 +12355,7 @@ def projects():
         project_code = (
             existing_project["project_code"]
             if existing_project and existing_project["project_code"]
-            else generate_project_code(db, project_name)
+            else generate_project_code(db, project_name, tenant_customer_id)
         )
         if project_type == "Government":
             private_client_name = ""
@@ -16610,7 +16678,7 @@ def api_project_next_boq_number(project_id):
 def api_project_next_code():
     name = request.args.get("name", "").strip()
     db = get_db()
-    return jsonify({"next_project_code": peek_project_code(db, name)})
+    return jsonify({"next_project_code": peek_project_code(db, name, _dashboard_customer_id())})
 
 
 @app.route("/boq-print/<int:boq_id>")

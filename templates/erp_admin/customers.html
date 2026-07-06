@@ -60,8 +60,8 @@
     <form method="post" class="erp-form-grid{% if view_only %} is-readonly{% endif %}" id="customer-master-form">
       {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
 
-      <div class="erp-field"><input name="customer_code" placeholder=" " required{% if edit_record %} readonly{% endif %} value="{{ edit_record.customer_code if edit_record else next_customer_code }}"><label>Customer Code</label></div>
-      <div class="erp-field span-2"><input name="company_name" placeholder=" " required value="{{ edit_record.company_name if edit_record else '' }}"><label>Company Name</label></div>
+      <div class="erp-field"><input name="customer_code" id="customer_code" placeholder=" " required readonly value="{{ edit_record.customer_code if edit_record else next_customer_code }}"><label>Customer Code</label></div>
+      <div class="erp-field span-2"><input name="company_name" id="company_name" placeholder=" " required value="{{ edit_record.company_name if edit_record else '' }}"><label>Company Name</label></div>
       <div class="erp-field"><select name="country"><option value="">Select country</option>{% for c in countries %}<option{% if edit_record and edit_record.country == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select><label>Country</label></div>
       <div class="erp-field"><input name="contact_person" placeholder=" " value="{{ edit_record.contact_person if edit_record else '' }}"><label>Contact Person</label></div>
       <div class="erp-field"><input name="mobile" placeholder=" " value="{{ edit_record.mobile if edit_record else '' }}"><label>Mobile</label></div>
@@ -279,6 +279,23 @@
     if (resetBtn) resetBtn.addEventListener('click', applyDefaults);
     grid.addEventListener('change', updateTags);
     updateTags();
+  })();
+
+  (function () {
+    const customerCodeInput = document.getElementById('customer_code');
+    const companyNameInput = document.getElementById('company_name');
+    if (!customerCodeInput || !companyNameInput || document.querySelector('input[name="record_id"]')) return;
+    const match = customerCodeInput.value.match(/(\d+)$/);
+    const nextNumber = match ? match[1] : '001';
+    function buildPrefix(value) {
+      const letters = (value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      return (letters + 'CUS').slice(0, 3);
+    }
+    function refreshCustomerCode() {
+      customerCodeInput.value = buildPrefix(companyNameInput.value) + nextNumber;
+    }
+    companyNameInput.addEventListener('input', refreshCustomerCode);
+    refreshCustomerCode();
   })();
 
   {% if edit_record or view_only %}
