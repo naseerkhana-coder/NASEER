@@ -14,6 +14,14 @@ DEFAULT_FONT = "Arial, Helvetica, sans-serif"
 DEFAULT_HEADER_LINE1 = "MAXEK PRIVATE LIMITED"
 DEFAULT_HEADER_LINE2 = "MAXEK CONSTRUCTION SYSTEM"
 DEFAULT_COMPANY_LOGO = "maxek-logo.jpg"
+DEFAULT_FOOTER_ADDRESS = (
+    "15/3608, 3rd Floor, Singapore Plaza, Pattom Palace, "
+    "Thiruvananthapuram, Kerala - 695004 | GST KL: 32AAUCM0458P1ZU | "
+    "GST TN: 33AAUCM0458P1ZS | CIN: U42900KL2025PTC098208 | PAN: AAUCM0458P"
+)
+DEFAULT_FOOTER_PHONE = "+91 9666822000"
+DEFAULT_FOOTER_EMAIL = "info@maxekindia.com, maxekindia@gmail.com"
+DEFAULT_FOOTER_WEBSITE = "www.maxekindia.com"
 
 FONT_OPTIONS = (
     "Arial, Helvetica, sans-serif",
@@ -172,10 +180,10 @@ def _seed_default_template(db) -> None:
             "portrait",
             DEFAULT_HEADER_LINE1,
             DEFAULT_HEADER_LINE2,
-            "MAXEK Private Limited, Corporate Office",
-            "+91-XXXXXXXXXX",
-            "info@maxek.com",
-            "www.maxek.com",
+            DEFAULT_FOOTER_ADDRESS,
+            DEFAULT_FOOTER_PHONE,
+            DEFAULT_FOOTER_EMAIL,
+            DEFAULT_FOOTER_WEBSITE,
             "system",
             ts,
             ts,
@@ -237,10 +245,10 @@ def _fallback_template() -> dict[str, Any]:
         "pdf_orientation": "portrait",
         "header_title_line1": DEFAULT_HEADER_LINE1,
         "header_title_line2": DEFAULT_HEADER_LINE2,
-        "footer_address": "MAXEK Private Limited, Corporate Office",
-        "footer_phone": "+91-XXXXXXXXXX",
-        "footer_email": "info@maxek.com",
-        "footer_website": "www.maxek.com",
+        "footer_address": DEFAULT_FOOTER_ADDRESS,
+        "footer_phone": DEFAULT_FOOTER_PHONE,
+        "footer_email": DEFAULT_FOOTER_EMAIL,
+        "footer_website": DEFAULT_FOOTER_WEBSITE,
         "company_logo_path": DEFAULT_COMPANY_LOGO,
         "watermark_logo_path": None,
         "company_seal_path": None,
@@ -464,10 +472,18 @@ def build_print_context(
         f"{report_slug}:{document_number}:{token}".encode()
     ).hexdigest()[:12]
 
-    footer_address = template.get("footer_address") or _company_address(company)
-    footer_phone = template.get("footer_phone") or (company.get("phone") if company else "")
-    footer_email = template.get("footer_email") or (company.get("email") if company else "")
-    footer_website = template.get("footer_website") or (company.get("website") if company else "")
+    footer_address = template.get("footer_address") or _company_address(company) or DEFAULT_FOOTER_ADDRESS
+    footer_phone = template.get("footer_phone") or (company.get("phone") if company else "") or DEFAULT_FOOTER_PHONE
+    footer_email = template.get("footer_email") or (company.get("email") if company else "") or DEFAULT_FOOTER_EMAIL
+    footer_website = template.get("footer_website") or (company.get("website") if company else "") or DEFAULT_FOOTER_WEBSITE
+    if footer_address == "MAXEK Private Limited, Corporate Office":
+        footer_address = DEFAULT_FOOTER_ADDRESS
+    if footer_phone == "+91-XXXXXXXXXX":
+        footer_phone = DEFAULT_FOOTER_PHONE
+    if footer_email == "info@maxek.com":
+        footer_email = DEFAULT_FOOTER_EMAIL
+    if footer_website == "www.maxek.com":
+        footer_website = DEFAULT_FOOTER_WEBSITE
 
     orientation = page_orientation or template.get("pdf_orientation") or "portrait"
 

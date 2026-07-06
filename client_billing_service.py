@@ -1174,7 +1174,8 @@ def get_company_bank_for_print(db) -> dict[str, str]:
         "account_name": "MAXEK PRIVATE LIMITED",
         "account_no": "120037548492",
         "ifsc": "CNRB0002968",
-        "bank_branch": "Canara Bank, Pattoor Branch, Thiruvananthapuram",
+        "swift": "CNRBINBBBFD",
+        "bank_branch": "Canara Bank, Pattoor Branch",
     }
     if not _table_exists(db, "app_settings"):
         return defaults
@@ -1182,6 +1183,7 @@ def get_company_bank_for_print(db) -> dict[str, str]:
         "billing_bank_account_name": "account_name",
         "billing_bank_account_no": "account_no",
         "billing_bank_ifsc": "ifsc",
+        "billing_bank_swift": "swift",
         "billing_bank_branch": "bank_branch",
     }
     result = dict(defaults)
