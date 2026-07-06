@@ -555,39 +555,42 @@
       <div data-dpr-manpower-panel>
         <h5 class="erp-form-subtitle" style="margin-top: 0.5rem;">Manpower</h5>
         <div data-dpr-manpower-rows></div>
-        <button type="button" class="erp-btn erp-btn-ghost" data-dpr-add-manpower><i class="fa-solid fa-plus"></i> Add Worker</button>
+        <button type="button" class="erp-btn erp-btn-ghost" data-dpr-add-manpower><i class="fa-solid fa-plus"></i> Insert Manpower Entry</button>
         <button type="button" class="erp-btn erp-btn-ghost" data-dpr-save-manpower><i class="fa-solid fa-floppy-disk"></i> Save Manpower</button>
         <template data-dpr-manpower-template>
           <div class="erp-form-grid dpr-manpower-row" data-dpr-manpower-row style="margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--erp-border, #e2e8f0);">
             <div class="erp-field">
+              <select data-mp-staff-type>
+                <option value="Company Staff">Company Staff</option>
+                <option value="Subcontractor Staff">Subcontractor Staff</option>
+              </select>
+              <label>Staff Type</label>
+            </div>
+            <div class="erp-field" data-mp-subcontractor-field hidden>
               <select data-mp-subcontractor>
-                <option value="">Company Staff</option>
+                <option value="">Select Subcontractor</option>
                 {% for sc in subcontractors %}
                 <option value="{{ sc.id }}">{{ sc.subcontractor_name }}</option>
                 {% endfor %}
               </select>
-              <label>Subcontractor</label>
-            </div>
-            <div class="erp-field">
-              <select data-mp-worker-id disabled><option value="">Select Worker ID</option></select>
-              <label>Worker ID</label>
-            </div>
-            <div class="erp-field">
-              <select data-mp-worker-name disabled><option value="">Select Worker Name</option></select>
-              <label>Worker Name</label>
+              <label>Subcontractor Name</label>
             </div>
             <div class="erp-field">
               <select data-mp-trade>
-                <option value="">Trade</option>
-                {% for trade in ['Carpenter', 'Steel Fixer', 'Helper', 'Mason', 'Electrician', 'Plumber', 'Painter'] %}
+                <option value="">Trade / Designation</option>
+                {% for trade in ['Steel Fixer', 'Mason', 'Helper', 'Carpenter', 'Electrician', 'Plumber', 'Painter', 'Bar Bender', 'Welder', 'Supervisor', 'Engineer', 'Other'] %}
                 <option value="{{ trade }}">{{ trade }}</option>
                 {% endfor %}
               </select>
-              <label>Trade</label>
+              <label>Trade / Designation</label>
+            </div>
+            <div class="erp-field">
+              <input type="number" min="0" step="1" data-mp-total-workers placeholder="0">
+              <label>Total Nos</label>
             </div>
             <div class="erp-field">
               <input type="number" min="0" step="0.5" data-mp-hours placeholder="0">
-              <label>Hours Worked</label>
+              <label>Total Hours Worked</label>
             </div>
             <div class="erp-field">
               <input type="text" data-mp-remarks placeholder="Remarks">

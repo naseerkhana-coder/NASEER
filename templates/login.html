@@ -90,14 +90,14 @@
 
         <form class="login-form" method="post" autocomplete="on" novalidate>
           <div class="form-field">
-            <label for="company_code">Company Code</label>
+            <label for="company_code">Customer Code</label>
             <div class="input-wrap">
               <i class="fa-solid fa-building input-icon"></i>
               <input
                 id="company_code"
                 name="company_code"
                 type="text"
-                placeholder="Company Code"
+                placeholder="Customer Code"
                 autocomplete="organization"
                 value="{{ request.form.company_code or default_company_code or '' }}"
               />

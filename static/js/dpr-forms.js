@@ -542,9 +542,20 @@
     var container = form.querySelector("[data-dpr-manpower-rows]");
     if (!template || !container) return;
     var row = template.content.cloneNode(true).querySelector("[data-dpr-manpower-row]");
+    var staffSel = row.querySelector("[data-mp-staff-type]");
     var subSel = row.querySelector("[data-mp-subcontractor]");
     var idSel = row.querySelector("[data-mp-worker-id]");
     var nameSel = row.querySelector("[data-mp-worker-name]");
+    function updateStaffType() {
+      var subField = row.querySelector("[data-mp-subcontractor-field]");
+      var isSub = staffSel && staffSel.value === "Subcontractor Staff";
+      if (subField) subField.hidden = !isSub;
+      if (subSel && !isSub) subSel.value = "";
+    }
+    if (staffSel) {
+      staffSel.addEventListener("change", updateStaffType);
+      updateStaffType();
+    }
     if (subSel) {
       subSel.addEventListener("change", function () {
         loadWorkersForRow(row);
@@ -691,15 +702,28 @@
       var workerName = "";
       if (opt && opt.dataset.workerName) workerName = opt.dataset.workerName;
       else if (nameSel && nameSel.selectedOptions[0]) workerName = nameSel.selectedOptions[0].textContent.trim();
+      var staffType = (row.querySelector("[data-mp-staff-type]") || {}).value || "Company Staff";
+      var subSel = row.querySelector("[data-mp-subcontractor]");
+      var subcontractorId = staffType === "Subcontractor Staff" && subSel ? subSel.value || null : null;
+      var subcontractorName = subSel && subSel.selectedOptions[0] ? subSel.selectedOptions[0].textContent.trim() : "";
+      var totalWorkers = (row.querySelector("[data-mp-total-workers]") || {}).value || "";
+      var manualRemarks = (row.querySelector("[data-mp-remarks]") || {}).value || "";
+      var remarks = [
+        "Staff Type: " + staffType,
+        subcontractorId ? "Subcontractor: " + subcontractorName : "",
+        totalWorkers ? "Total Nos: " + totalWorkers : "",
+        manualRemarks ? "Remarks: " + manualRemarks : "",
+      ].filter(Boolean).join(" | ");
+      if (!workerName && totalWorkers) workerName = totalWorkers + " Nos";
 
       rows.push({
-        subcontractor_id: (row.querySelector("[data-mp-subcontractor]") || {}).value || null,
+        subcontractor_id: subcontractorId,
         worker_id: parsed.id,
         worker_source: parsed.source,
         worker_name: workerName,
         trade_name: (row.querySelector("[data-mp-trade]") || {}).value || "",
         hours_worked: (row.querySelector("[data-mp-hours]") || {}).value || 0,
-        remarks: (row.querySelector("[data-mp-remarks]") || {}).value || "",
+        remarks: remarks,
       });
     });
     return rows;
@@ -1183,9 +1207,18 @@
       var row = container.lastElementChild;
       if (!row) return;
       var subSel = row.querySelector("[data-mp-subcontractor]");
+      var staffSel = row.querySelector("[data-mp-staff-type]");
+      if (staffSel) staffSel.value = mp.subcontractor_id != null ? "Subcontractor Staff" : "Company Staff";
       if (subSel && mp.subcontractor_id != null) subSel.value = String(mp.subcontractor_id);
+      var subField = row.querySelector("[data-mp-subcontractor-field]");
+      if (subField) subField.hidden = !(staffSel && staffSel.value === "Subcontractor Staff");
       var tradeSel = row.querySelector("[data-mp-trade]");
       if (tradeSel && mp.trade_name) matchTradeOption(tradeSel, mp.trade_name);
+      var totalInp = row.querySelector("[data-mp-total-workers]");
+      if (totalInp && mp.worker_name) {
+        var totalMatch = String(mp.worker_name).match(/(\d+(?:\.\d+)?)/);
+        if (totalMatch) totalInp.value = totalMatch[1];
+      }
       var hoursInp = row.querySelector("[data-mp-hours]");
       if (hoursInp) hoursInp.value = mp.hours_worked != null ? mp.hours_worked : "";
       var remInp = row.querySelector("[data-mp-remarks]");
@@ -1454,7 +1487,7 @@
       saveMpBtn.addEventListener("click", function () {
         prepareFormPayload(form);
         var count = form.querySelectorAll("[data-dpr-manpower-row]").length;
-        window.alert(count ? (count + " manpower row(s) ready — submit DPR to save.") : "Add at least one worker row.");
+        window.alert(count ? (count + " manpower row(s) ready — submit DPR to save.") : "Insert at least one manpower entry.");
       });
     }
 
