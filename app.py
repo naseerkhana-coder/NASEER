@@ -24996,7 +24996,7 @@ def client_billing_print(bill_id):
         db,
         "client_ra_bill",
         document_number=bill.get("bill_number") or bill.get("ra_number") or "",
-        project_name=bill.get("project_name") or "",
+        project_name=bill.get("project_name") or bill.get("project_code") or f"Project #{bill.get('project_id') or ''}",
         project_id=str(bill.get("project_id") or ""),
         prepared_by=session.get("username", ""),
         report_date=bill.get("bill_date"),

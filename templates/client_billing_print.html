@@ -9,7 +9,7 @@
   <style>
     .num { text-align: right; }
     .report-card { border: 1.5px solid var(--maxek-secondary); padding: 0.55rem; background: #fff; }
-    .section-title { margin: 0.35rem 0 0.25rem; padding: 0.28rem 0.45rem; background: var(--maxek-secondary); color: #fff; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .section-title { margin: 0.35rem 0 0.25rem; padding: 0.22rem 0; border-bottom: 2px solid var(--maxek-secondary); color: var(--maxek-secondary); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
     .contractor-box, .summary-box { border: 1px solid var(--maxek-secondary); padding: 0.4rem; margin: 0.35rem 0; font-size: 0.72rem; min-height: 5.4rem; }
     .summary-box .net { color: var(--maxek-primary); font-weight: 800; border-top: 1px solid var(--maxek-secondary); margin-top: 0.18rem; padding-top: 0.18rem; }
     .bill-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
@@ -25,10 +25,15 @@
     .bill-signatures th, .bill-signatures td { border: 1px solid var(--maxek-secondary); padding: 0.35rem; text-align: center; }
     .bill-signatures th { background: #f2f2f2; }
     .bill-signatures td { height: 3.1rem; vertical-align: bottom; }
+    .client-bill-report .corp-watermark { display: none; }
+    @media print {
+      .section-title { color: #232323; border-bottom-color: #232323; }
+      .client-bill-report .corp-watermark { display: none !important; }
+    }
   </style>
   {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
 </head>
-<body class="corporate-report">
+<body class="corporate-report client-bill-report">
   {{ corporate_report_action_bar(ctx) }}
   {{ corporate_report_watermark(ctx) }}
   <div class="corp-report-body">
@@ -43,7 +48,7 @@
       <div class="section-title">Client and Bill Summary</div>
       <div class="bill-panels">
         <div class="contractor-box">
-          <strong>Main Contractor:</strong> {{ bill.client_display or '—' }}<br>
+          <strong>Main Contractor:</strong> {{ bill.client_display or 'Client not set' }}<br>
           <strong>Pan Card No:</strong> {{ bill.client_pan or '—' }}<br>
           <strong>GSTIN:</strong> {{ bill.gst_number or '—' }}<br>
           <strong>Phone No:</strong> {{ bill.client_phone or '—' }}
@@ -97,6 +102,20 @@
           <td>{{ ex.remarks or '' }}</td>
         </tr>
         {% endfor %}
+        {% endif %}
+        {% if not bill.lines and not bill.extra_lines %}
+        <tr>
+          <td>{{ bill.bill_number or bill.ra_number or '—' }}</td>
+          <td class="desc">RA bill amount{% if bill.project_name %} - {{ bill.project_name }}{% endif %}</td>
+          <td>LS</td>
+          <td class="num">1.0000</td>
+          <td class="num">{{ '%.2f'|format(bill.current_bill_total or bill.total_work_done or bill.gross_amount or bill.net_payable or 0) }}</td>
+          <td class="num">1.0000</td>
+          <td class="num">{{ '%.2f'|format(bill.upto_date_bill_total or bill.current_bill_total or bill.total_work_done or bill.gross_amount or bill.net_payable or 0) }}</td>
+          <td class="num">1.0000</td>
+          <td class="num">{{ '%.2f'|format(bill.current_bill_total or bill.total_work_done or bill.gross_amount or bill.net_payable or 0) }}</td>
+          <td>Generated from bill summary because item lines are not saved.</td>
+        </tr>
         {% endif %}
       </tbody>
       </table>
