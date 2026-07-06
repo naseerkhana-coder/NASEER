@@ -102,6 +102,10 @@
     var continueBoq = form.getAttribute("data-continue-boq") || "";
 
     numSel.innerHTML = '<option value="">Select BOQ Number</option>';
+    if (!state.boqItems.length) {
+      numSel.innerHTML = '<option value="">No BOQ found for this project</option>';
+      descSel.innerHTML = '<option value="">Create BOQ first</option>';
+    }
     numbers.forEach(function (num) {
       var opt = document.createElement("option");
       opt.value = num;
@@ -939,7 +943,10 @@
     fetch("/api/projects/" + projectId + "/boq-items")
       .then(function (r) { return r.json(); })
       .then(function (items) {
-        state.boqItems = items || [];
+        state.boqItems = (items || []).map(function (item) {
+          if (!item.boq_number) item.boq_number = item.boq_id ? ("BOQ-" + item.boq_id) : ("BOQ-" + item.id);
+          return item;
+        });
         fillBoqDropdowns(form);
         var continueBoq = form.getAttribute("data-continue-boq");
         var editBoqNumber = form.getAttribute("data-edit-boq-number");
@@ -959,6 +966,11 @@
             if (descId) selectBoqItem(form, descId);
           }
         }
+        if (typeof done === "function") done();
+      })
+      .catch(function () {
+        state.boqItems = [];
+        fillBoqDropdowns(form);
         if (typeof done === "function") done();
       });
   }
@@ -1515,8 +1527,13 @@
     loadEquipmentMaster(function () {
       var continueProject = form.getAttribute("data-continue-project");
       var editProject = form.getAttribute("data-edit-project");
-      var projectToLoad = continueProject || editProject;
+      var selectedProject = (form.querySelector("[data-dpr-project-id]") || {}).value || "";
+      var projectToLoad = continueProject || editProject || selectedProject;
       if (projectToLoad) {
+        var idSel = form.querySelector("[data-dpr-project-id]");
+        var nameSel = form.querySelector("[data-dpr-project-name]");
+        if (idSel) idSel.value = projectToLoad;
+        if (nameSel) nameSel.value = projectToLoad;
         syncProjectHidden(form);
         loadBoqItems(form, projectToLoad, function () {
           applyEditPrefill(form);

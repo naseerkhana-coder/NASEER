@@ -11921,6 +11921,8 @@ def api_subcontractor_manpower_rates(subcontractor_id):
 @app.route("/api/projects/<int:project_id>/boq-items")
 @login_required
 def api_project_boq_items(project_id):
+    db = get_db()
+    ensure_boq_master_table(db)
     rows = query_db(
         "SELECT bi.id, bi.boq_id, bi.line_no, COALESCE(bi.item_code, '') AS item_code, "
         "COALESCE(bi.item_description, '') AS item_description, "
@@ -11928,13 +11930,13 @@ def api_project_boq_items(project_id):
         "COALESCE(bi.unit, '') AS unit, "
         "COALESCE(bi.rate, 0) AS rate, "
         "COALESCE(bi.amount, 0) AS amount, "
-        "COALESCE(bm.boq_number, '') AS boq_number "
+        "COALESCE(NULLIF(bm.boq_number, ''), 'BOQ-' || COALESCE(bi.boq_id, bi.id)) AS boq_number "
         "FROM boq_items bi "
         "LEFT JOIN boq_master bm ON bi.boq_id = bm.id "
-        "WHERE COALESCE(bi.project_id, bm.project_id)=? "
+        "WHERE (bi.project_id=? OR bm.project_id=?) "
         "AND COALESCE(bi.is_deleted, 0)=0 AND COALESCE(bm.is_deleted, 0)=0 "
         "ORDER BY bm.id DESC, bi.line_no, bi.id",
-        (project_id,),
+        (project_id, project_id),
     )
     return jsonify([dict(row) for row in rows])
 
