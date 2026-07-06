@@ -8,10 +8,6 @@
 {% endblock %}
 {% block content %}
 {% set form_project = editing_project %}
-<div class="erp-validation" style="margin-bottom: 1rem;">
-  <strong>Flow:</strong> Maker [Save] → Checker [Verify / Edit / Reject] → Approver [Approve / Edit / Reject]
-</div>
-
 {% if view_project %}
 <div class="erp-form-card" style="margin-bottom: 1rem;">
   {% call transaction_view_tabs(view_project, history, can_reopen, approval_id) %}
@@ -45,6 +41,7 @@
 
 <div class="erp-module-layout">
 {% if not view_project %}
+  <div data-project-list-toolbar>
   {{ erp_module_toolbar(
     mode='standard',
     search_placeholder='Search projects...',
@@ -55,6 +52,7 @@
     new_url=url_for('projects') ~ '#add-project',
     filter_status_options=['Pending Checker', 'Pending Approval', 'Approved', 'Rejected by Checker', 'Rejected by Approver']
   ) }}
+  </div>
 {% endif %}
 
 <div class="module-layout module-layout--entry-wide{% if not show_project_form|default(false) %} module-layout--list-only{% endif %}">
@@ -93,9 +91,6 @@
       {% endfor %}
       {% if not g_ns.bg_rows %}
         {% set _ = g_ns.bg_rows.append({'guarantee_type': 'Bank Guarantee'}) %}
-        {% set _ = g_ns.bg_rows.append({'guarantee_type': 'Bank Guarantee'}) %}
-      {% elif g_ns.bg_rows|length == 1 %}
-        {% set _ = g_ns.bg_rows.append({'guarantee_type': 'Bank Guarantee'}) %}
       {% endif %}
       {% if not g_ns.treasury %}
         {% set g_ns.treasury = {'guarantee_type': 'Treasury Deposit'} %}
@@ -112,8 +107,21 @@
         <label>Government Department</label>
       </div>
 
+      <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Agreement &amp; Notice Details</div>
+      <div class="erp-project-detail-grid span-2" data-project-section="government" hidden>
+        <div class="erp-field"><input name="notice_issued_date" type="date" value="{{ form_project.notice_issued_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.notice_issued_date %}has-value{% endif %}"><label>Notice Issued Date</label></div>
+        <div class="erp-field"><input name="agreement_last_date" type="date" value="{{ form_project.agreement_last_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.agreement_last_date %}has-value{% endif %}"><label>Agreement Last Date</label></div>
+        <div class="erp-field"><input name="letter_number" value="{{ form_project.letter_number if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.letter_number %}has-value{% endif %}"><label>Letter Number</label></div>
+        <div class="erp-field"><input name="agreement_number" value="{{ form_project.agreement_number if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.agreement_number %}has-value{% endif %}"><label>Agreement Number</label></div>
+        <div class="erp-field"><input name="agreement_date" type="date" value="{{ form_project.agreement_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.agreement_date %}has-value{% endif %}"><label>Agreement Date</label></div>
+        <div class="erp-field"><input name="gov_completion_date" type="date" value="{{ form_project.completion_date if form_project and form_project.completion_date else (form_project.end_date if form_project and form_project.completion_mode == 'date' else '') }}" placeholder=" " class="{% if form_project and (form_project.completion_date or (form_project.completion_mode == 'date' and form_project.end_date)) %}has-value{% endif %}"><label>Completion Date</label></div>
+        <div class="erp-field"><input name="agreement_amount" type="number" step="0.01" value="{{ form_project.agreement_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.agreement_amount %}has-value{% endif %}"><label>Agreement Amount</label></div>
+        <div class="erp-field"><input name="quoted_amount" id="project_quoted_amount" type="number" step="0.01" value="{{ form_project.quoted_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.quoted_amount %}has-value{% endif %}"><label>Quoted Amount</label></div>
+        <div class="erp-field span-2"><textarea name="treasury_details" placeholder=" " class="{% if form_project and form_project.treasury_details %}has-value{% endif %}">{{ form_project.treasury_details if form_project else '' }}</textarea><label>Treasury Details</label></div>
+      </div>
+
       <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Bank Guarantee (BG)</div>
-      <p class="erp-form-hint span-2" data-project-section="government" hidden>Enter each bank guarantee separately. Two BG rows are shown by default — use Add BG for additional guarantees.</p>
+      <p class="erp-form-hint span-2" data-project-section="government" hidden>One BG row is shown by default. Use Add BG when more bank guarantees are required. Set Bill Pledging to Yes to select the pending bill.</p>
       <div class="span-2" data-project-section="government" hidden data-guarantee-rows data-pending-bills='{{ pending_bill_options|tojson }}'>
         <div data-bg-rows-container>
           {% for grow in g_ns.bg_rows %}
@@ -141,6 +149,7 @@
               </select>
               <label>Bill Pledging</label>
             </div>
+            <p class="erp-form-hint" data-guarantee-field="pledging">Select Yes to show Pending Bill and pledged amount fields.</p>
             <div class="erp-field span-2" data-bill-pledging-detail hidden>
               <select name="guarantee_row_pending_ref[]" data-pending-bill-select class="{% if grow.pending_bill_ref %}has-value{% endif %}">
                 <option value="">Select pending bill</option>
@@ -182,6 +191,7 @@
               </select>
               <label>Bill Pledging</label>
             </div>
+            <p class="erp-form-hint" data-guarantee-field="pledging">Select Yes to show Pending Bill and pledged amount fields.</p>
             <div class="erp-field span-2" data-bill-pledging-detail hidden>
               <select name="guarantee_row_pending_ref[]" data-pending-bill-select>
                 <option value="">Select pending bill</option>
@@ -234,14 +244,13 @@
         <input name="completion_months" type="number" step="1" min="1" value="{{ form_project.completion_months if form_project and form_project.completion_months else (form_project.completion_time if form_project and form_project.completion_time else '') }}" placeholder=" " class="{% if form_project and (form_project.completion_months or form_project.completion_time) %}has-value{% endif %}">
         <label>Completion (months)</label>
       </div>
-      <div class="erp-field" data-gov-completion="date" data-project-section="government" hidden>
-        <input name="gov_completion_date" type="date" value="{{ form_project.end_date if form_project and form_project.completion_mode == 'date' else '' }}" placeholder=" " class="{% if form_project and form_project.completion_mode == 'date' and form_project.end_date %}has-value{% endif %}">
+      <div class="erp-field erp-project-hidden-date" data-gov-completion="date" data-project-section="government" hidden aria-hidden="true">
+        <input type="date" value="{{ form_project.end_date if form_project and form_project.completion_mode == 'date' else '' }}" placeholder=" " disabled>
         <label>Completion date</label>
       </div>
       <p class="erp-form-hint span-2" data-project-section="government" hidden>For government projects, completion date is stored as the project end date.</p>
 
       <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Security Deposit</div>
-      <div class="erp-field" data-project-section="government" hidden><input name="quoted_amount" id="project_quoted_amount" type="number" step="0.01" value="{{ form_project.quoted_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.quoted_amount %}has-value{% endif %}"><label>Quoted Amount</label></div>
       <div class="erp-field" data-project-section="government" hidden><input name="security_deposit_pct" id="project_security_pct" type="number" step="0.01" value="{{ form_project.security_deposit_pct if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.security_deposit_pct %}has-value{% endif %}"><label>Security Deposit %</label></div>
       <div class="erp-field" data-project-section="government" hidden>
         <input name="security_deposit_amount" id="project_security_amount" type="number" step="0.01" value="{{ form_project.security_deposit_amount if form_project else '' }}" placeholder=" " data-security-amount class="{% if form_project and form_project.security_deposit_amount %}has-value{% endif %}">
@@ -608,6 +617,7 @@
   var form = document.getElementById('add-project');
   var billPanel = document.getElementById('client-bill-pending');
   var list = document.getElementById('project-list');
+  var toolbar = document.querySelector('[data-project-list-toolbar]');
   if (!layout) return;
   var serverShowForm = {{ 'true' if show_project_form|default(false) else 'false' }};
 
@@ -623,6 +633,7 @@
     if (form) form.hidden = !showForm;
     if (billPanel) billPanel.hidden = !showBill;
     if (list) list.hidden = showForm || showBill;
+    if (toolbar) toolbar.hidden = showForm || showBill;
     layout.classList.toggle('module-layout--list-only', !showForm && !showBill);
     document.querySelectorAll('[data-module-anchor="add-project"], [data-module-anchor="project-list"], [data-module-anchor="client-bill-pending"]').forEach(function (link) {
       var anchor = link.getAttribute('data-module-anchor');
