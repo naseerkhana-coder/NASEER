@@ -1,0 +1,77 @@
+{% from 'macros/corporate_report.html' import corporate_report_styles, corporate_report_action_bar, corporate_report_watermark, corporate_report_header, corporate_report_signatures, corporate_report_footer %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Payment Voucher - {{ voucher.voucher_number }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  {{ corporate_report_styles(ctx) }}
+  <style>
+    .voucher-card { border: 1.5px solid var(--maxek-secondary); padding: 0.55rem; background: #fff; }
+    .voucher-section-title { margin: 0.35rem 0 0.25rem; padding: 0.28rem 0.45rem; background: var(--maxek-secondary); color: #fff; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .voucher-info-grid { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--maxek-secondary); border-bottom: none; font-size: 0.72rem; }
+    .voucher-info-grid > div { min-height: 2.3rem; padding: 0.28rem 0.4rem; border-right: 1px solid var(--maxek-secondary); border-bottom: 1px solid var(--maxek-secondary); }
+    .voucher-info-grid > div:nth-child(4n) { border-right: none; }
+    .voucher-label { display: block; color: #555; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .voucher-value { display: block; margin-top: 0.12rem; font-weight: 700; }
+    .amount-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45rem; margin: 0.45rem 0; }
+    .amount-box { border: 1px solid var(--maxek-secondary); padding: 0.45rem; min-height: 3rem; }
+    .amount-box strong { display: block; font-size: 0.7rem; color: #555; text-transform: uppercase; }
+    .amount-box span { display: block; margin-top: 0.15rem; font-size: 1rem; font-weight: 800; text-align: right; }
+    .amount-box.net { border: 2px solid var(--maxek-primary); color: var(--maxek-primary); }
+    .remarks-box { border: 1px solid var(--maxek-secondary); min-height: 3.2rem; padding: 0.4rem; font-size: 0.72rem; }
+    @media print {
+      .voucher-info-grid { grid-template-columns: repeat(4, 1fr); }
+      .amount-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+  {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
+</head>
+<body class="corporate-report">
+  {% set gross = voucher.gross_amount or voucher.amount or 0 %}
+  {% set tds = voucher.tds_amount or 0 %}
+  {% set net = voucher.net_payable or voucher.amount or 0 %}
+  {{ corporate_report_action_bar(ctx) }}
+  {{ corporate_report_watermark(ctx) }}
+  <div class="corp-report-body">
+    {{ corporate_report_header(ctx, document_title='PAYMENT VOUCHER', extra_meta=[
+      ('Voucher No', voucher.voucher_number),
+      ('Voucher Date', voucher.voucher_date),
+      ('Payee', voucher.vendor_name),
+      ('Approval Status', voucher.approval_status),
+    ]) }}
+
+    <main class="voucher-card">
+      <div class="voucher-section-title">Voucher Details</div>
+      <div class="voucher-info-grid">
+        <div><span class="voucher-label">Payee / Vendor</span><span class="voucher-value">{{ voucher.vendor_name or '—' }}</span></div>
+        <div><span class="voucher-label">Project</span><span class="voucher-value">{{ voucher.project_name or '—' }}</span></div>
+        <div><span class="voucher-label">Account Head</span><span class="voucher-value">{{ voucher.account_code or '—' }} {{ voucher.account_name or '' }}</span></div>
+        <div><span class="voucher-label">Payment Status</span><span class="voucher-value">{{ voucher.payment_status or '—' }}</span></div>
+        <div><span class="voucher-label">Payment Mode</span><span class="voucher-value">{{ voucher.payment_mode or '—' }}</span></div>
+        <div><span class="voucher-label">Bank Name</span><span class="voucher-value">{{ voucher.bank_name or '—' }}</span></div>
+        <div><span class="voucher-label">UTR / Cheque No</span><span class="voucher-value">{{ voucher.utr_number or '—' }}</span></div>
+        <div><span class="voucher-label">Petty Cash Ref</span><span class="voucher-value">{{ voucher.petty_cash_number or '—' }}</span></div>
+      </div>
+
+      <div class="voucher-section-title">Amount Summary</div>
+      <div class="amount-grid">
+        <div class="amount-box"><strong>Gross Amount</strong><span>₹ {{ '%.2f'|format(gross) }}</span></div>
+        <div class="amount-box"><strong>TDS Deduction</strong><span>₹ {{ '%.2f'|format(tds) }}</span></div>
+        <div class="amount-box net"><strong>Net Payable</strong><span>₹ {{ '%.2f'|format(net) }}</span></div>
+      </div>
+      <div class="voucher-info-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div><span class="voucher-label">TDS Section</span><span class="voucher-value">{{ voucher.tds_section or '—' }}</span></div>
+        <div><span class="voucher-label">TDS Rate</span><span class="voucher-value">{{ voucher.tds_rate or 0 }}%</span></div>
+        <div><span class="voucher-label">Attachment</span><span class="voucher-value">{{ voucher.attachment_filename or '—' }}</span></div>
+      </div>
+
+      <div class="voucher-section-title">Remarks</div>
+      <div class="remarks-box">{{ voucher.remarks or '—' }}</div>
+    </main>
+
+    {{ corporate_report_signatures(ctx) }}
+    {{ corporate_report_footer(ctx) }}
+  </div>
+</body>
+</html>

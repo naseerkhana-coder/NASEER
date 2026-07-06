@@ -8,12 +8,16 @@
   {{ corporate_report_styles(ctx) }}
   <style>
     .num { text-align: right; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; font-size: 0.72rem; }
-    th, td { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; }
-    th { background: #f0f0f0; }
-    .final-report h2 { background: var(--maxek-primary); color: #fff; padding: 0.35rem; margin: 0.75rem 0 0.35rem; font-size: 0.85rem; }
-    .summary-table th { background: #4472c4; color: #fff; }
-    .net { color: var(--maxek-primary); font-weight: bold; }
+    .report-card { border: 1.5px solid var(--maxek-secondary); padding: 0.55rem; background: #fff; }
+    .section-title { margin: 0.35rem 0 0.25rem; padding: 0.28rem 0.45rem; background: var(--maxek-secondary); color: #fff; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 0.65rem; font-size: 0.72rem; }
+    th, td { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.38rem; }
+    th { background: #f0f0f0; text-align: center; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 320px; gap: 0.65rem; align-items: start; }
+    .summary-table th { background: var(--maxek-secondary); color: #fff; }
+    .deduction-table td { padding: 0.28rem 0.38rem; }
+    .net { color: var(--maxek-primary); font-weight: 800; font-size: 0.82rem; }
+    .net-row td { border: 2px solid var(--maxek-primary); }
   </style>
   {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
 </head>
@@ -27,50 +31,55 @@
       ('Period To', bill.period_to),
     ]) }}
 
-    <table>
-      <thead>
-        <tr><th>ID</th><th>Name</th><th>Designation</th><th class="num">No</th><th class="num">Salary</th><th class="num">OT HR</th><th class="num">OT Amt</th><th class="num">Total</th></tr>
-      </thead>
-      <tbody>
-        {% for line in bill.lines %}
-        <tr>
-          <td>{{ line.worker_code or '—' }}</td>
-          <td>{{ line.worker_name }}</td>
-          <td>{{ line.designation or '—' }}</td>
-          <td class="num">{{ line.days_worked or 0 }}</td>
-          <td class="num">{{ '%.2f'|format(line.salary_amount or 0) }}</td>
-          <td class="num">{{ line.ot_hours or 0 }}</td>
-          <td class="num">{{ '%.2f'|format(line.ot_amount or 0) }}</td>
-          <td class="num">{{ '%.2f'|format(line.total_amount or 0) }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <div class="final-report">
-      <h2>FINAL REPORT</h2>
-      <table class="summary-table">
-        <thead><tr><th>Role</th><th class="num">Nos</th><th class="num">OT HR</th><th class="num">Amount</th></tr></thead>
+    <main class="report-card">
+      <div class="section-title">Worker Billing Details</div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Designation</th><th class="num">Nos / Days</th><th class="num">Salary</th><th class="num">OT HR</th><th class="num">OT Amt</th><th class="num">Total</th></tr>
+        </thead>
         <tbody>
-          {% for row in bill.designation_summary %}
+          {% for line in bill.lines %}
           <tr>
-            <td>{{ row.designation }}</td>
-            <td class="num">{{ row.mandays }}</td>
-            <td class="num">{{ row.ot_hours }}</td>
-            <td class="num">{{ '%.2f'|format(row.total_amount or 0) }}</td>
+            <td>{{ line.worker_code or '—' }}</td>
+            <td>{{ line.worker_name }}</td>
+            <td>{{ line.designation or '—' }}</td>
+            <td class="num">{{ line.days_worked or 0 }}</td>
+            <td class="num">{{ '%.2f'|format(line.salary_amount or 0) }}</td>
+            <td class="num">{{ line.ot_hours or 0 }}</td>
+            <td class="num">{{ '%.2f'|format(line.ot_amount or 0) }}</td>
+            <td class="num">{{ '%.2f'|format(line.total_amount or 0) }}</td>
           </tr>
           {% endfor %}
-          {% if bill.old_mess_amount %}
-          <tr><td>OLD Mess</td><td class="num"></td><td class="num"></td><td class="num">{{ '%.2f'|format(bill.old_mess_amount) }}</td></tr>
-          {% endif %}
-          <tr><td><strong>Total Amount</strong></td><td colspan="2"></td><td class="num"><strong>{{ '%.2f'|format(bill.gross_amount or 0) }}</strong></td></tr>
-          <tr><td>TDS 1 %</td><td colspan="2"></td><td class="num">{{ '%.2f'|format(bill.tds_amount or 0) }}</td></tr>
-          <tr><td>MESS</td><td colspan="2"></td><td class="num">{{ '%.2f'|format(bill.mess_deduction or 0) }}</td></tr>
-          <tr><td>ADVANCE</td><td colspan="2"></td><td class="num">{{ '%.2f'|format(bill.advance_deduction or 0) }}</td></tr>
-          <tr><td><strong>NET PAYMENT</strong></td><td colspan="2"></td><td class="num net">{{ '%.2f'|format(bill.net_payment or 0) }}</td></tr>
         </tbody>
       </table>
-    </div>
+
+      <div class="section-title">Final Report</div>
+      <div class="summary-grid">
+        <table class="summary-table">
+          <thead><tr><th>Role</th><th class="num">Nos</th><th class="num">OT HR</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            {% for row in bill.designation_summary %}
+            <tr>
+              <td>{{ row.designation }}</td>
+              <td class="num">{{ row.mandays }}</td>
+              <td class="num">{{ row.ot_hours }}</td>
+              <td class="num">{{ '%.2f'|format(row.total_amount or 0) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <table class="deduction-table">
+          {% if bill.old_mess_amount %}
+          <tr><td>Old Mess</td><td class="num">{{ '%.2f'|format(bill.old_mess_amount) }}</td></tr>
+          {% endif %}
+          <tr><td><strong>Total Amount</strong></td><td class="num"><strong>{{ '%.2f'|format(bill.gross_amount or 0) }}</strong></td></tr>
+          <tr><td>TDS {{ bill.tds_percent or 1 }}%</td><td class="num">{{ '%.2f'|format(bill.tds_amount or 0) }}</td></tr>
+          <tr><td>Mess Deduction</td><td class="num">{{ '%.2f'|format(bill.mess_deduction or 0) }}</td></tr>
+          <tr><td>Advance Deduction</td><td class="num">{{ '%.2f'|format(bill.advance_deduction or 0) }}</td></tr>
+          <tr class="net-row"><td><strong>Net Payment</strong></td><td class="num net">₹ {{ '%.2f'|format(bill.net_payment or 0) }}</td></tr>
+        </table>
+      </div>
+    </main>
 
     {{ corporate_report_signatures(ctx) }}
     {{ corporate_report_footer(ctx) }}

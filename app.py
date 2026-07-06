@@ -18070,6 +18070,35 @@ def accounts_payments():
     )
 
 
+@app.route("/accounts/payments/print/<int:voucher_id>")
+@login_required
+def accounts_payment_print(voucher_id):
+    db = get_db()
+    _prepare_accounts_db(db)
+    voucher = load_payment_voucher(db, voucher_id)
+    if not voucher:
+        flash("Payment voucher not found.")
+        return redirect(url_for("accounts_payments"))
+    _prepare_corporate_template_db(db)
+    ctx = _build_corporate_report_context(
+        db,
+        "payment_voucher",
+        document_number=voucher.get("voucher_number") or str(voucher_id),
+        project_name=voucher.get("project_name") or "",
+        project_id=str(voucher.get("project_id") or ""),
+        prepared_by=session.get("username", ""),
+        report_date=voucher.get("voucher_date"),
+        back_url=url_for("accounts_payments", view=voucher_id),
+        page_orientation="portrait",
+    )
+    return render_template(
+        "accounts_payment_voucher_print.html",
+        voucher=voucher,
+        ctx=ctx,
+        autoprint=request.args.get("print") == "1",
+    )
+
+
 @app.route("/accounts/receipts", methods=["GET", "POST"])
 @login_required
 def accounts_receipts():
@@ -23047,9 +23076,22 @@ def sub_billing_abstract_print(bill_id):
         return redirect(url_for("sub_billing_register"))
     if not bill.get("declaration_text"):
         bill["declaration_text"] = DEFAULT_DECLARATION
+    _prepare_corporate_template_db(db)
+    ctx = _build_corporate_report_context(
+        db,
+        "subcontractor_bill_abstract",
+        document_number=bill.get("bill_number") or str(bill_id),
+        project_name=bill.get("project_name") or "",
+        project_id=str(bill.get("project_id") or ""),
+        prepared_by=session.get("username", ""),
+        report_date=bill.get("bill_date") or bill.get("period_to"),
+        back_url=url_for("sub_billing_form", view=bill["id"]),
+        page_orientation="portrait",
+    )
     return render_template(
         "sub_billing_abstract_print.html",
         bill=bill,
+        ctx=ctx,
         default_declaration=DEFAULT_DECLARATION,
         autoprint=request.args.get("print") == "1",
     )
