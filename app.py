@@ -8037,6 +8037,7 @@ def inject_maxek_layout():
                 portal_menu,
                 full_access=is_admin_user() or platform_super_admin or guest_user,
             )
+            portal_menu = _department_dashboard_display_menu(dept_portal["slug"], portal_menu)
             dept_portal_view = dict(dept_portal)
             dept_portal_view["menu"] = portal_menu
             current_nav_group = portal_menu_as_nav_group(dept_portal_view)
@@ -8960,6 +8961,68 @@ def _user_can_view_accounts_department_stats(db, user_id, *, full_access: bool) 
     return bool(get_granted_tab_keys_for_department(db, user_id, "accounts"))
 
 
+def _project_dashboard_menu(menu):
+    """Keep project-related work grouped on the Project Department dashboard."""
+    project_menu = []
+    seen_labels = set()
+    for item in menu:
+        item = dict(item)
+        if item.get("endpoint") == "cost_planning":
+            item["label"] = "Cost Planning"
+            item["active_endpoints"] = ["cost_planning", "cost_planning_reports"]
+        project_menu.append(item)
+        seen_labels.add(item.get("label"))
+
+    project_tools = [
+        {
+            "endpoint": "dpr_client_bill_pending",
+            "label": "Measurement Book",
+            "icon": "fa-book",
+            "active_endpoints": ["dpr_client_bill_pending", "dpr_client_bill_print", "dpr_client_bill_export"],
+        },
+        {
+            "endpoint": "project_expenses",
+            "label": "Project Expenses",
+            "icon": "fa-receipt",
+            "active_endpoints": ["project_expenses"],
+        },
+        {
+            "endpoint": "cost_planning_reports",
+            "label": "Planning Reports",
+            "icon": "fa-chart-pie",
+            "active_endpoints": ["cost_planning_reports"],
+        },
+        {
+            "endpoint": "treasury_project_profitability",
+            "label": "Project Profitability",
+            "icon": "fa-chart-line",
+            "active_endpoints": ["treasury_project_profitability", "treasury_project_profitability_detail"],
+        },
+        {
+            "endpoint": "cost_planning_reports",
+            "label": "Cost vs Budget Report",
+            "icon": "fa-scale-balanced",
+            "active_endpoints": ["cost_planning_reports"],
+        },
+    ]
+    for item in project_tools:
+        if item["label"] not in seen_labels:
+            project_menu.append(dict(item))
+            seen_labels.add(item["label"])
+    return project_menu
+
+
+def _department_dashboard_display_menu(slug, menu):
+    if slug == "projects":
+        return _project_dashboard_menu(menu)
+    if slug == "boq":
+        allowed_boq_endpoints = {"boq_management", "boq_multiple_entry"}
+        return [item for item in menu if item.get("endpoint") in allowed_boq_endpoints]
+    if slug in {"dpr", "planning-wbs"}:
+        return []
+    return menu
+
+
 def _accounts_petty_cash_balance(db) -> float:
     if not _table_exists(db, "petty_cash_requests"):
         return 0.0
@@ -9304,13 +9367,12 @@ def department_portal(slug):
         menu,
         full_access=is_admin_user() or is_super_admin_user() or is_guest_user(),
     )
-    if portal["slug"] == "boq":
-        allowed_boq_endpoints = {"boq_management", "boq_multiple_entry"}
-        menu = [item for item in menu if item.get("endpoint") in allowed_boq_endpoints]
+    menu = _department_dashboard_display_menu(portal["slug"], menu)
     portal_view = dict(portal)
     portal_view["menu"] = menu
-    report_modules = [] if portal["slug"] == "boq" else build_workspace_report_modules(portal["slug"])
-    ticket_types = [] if portal["slug"] == "boq" else get_workspace_ticket_types(db, portal["slug"])
+    lean_project_pages = {"boq", "dpr", "planning-wbs"}
+    report_modules = [] if portal["slug"] in lean_project_pages else build_workspace_report_modules(portal["slug"])
+    ticket_types = [] if portal["slug"] in lean_project_pages else get_workspace_ticket_types(db, portal["slug"])
     session["active_dept_portal_slug"] = portal["slug"]
     return render_template(
         "department_workspace.html",
