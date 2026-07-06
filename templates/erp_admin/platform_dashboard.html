@@ -6,29 +6,68 @@
 
 {% block content %}
 <div class="erp-platform-dashboard">
-  <header class="erp-platform-hero">
-    <div>
-      <p class="erp-platform-eyebrow">MAXEK ERP · Super Admin</p>
-      <h1 class="erp-platform-title">Platform Command Centre</h1>
-      <p class="erp-platform-subtitle">Customer overview, licensing, and platform operations in one place.</p>
+  <section class="erp-platform-recent-customers" aria-labelledby="platform-recent-customers-heading">
+    <div class="erp-platform-recent-head">
+      <h2 id="platform-recent-customers-heading" class="erp-module-section-title">Recent Customers</h2>
+      <a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost erp-btn-sm">View all</a>
     </div>
-  </header>
+    <div class="erp-platform-recent-table-wrap">
+      <table class="erp-platform-recent-table" data-platform-recent-table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Company</th>
+            <th>Country</th>
+            <th>Plan</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in platform_data.recent_customers %}
+          <tr>
+            <td>{{ row.customer_code }}</td>
+            <td>{{ row.company_name }}</td>
+            <td>{{ row.country or '—' }}</td>
+            <td>{{ row.plan or 'Standard' }}</td>
+            <td>{{ entity_status_badge(row.status) }}</td>
+            <td>{{ row.created_at or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="erp-platform-recent-empty">No customers registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if platform_data.recent_customers|length > 8 %}
+    <nav class="erp-platform-recent-pagination" aria-label="Recent customers pagination" data-platform-recent-pagination hidden>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-platform-recent-prev disabled>Previous</button>
+      <span data-platform-recent-page-label>Page 1</span>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-platform-recent-next>Next</button>
+    </nav>
+    {% endif %}
+  </section>
 
-  <div class="erp-kpi-grid erp-platform-kpi-grid">
-    {% for card in platform_data.metric_cards %}
-    <div class="erp-kpi-card">
-      <div class="erp-kpi-label">{{ card.label }}</div>
-      <div class="erp-kpi-value{% if card.get('warn') %} dept-stat-warn{% endif %}">{{ card.value }}</div>
+  {% if company_erp %}
+  <section class="erp-platform-company-erp" id="company-erp-section" aria-label="Department workspaces">
+    <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid pro-dash-dept-tile-grid--mockup erp-platform-dept-grid">
+      {% set command_centre_cards = company_erp.command_centre_cards %}
+      {% include 'partials/command_centre_dept_tiles.html' %}
     </div>
-    {% endfor %}
-  </div>
+  </section>
+  {% else %}
+  <section class="erp-platform-company-erp erp-platform-company-erp--empty" aria-labelledby="company-erp-prompt">
+    <div class="erp-form-card erp-platform-empty-card">
+      <h2 id="company-erp-prompt" class="erp-form-title">Company ERP Command Centre</h2>
+      <p>Select a <strong>company</strong> from the header dropdown to switch tenant context. When companies exist, the first company is selected automatically so department workspaces appear below.</p>
+      <p class="erp-form-hint">Platform tools above remain available at all times. Department tickets reuse the same backend as tenant users on <code>/dashboard</code>.</p>
+    </div>
+  </section>
+  {% endif %}
 
   <section class="erp-platform-ticket-strip" aria-labelledby="platform-ticket-heading">
     <div class="erp-platform-ticket-head">
-      <div>
-        <p class="erp-platform-eyebrow">Ticket Type & Approval</p>
-        <h2 id="platform-ticket-heading" class="erp-module-section-title">Platform Tickets and Approval Queue</h2>
-      </div>
+      <h2 id="platform-ticket-heading" class="erp-module-section-title">Ticket Type & Approval</h2>
     </div>
     <div class="erp-platform-ticket-grid">
       <a href="{{ url_for('erp_admin_support_tickets') }}" class="erp-platform-ticket-card">
@@ -82,83 +121,6 @@
         <span>Settings</span>
       </a>
     </div>
-  </section>
-
-  {% if company_erp %}
-  <section class="erp-platform-company-erp" id="company-erp-section" aria-labelledby="company-erp-heading">
-    <div class="erp-platform-company-erp-head">
-      <div>
-        <p class="erp-platform-eyebrow">Level 2 · Company ERP</p>
-        <h2 id="company-erp-heading" class="erp-module-section-title">Company ERP Command Centre</h2>
-        <p class="erp-platform-subtitle">
-          Viewing <strong>{{ company_erp.company_name }}</strong>
-          · {{ company_erp.branch_label }}
-          · {{ company_erp.project_label }}
-          · {{ company_erp.dept_count }} department workspaces
-        </p>
-      </div>
-      <div class="erp-platform-hero-actions">
-        <a href="{{ company_erp.dashboard_url }}" class="erp-btn erp-btn-primary">
-          <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
-          Open Full Dashboard
-        </a>
-      </div>
-    </div>
-    <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid pro-dash-dept-tile-grid--mockup erp-platform-dept-grid">
-      {% set command_centre_cards = company_erp.command_centre_cards %}
-      {% include 'partials/command_centre_dept_tiles.html' %}
-    </div>
-  </section>
-  {% else %}
-  <section class="erp-platform-company-erp erp-platform-company-erp--empty" aria-labelledby="company-erp-prompt">
-    <div class="erp-form-card erp-platform-empty-card">
-      <h2 id="company-erp-prompt" class="erp-form-title">Company ERP Command Centre</h2>
-      <p>Select a <strong>company</strong> from the header dropdown to switch tenant context. When companies exist, the first company is selected automatically so department workspaces appear below.</p>
-      <p class="erp-form-hint">Platform tools above remain available at all times. Department tickets reuse the same backend as tenant users on <code>/dashboard</code>.</p>
-    </div>
-  </section>
-  {% endif %}
-
-  <section class="erp-platform-recent-customers" aria-labelledby="platform-recent-customers-heading">
-    <div class="erp-platform-recent-head">
-      <h2 id="platform-recent-customers-heading" class="erp-module-section-title">Recent Customers</h2>
-      <a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost erp-btn-sm">View all</a>
-    </div>
-    <div class="erp-platform-recent-table-wrap">
-      <table class="erp-platform-recent-table" data-platform-recent-table>
-        <thead>
-          <tr>
-            <th>Code</th>
-            <th>Company</th>
-            <th>Country</th>
-            <th>Plan</th>
-            <th>Status</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in platform_data.recent_customers %}
-          <tr>
-            <td>{{ row.customer_code }}</td>
-            <td>{{ row.company_name }}</td>
-            <td>{{ row.country or '—' }}</td>
-            <td>{{ row.plan or 'Standard' }}</td>
-            <td>{{ entity_status_badge(row.status) }}</td>
-            <td>{{ row.created_at or '—' }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="6" class="erp-platform-recent-empty">No customers registered yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% if platform_data.recent_customers|length > 8 %}
-    <nav class="erp-platform-recent-pagination" aria-label="Recent customers pagination" data-platform-recent-pagination hidden>
-      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-platform-recent-prev disabled>Previous</button>
-      <span data-platform-recent-page-label>Page 1</span>
-      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-platform-recent-next>Next</button>
-    </nav>
-    {% endif %}
   </section>
 </div>
 {% endblock %}

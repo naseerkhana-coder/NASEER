@@ -7804,7 +7804,7 @@
 .erp-platform-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
   max-width: min(100%, 1280px);
 }
 
@@ -7940,7 +7940,7 @@
 
 .erp-platform-company-erp {
   margin: 0;
-  padding-top: 0.5rem;
+  padding-top: 0;
 }
 
 .erp-platform-empty-card {
@@ -7950,7 +7950,13 @@
 }
 
 .erp-platform-recent-customers {
-  margin-top: 0.25rem;
+  margin-top: 0;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.94)),
+    var(--bg-card-dark, #1e293b);
 }
 
 .erp-platform-recent-head {
@@ -7964,8 +7970,8 @@
 .erp-platform-recent-table-wrap {
   overflow: auto;
   border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
-  border-radius: 12px;
-  background: var(--bg-card-dark, #1e293b);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.74);
 }
 
 .erp-platform-recent-table {
@@ -7988,7 +7994,7 @@
 }
 
 .erp-platform-recent-table tbody td {
-  padding: 0.85rem 1rem;
+  padding: 0.78rem 1rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
   color: var(--text-main, #e2e8f0);
 }

@@ -10996,15 +10996,6 @@ def build_super_admin_company_erp_section(db):
         except Exception:
             pass
     cards = get_command_centre_cards(db)
-    project_sequence = {
-        "projects": "1",
-        "planning-wbs": "2",
-        "boq": "3",
-        "dpr": "4",
-    }
-    for card in cards:
-        if card.get("slug") in project_sequence:
-            card["platform_sequence"] = project_sequence[card["slug"]]
     return {
         "company_id": int(company_id),
         "company_name": company_name,
