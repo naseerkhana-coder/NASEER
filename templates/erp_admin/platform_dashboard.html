@@ -6,13 +6,13 @@
 
 {% block content %}
 <div class="erp-platform-dashboard">
-  <section class="erp-platform-recent-customers" aria-labelledby="platform-recent-customers-heading">
+  <section class="erp-form-card erp-platform-recent-customers" aria-labelledby="platform-recent-customers-heading">
     <div class="erp-platform-recent-head">
-      <h2 id="platform-recent-customers-heading" class="erp-module-section-title">Recent Customers</h2>
+      <h2 id="platform-recent-customers-heading" class="erp-form-title">Recent Customers</h2>
       <a href="{{ url_for('erp_admin_customers') }}" class="erp-btn erp-btn-ghost erp-btn-sm">View all</a>
     </div>
-    <div class="erp-platform-recent-table-wrap">
-      <table class="erp-platform-recent-table" data-platform-recent-table>
+    <div class="erp-table-scroll erp-platform-recent-table-wrap">
+      <table class="erp-table erp-table-module" data-platform-recent-table>
         <thead>
           <tr>
             <th>Code</th>
