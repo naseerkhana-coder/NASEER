@@ -11931,6 +11931,7 @@ def api_project_boq_items(project_id):
         "COALESCE(bi.unit, '') AS unit, "
         "COALESCE(bi.rate, 0) AS rate, "
         "COALESCE(bi.amount, 0) AS amount, "
+        "COALESCE(bi.project_id, bm.project_id) AS project_id, "
         "COALESCE(NULLIF(bm.boq_number, ''), 'BOQ-' || COALESCE(bi.boq_id, bi.id)) AS boq_number "
         "FROM boq_items bi "
         "LEFT JOIN boq_master bm ON bi.boq_id = bm.id "
@@ -11940,6 +11941,30 @@ def api_project_boq_items(project_id):
         (project_id, project_id),
     )
     return jsonify([dict(row) for row in rows])
+
+
+def _dpr_boq_items_for_projects(project_ids):
+    clean_ids = [int(pid) for pid in project_ids if pid]
+    if not clean_ids:
+        return []
+    placeholders = ",".join("?" for _ in clean_ids)
+    rows = query_db(
+        "SELECT bi.id, bi.boq_id, bi.line_no, COALESCE(bi.item_code, '') AS item_code, "
+        "COALESCE(bi.item_description, '') AS item_description, "
+        "COALESCE(bi.quantity, 0) AS quantity, "
+        "COALESCE(bi.unit, '') AS unit, "
+        "COALESCE(bi.rate, 0) AS rate, "
+        "COALESCE(bi.amount, 0) AS amount, "
+        "COALESCE(bi.project_id, bm.project_id) AS project_id, "
+        "COALESCE(NULLIF(bm.boq_number, ''), 'BOQ-' || COALESCE(bi.boq_id, bi.id)) AS boq_number "
+        "FROM boq_items bi "
+        "LEFT JOIN boq_master bm ON bi.boq_id = bm.id "
+        f"WHERE (bi.project_id IN ({placeholders}) OR bm.project_id IN ({placeholders})) "
+        "AND COALESCE(bi.is_deleted, 0)=0 AND COALESCE(bm.is_deleted, 0)=0 "
+        "ORDER BY bm.id DESC, bi.line_no, bi.id",
+        tuple(clean_ids + clean_ids),
+    )
+    return [dict(row) for row in rows]
 
 
 @app.route("/clients", methods=["GET", "POST"])
@@ -17221,6 +17246,7 @@ def dpr_entry():
         )
 
     projects = get_project_options_for_boq()
+    dpr_boq_items = _dpr_boq_items_for_projects([p["id"] for p in projects])
     subcontractors = query_db(
         "SELECT id, subcontractor_name, subcontractor_code FROM subcontractors "
         "WHERE status IS NULL OR status = 'Active' ORDER BY subcontractor_name"
@@ -17268,6 +17294,7 @@ def dpr_entry():
         steel_shapes=[dict(s) for s in steel_shapes],
         steel_diameters=STEEL_DIAMETERS_MM,
         records=[dict(r) for r in records],
+        dpr_boq_items=dpr_boq_items,
         dpr_attachments=[dict(a) for a in dpr_attachments],
         dpr_activities=list(DEFAULT_DPR_ACTIVITIES),
         attach_filter_project=attach_filter_project,

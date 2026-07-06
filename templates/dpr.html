@@ -303,6 +303,7 @@
     <form method="post" class="erp-form-grid" data-dpr-form
           data-continue-project="{{ continue_project_id or '' }}"
           data-continue-boq="{{ continue_boq_number or '' }}"
+          data-project-boq-items='{{ (dpr_boq_items or [])|tojson|e }}'
           {% if editing_measurement %}
           data-edit-measurement="{{ editing_measurement.id }}"
           data-edit-project="{{ editing_measurement.project_id }}"
@@ -975,5 +976,5 @@
 {% block scripts %}
 {{ workflow_modals() }}
 <script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
-<script src="{{ url_for('static', filename='js/dpr-forms.js') }}?v=20260706-boq-select"></script>
+<script src="{{ url_for('static', filename='js/dpr-forms.js') }}?v=20260706-boq-select-2"></script>
 {% endblock %}

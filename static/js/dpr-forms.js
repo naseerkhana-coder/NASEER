@@ -5,6 +5,7 @@
 
   var state = {
     boqItems: [],
+    allProjectBoqItems: [],
     steelShapes: [],
     equipmentMaster: [],
     pendingShapeSelect: null,
@@ -940,13 +941,21 @@
       if (typeof done === "function") done();
       return;
     }
+    function fallbackItems() {
+      return state.allProjectBoqItems.filter(function (item) {
+        return String(item.project_id || "") === String(projectId);
+      });
+    }
+    function normalizeItems(items) {
+      return (items || []).map(function (item) {
+        if (!item.boq_number) item.boq_number = item.boq_id ? ("BOQ-" + item.boq_id) : ("BOQ-" + item.id);
+        return item;
+      });
+    }
     fetch("/api/projects/" + projectId + "/boq-items")
       .then(function (r) { return r.json(); })
       .then(function (items) {
-        state.boqItems = (items || []).map(function (item) {
-          if (!item.boq_number) item.boq_number = item.boq_id ? ("BOQ-" + item.boq_id) : ("BOQ-" + item.id);
-          return item;
-        });
+        state.boqItems = normalizeItems(items && items.length ? items : fallbackItems());
         fillBoqDropdowns(form);
         var continueBoq = form.getAttribute("data-continue-boq");
         var editBoqNumber = form.getAttribute("data-edit-boq-number");
@@ -969,7 +978,7 @@
         if (typeof done === "function") done();
       })
       .catch(function () {
-        state.boqItems = [];
+        state.boqItems = normalizeItems(fallbackItems());
         fillBoqDropdowns(form);
         if (typeof done === "function") done();
       });
@@ -1412,6 +1421,11 @@
   function initDprForm() {
     var form = getForm();
     if (!form) return;
+    try {
+      state.allProjectBoqItems = JSON.parse(form.getAttribute("data-project-boq-items") || "[]") || [];
+    } catch (e) {
+      state.allProjectBoqItems = [];
+    }
 
     var dateInp = form.querySelector("#dpr_report_date");
     if (dateInp && !dateInp.value) {

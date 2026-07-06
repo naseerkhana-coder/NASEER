@@ -109,6 +109,19 @@
     window.history.replaceState({}, "", url.pathname + url.hash);
   }
 
+  function closeBoqEntryPanel() {
+    var panel = document.getElementById("boq-form");
+    var list = document.getElementById("boq-list");
+    if (panel) panel.hidden = true;
+    if (list) {
+      list.hidden = false;
+      list.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, "", window.location.pathname + "#boq-list");
+    }
+  }
+
   function initContinuePrompt(form) {
     var modal = document.getElementById("boq-continue-modal");
     if (!modal || modal.hidden) return;
@@ -139,6 +152,15 @@
   function initBoqForm() {
     var form = document.querySelector("[data-boq-form]");
     if (!form) return;
+    var panel = document.getElementById("boq-form");
+    if (panel) {
+      panel.querySelectorAll("[data-entry-back], [data-entry-close]").forEach(function (btn) {
+        btn.addEventListener("click", function (event) {
+          event.preventDefault();
+          closeBoqEntryPanel();
+        });
+      });
+    }
     var container = form.querySelector("[data-boq-rows]");
     var template = form.querySelector("[data-boq-row-template]");
     var addBtn = form.querySelector("[data-boq-add]");
