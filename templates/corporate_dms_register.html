@@ -20,14 +20,53 @@
 <style>
   .dms-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; align-items: start; }
   @media (max-width: 900px) { .dms-layout { grid-template-columns: 1fr; } }
-  .dms-folder-tree { border: 1px solid var(--erp-border, #e5e7eb); border-radius: 8px; padding: 0.75rem; background: #fafafa; }
+  .dms-folder-tree,
+  .dms-upload-panel {
+    border: 1px solid var(--border-form, var(--border-subtle, rgba(148, 163, 184, 0.24)));
+    border-radius: 8px;
+    background: var(--bg-card-dark, #111827);
+    color: var(--text-main, #e5e7eb);
+  }
+  .dms-folder-tree { padding: 0.75rem; }
   .dms-folder-tree ul { list-style: none; margin: 0; padding-left: 0.75rem; }
   .dms-folder-tree > ul { padding-left: 0; }
-  .dms-folder-link { display: block; padding: 0.35rem 0.5rem; border-radius: 6px; text-decoration: none; color: #374151; font-size: 0.9rem; }
-  .dms-folder-link.is-active, .dms-folder-link:hover { background: #e0e7ff; color: #1e40af; }
-  .dms-upload-panel { display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--erp-border, #e5e7eb); border-radius: 8px; background: #fafafa; }
+  .dms-folder-link {
+    display: block;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.9rem;
+  }
+  .dms-folder-link.is-active,
+  .dms-folder-link:hover {
+    background: rgba(99, 102, 241, 0.22);
+    color: var(--text-main, #f8fafc);
+  }
+  .dms-upload-panel { display: none; margin-bottom: 1rem; padding: 1rem; }
   .dms-upload-panel.is-open { display: block; }
-  .dms-stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; font-size: 0.9rem; color: #4b5563; }
+  .dms-upload-panel h3,
+  .dms-folder-tree strong,
+  .dms-folder-tree summary { color: var(--text-main, #f8fafc); }
+  .dms-upload-panel label,
+  .dms-folder-tree label { color: var(--text-muted, #94a3b8); font-weight: 600; }
+  .dms-upload-panel input,
+  .dms-upload-panel select,
+  .dms-upload-panel textarea,
+  .dms-folder-tree input,
+  .dms-folder-tree select,
+  .dms-filter-form input,
+  .dms-filter-form select {
+    background: var(--bg-input, #0f172a);
+    color: var(--text-main, #e5e7eb);
+    border: 1px solid var(--border-form, rgba(148, 163, 184, 0.28));
+    border-radius: 6px;
+  }
+  .dms-upload-panel input::placeholder,
+  .dms-folder-tree input::placeholder,
+  .dms-filter-form input::placeholder { color: var(--text-muted, #94a3b8); opacity: 0.85; }
+  .dms-stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; font-size: 0.9rem; color: var(--text-muted, #94a3b8); }
+  .dms-stats strong { color: var(--text-main, #f8fafc); }
   .expiry-badge { font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 999px; }
   .expiry-overdue { background: #fee2e2; color: #991b1b; }
   .expiry-soon { background: #fef3c7; color: #92400e; }
@@ -139,7 +178,7 @@
   </aside>
 
   <section>
-    <form method="get" class="erp-table-toolbar" style="margin-bottom:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+    <form method="get" class="erp-table-toolbar dms-filter-form" style="margin-bottom:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
       {% if folder_filter %}<input type="hidden" name="folder_id" value="{{ folder_filter }}">{% endif %}
       <input name="q" value="{{ search }}" placeholder="Search title, tags, notes…" style="max-width:220px;">
       <select name="doc_type" style="max-width:160px;">
