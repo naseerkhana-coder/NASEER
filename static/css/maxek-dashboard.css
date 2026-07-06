@@ -7853,6 +7853,83 @@
   transform: translateY(-1px);
 }
 
+.erp-platform-ticket-strip {
+  margin: 0;
+}
+
+.erp-platform-ticket-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.erp-platform-ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.erp-platform-ticket-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 74px;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: var(--bg-card-dark, #1e293b);
+  color: var(--text-main, #e2e8f0);
+  text-decoration: none;
+}
+
+.erp-platform-ticket-card i {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+
+.erp-platform-ticket-card span {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.erp-platform-ticket-card strong {
+  min-width: 34px;
+  padding: 0.25rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.erp-module-tile {
+  position: relative;
+}
+
+.erp-module-tile-sequence {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(239, 68, 68, 0.22);
+  color: #fecaca;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .erp-platform-dept-grid {
   gap: 0.85rem;
 }

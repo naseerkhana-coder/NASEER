@@ -1318,6 +1318,9 @@ def get_platform_dashboard_data(db) -> dict[str, Any]:
     open_tickets = db.execute(
         "SELECT COUNT(*) AS c FROM erp_support_tickets WHERE status IN ('Open','In Progress')"
     ).fetchone()["c"]
+    pending_change_requests = db.execute(
+        "SELECT COUNT(*) AS c FROM erp_change_requests WHERE status IN ('Open','Pending','In Progress')"
+    ).fetchone()["c"]
     storage_used_mb = 0.0
     storage_allowed_mb = 0
     try:
@@ -1380,6 +1383,7 @@ def get_platform_dashboard_data(db) -> dict[str, Any]:
             "storage_used_mb": storage_used_mb,
             "database_mb": db_size_mb,
             "open_tickets": open_tickets,
+            "pending_change_requests": pending_change_requests,
             "backup_status": backup_status,
             "server_status": server_status,
         },

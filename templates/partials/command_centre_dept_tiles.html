@@ -2,6 +2,9 @@
   {% if card.is_locked %}
   <span class="erp-module-tile dept-module-tile pro-dash-dept-tile pro-dash-dept-tile--locked {{ tile_class|default('pro-dash-dept-tile--mockup') }}" data-dept-slug="{{ card.slug }}" style="--dept-accent: {{ card.accent }};" aria-disabled="true" title="Not included in your subscription package">
     <span class="erp-module-tile-icon"><i class="fa-solid {{ card.icon }}" aria-hidden="true"></i></span>
+    {% if card.platform_sequence is defined %}
+    <span class="erp-module-tile-sequence">{{ card.platform_sequence }}</span>
+    {% endif %}
     <span class="erp-module-tile-body">
       <span class="erp-module-tile-label">{{ card.card_label }}</span>
       {% if card.description and show_description|default(true) %}
@@ -13,6 +16,9 @@
   {% else %}
   <a href="{{ url_for('department_portal', slug=card.slug) }}" class="erp-module-tile dept-module-tile pro-dash-dept-tile {{ tile_class|default('pro-dash-dept-tile--mockup') }}" data-dept-slug="{{ card.slug }}" style="--dept-accent: {{ card.accent }};">
     <span class="erp-module-tile-icon"><i class="fa-solid {{ card.icon }}" aria-hidden="true"></i></span>
+    {% if card.platform_sequence is defined %}
+    <span class="erp-module-tile-sequence">{{ card.platform_sequence }}</span>
+    {% endif %}
     <span class="erp-module-tile-body">
       <span class="erp-module-tile-label">{{ card.card_label }}</span>
       {% if card.description and show_description|default(true) %}
