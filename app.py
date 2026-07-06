@@ -8023,6 +8023,9 @@ def inject_maxek_layout():
     in_dept_portal_shell = bool(resolved_dept_portal_slug and use_pro_shell)
     current_nav_group = active_nav_group(request.endpoint, nav_slug)
     dept_portal_accent = None
+    primary_dashboard_name = "super_admin_platform_dashboard" if platform_super_admin else "dashboard"
+    pro_shell_home_url = url_for(primary_dashboard_name)
+    pro_shell_back_url = pro_shell_home_url
     if in_dept_portal_shell:
         dept_portal = get_department_portal(resolved_dept_portal_slug)
         if dept_portal:
@@ -8044,6 +8047,8 @@ def inject_maxek_layout():
             dept_portal_accent = dept_portal.get("accent") or get_department_accent(
                 dept_portal["slug"]
             )
+            if not on_department_portal:
+                pro_shell_back_url = url_for("department_portal", slug=dept_portal["slug"])
     if not in_dept_portal_shell and active_toolbar_slug in VIRTUAL_TOOLBAR_ENTRIES:
         virtual = VIRTUAL_TOOLBAR_ENTRIES[active_toolbar_slug]
         current_nav_group = {
@@ -8206,6 +8211,8 @@ def inject_maxek_layout():
         "pro_shell_department_portal": in_dept_portal_shell,
         "department_portal_slug": resolved_dept_portal_slug,
         "dept_portal_accent": dept_portal_accent,
+        "pro_shell_back_url": pro_shell_back_url,
+        "pro_shell_home_url": pro_shell_home_url,
         "welcome_name": username_display,
         "command_centre_branch": session.get("branch", branch_options[0] if branch_options else "Head Office"),
         "command_user_role": role_label,
@@ -8215,9 +8222,7 @@ def inject_maxek_layout():
         ),
         "dashboard_shell_command_centre_items": DASHBOARD_SHELL_COMMAND_CENTRE_ITEMS,
         "dashboard_shell_settings": DASHBOARD_SHELL_SETTINGS,
-        "primary_dashboard_endpoint": (
-            "super_admin_platform_dashboard" if platform_super_admin else "dashboard"
-        ),
+        "primary_dashboard_endpoint": primary_dashboard_name,
     }
 
 

@@ -2,10 +2,14 @@
 <header class="pro-dash-header pro-dash-header--module pro-dash-header--streamlined">
   <div class="pro-dash-module-head">
     {% if request.endpoint != 'super_admin_platform_dashboard' %}
-    <button type="button" class="pro-dash-back-btn" data-pro-back data-fallback-url="{{ url_for(primary_dashboard_endpoint|default('dashboard')) }}" title="Back" aria-label="Go back">
+    <button type="button" class="pro-dash-back-btn" data-pro-back data-fallback-url="{{ pro_shell_back_url|default(url_for(primary_dashboard_endpoint|default('dashboard'))) }}" title="Back" aria-label="Go back">
       <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
       <span>Back</span>
     </button>
+    <a class="pro-dash-back-btn pro-dash-home-btn" href="{{ pro_shell_home_url|default(url_for(primary_dashboard_endpoint|default('dashboard'))) }}" title="Home" aria-label="Go to home dashboard">
+      <i class="fa-solid fa-house" aria-hidden="true"></i>
+      <span>Home</span>
+    </a>
     {% endif %}
     <h1 class="pro-dash-module-title">{{ page_title|default(current_nav_group.label|default('Module')) }}</h1>
     {% if breadcrumb_items is defined and breadcrumb_items %}

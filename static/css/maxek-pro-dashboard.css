@@ -331,6 +331,7 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  text-decoration: none;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
