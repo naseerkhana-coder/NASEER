@@ -27,6 +27,7 @@ from super_admin_service import (
     delete_license,
     get_customer_by_id,
     get_customer_enabled_departments,
+    get_license_handover_details,
     get_platform_dashboard_data,
     get_system_health,
     list_audit_logs,
@@ -41,6 +42,7 @@ from super_admin_service import (
     list_support_tickets,
     list_user_limits,
     next_customer_code,
+    next_license_no,
     save_change_request,
     save_customer,
     save_customer_tenant_settings,
@@ -66,6 +68,26 @@ def _customer_codes(db):
         "WHERE COALESCE(is_platform, 0)=0 ORDER BY customer_code"
     ).fetchall()
     return [row["customer_code"] for row in rows]
+
+
+def _license_customer_options(db):
+    rows = db.execute(
+        """
+        SELECT c.id, c.customer_code, c.company_name, c.contact_person, c.mobile, c.email,
+               c.plan, c.package_code, COALESCE(ul.users_allowed, c.num_users, 0) AS users_allowed,
+               (
+                 SELECT u.username FROM users u
+                 WHERE u.customer_id = c.id
+                 ORDER BY CASE WHEN u.role IN ('admin', 'super_admin', 'Super Admin') THEN 0 ELSE 1 END, u.id
+                 LIMIT 1
+               ) AS admin_username
+        FROM erp_customers c
+        LEFT JOIN erp_user_limits ul ON ul.customer_id = c.id
+        WHERE COALESCE(c.is_platform, 0)=0
+        ORDER BY c.company_name, c.customer_code
+        """
+    ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def _prepare_support_upload(file_storage, uploads_dir):
@@ -525,9 +547,13 @@ def register_erp_admin_routes(
             else:
                 try:
                     record_id = request.form.get("record_id", type=int)
-                    save_license(db, request.form, record_id=record_id)
+                    license_id = save_license(db, request.form, record_id=record_id)
                     db.commit()
                     flash("License saved successfully.")
+                    if not record_id:
+                        session["license_handover_password"] = request.form.get("login_password", "")
+                        session["license_handover_username"] = request.form.get("login_username", "")
+                        return redirect(url_for("erp_admin_license_handover", license_id=license_id))
                     return redirect(url_for("erp_admin_licenses"))
                 except ValueError as exc:
                     db.rollback()
@@ -542,12 +568,36 @@ def register_erp_admin_routes(
         return render_template(
             "erp_admin/licenses.html",
             rows=list_licenses(db),
+            customers=_license_customer_options(db),
             customer_codes=_customer_codes(db),
+            next_license_no=next_license_no(db),
             products=LICENSE_PRODUCTS,
             plans=CUSTOMER_PLANS,
             statuses=LICENSE_STATUSES,
             edit_record=edit_record,
             view_only=view_only,
+            sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
+            sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
+        )
+
+    @app.route("/erp-admin/licenses/<int:license_id>/handover")
+    @login_required
+    @super_admin_required
+    def erp_admin_license_handover(license_id):
+        db = get_db()
+        details = get_license_handover_details(db, license_id)
+        if not details:
+            flash("License record not found.")
+            return redirect(url_for("erp_admin_licenses"))
+        login_password = session.pop("license_handover_password", "")
+        login_username = session.pop("license_handover_username", "") or (
+            details.get("login_user") or {}
+        ).get("username", "")
+        return render_template(
+            "erp_admin/license_handover.html",
+            details=details,
+            login_username=login_username,
+            login_password=login_password,
             sub_toolbar=ERP_ADMIN_SUBTOOLBAR,
             sub_toolbar_sections=ERP_ADMIN_SUBTOOLBAR_SECTIONS,
         )

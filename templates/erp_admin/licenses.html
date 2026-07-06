@@ -33,14 +33,37 @@
   ) %}
     <form method="post" class="erp-form-grid{% if view_only %} is-readonly{% endif %}" id="license-master-form">
       {% if edit_record %}<input type="hidden" name="record_id" value="{{ edit_record.id }}">{% endif %}
-      <div class="erp-field"><input name="license_no" placeholder=" " required{% if edit_record %} readonly{% endif %} value="{{ edit_record.license_no if edit_record else 'LIC-2026-' }}"><label>License No</label></div>
-      <div class="erp-field"><input name="customer_code" placeholder=" " required list="customer-codes" value="{{ edit_record.customer_code if edit_record else '' }}"><label>Customer Code</label></div>
-      <datalist id="customer-codes">{% for c in customer_codes %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="erp-field"><input name="license_no" placeholder=" " required readonly value="{{ edit_record.license_no if edit_record else next_license_no }}"><label>License No</label></div>
+      <div class="erp-field span-2">
+        <select name="customer_select" id="license_customer_select" {% if not edit_record %}required{% endif %}>
+          <option value="">Select customer name</option>
+          {% for c in customers %}
+          <option value="{{ c.customer_code }}"
+                  data-code="{{ c.customer_code }}"
+                  data-plan="{{ c.plan or c.package_code or '' }}"
+                  data-users="{{ c.users_allowed or '' }}"
+                  data-contact="{{ c.contact_person or '' }}"
+                  data-mobile="{{ c.mobile or '' }}"
+                  data-email="{{ c.email or '' }}"
+                  data-username="{{ c.admin_username or '' }}"
+                  {% if edit_record and edit_record.customer_code == c.customer_code %}selected{% endif %}>
+            {{ c.company_name }} - {{ c.customer_code }}
+          </option>
+          {% endfor %}
+        </select>
+        <label>Customer Name</label>
+      </div>
+      <div class="erp-field"><input name="customer_code" id="license_customer_code" placeholder=" " required readonly value="{{ edit_record.customer_code if edit_record else '' }}"><label>Customer Code</label></div>
       <div class="erp-field"><select name="product">{% for p in products %}<option{% if edit_record and edit_record.product == p %} selected{% endif %}>{{ p }}</option>{% endfor %}</select><label>Product</label></div>
-      <div class="erp-field"><select name="plan">{% for p in plans %}<option{% if edit_record and edit_record.plan == p %} selected{% endif %}>{{ p }}</option>{% endfor %}</select><label>Plan</label></div>
+      <div class="erp-field"><select name="plan" id="license_plan">{% for p in plans %}<option{% if edit_record and edit_record.plan == p %} selected{% endif %}>{{ p }}</option>{% endfor %}</select><label>Plan / Package</label></div>
       <div class="erp-field"><input type="date" name="start_date" placeholder=" " value="{{ edit_record.start_date if edit_record else '' }}"><label>Start Date</label></div>
       <div class="erp-field"><input type="date" name="expiry_date" placeholder=" " value="{{ edit_record.expiry_date if edit_record else '' }}"><label>Expiry Date</label></div>
       <div class="erp-field"><select name="status">{% for s in statuses %}<option{% if edit_record and edit_record.status == s %} selected{% endif %}>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+      {% if not edit_record %}
+      <div class="erp-field"><input name="login_username" id="license_login_username" placeholder=" "><label>Login Username for Print</label></div>
+      <div class="erp-field"><input name="login_password" placeholder=" " autocomplete="new-password"><label>Password for Print Only</label></div>
+      <p class="erp-form-hint span-2">Password is used only for the handover print after save. It is not stored as plain text.</p>
+      {% endif %}
       <div class="erp-form-actions">
         {% if not view_only %}<button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save License</button>{% endif %}
         {% if edit_record %}<a href="{{ url_for('erp_admin_licenses') }}" class="erp-btn erp-btn-ghost">{% if view_only %}Close{% else %}Cancel{% endif %}</a>{% endif %}
@@ -51,21 +74,30 @@
   {% call erp_module_table_panel(id='license-records', title='License Register') %}
     <div class="erp-table-scroll">
       <table class="erp-table erp-table-module">
-        <thead><tr><th>License No</th><th>Customer</th><th>Company</th><th>Product</th><th>Plan</th><th>Start</th><th>Expiry</th><th>Status</th></tr></thead>
+        <thead><tr><th>License No</th><th>Customer</th><th>Company</th><th>Contact</th><th>Users</th><th>Product</th><th>Plan</th><th>Start</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           {% for row in rows %}
-          <tr class="erp-selectable-row" data-record-id="{{ row.id }}" data-status="{{ row.status or '' }}" data-created-at="{{ row.created_at or '' }}" data-edit-url="{{ url_for('erp_admin_licenses', edit=row.id) }}#license-form" tabindex="0">
+          <tr class="erp-selectable-row"
+              data-record-id="{{ row.id }}"
+              data-status="{{ row.status or '' }}"
+              data-created-at="{{ row.created_at or '' }}"
+              data-view-url="{{ url_for('erp_admin_license_handover', license_id=row.id) }}"
+              data-edit-url="{{ url_for('erp_admin_licenses', edit=row.id) }}#license-form"
+              tabindex="0">
             <td>{{ row.license_no }}</td>
             <td>{{ row.customer_code }}</td>
             <td>{{ row.company_name }}</td>
+            <td>{{ row.contact_person or row.mobile or row.email or '-' }}</td>
+            <td>{{ row.users_allowed or row.num_users or '-' }}</td>
             <td>{{ row.product }}</td>
             <td>{{ row.plan }}</td>
-            <td>{{ row.start_date or '—' }}</td>
-            <td>{{ row.expiry_date or '—' }}</td>
+            <td>{{ row.start_date or '-' }}</td>
+            <td>{{ row.expiry_date or '-' }}</td>
             <td>{{ entity_status_badge(row.status) }}</td>
+            <td><a href="{{ url_for('erp_admin_license_handover', license_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-print"></i> Details Print</a></td>
           </tr>
           {% else %}
-          <tr><td colspan="8">No licenses yet.</td></tr>
+          <tr><td colspan="11">No licenses yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -80,4 +112,30 @@
   .erp-selectable-row { cursor: pointer; }
   .erp-selectable-row.is-selected { background: rgba(59, 130, 246, 0.12); outline: 1px solid rgba(59, 130, 246, 0.35); }
 </style>
+<script>
+(function () {
+  var customerSelect = document.getElementById('license_customer_select');
+  var codeInput = document.getElementById('license_customer_code');
+  var planSelect = document.getElementById('license_plan');
+  var loginUser = document.getElementById('license_login_username');
+  function syncCustomer() {
+    if (!customerSelect) return;
+    var opt = customerSelect.options[customerSelect.selectedIndex];
+    if (!opt) return;
+    if (codeInput) codeInput.value = opt.dataset.code || customerSelect.value || '';
+    if (planSelect && opt.dataset.plan) {
+      Array.prototype.forEach.call(planSelect.options, function (p) {
+        if (p.value === opt.dataset.plan || p.textContent === opt.dataset.plan) planSelect.value = p.value;
+      });
+    }
+    if (loginUser && !loginUser.value) {
+      loginUser.value = opt.dataset.username || 'admin';
+    }
+  }
+  if (customerSelect) {
+    customerSelect.addEventListener('change', syncCustomer);
+    syncCustomer();
+  }
+})();
+</script>
 {% endblock %}

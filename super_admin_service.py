@@ -1405,15 +1405,34 @@ def list_licenses(db, search: str = "") -> list[dict[str, Any]]:
     where = " AND ".join(clauses)
     rows = db.execute(
         f"""
-        SELECT l.*, c.customer_code, c.company_name
+        SELECT l.*, c.customer_code, c.company_name, c.contact_person, c.mobile, c.email,
+               c.num_users, c.plan AS customer_plan, ul.users_allowed
         FROM erp_licenses l
         JOIN erp_customers c ON c.id = l.customer_id
+        LEFT JOIN erp_user_limits ul ON ul.customer_id = c.id
         WHERE {where}
-        ORDER BY l.license_no
+        ORDER BY l.id DESC
         """,
         params,
     ).fetchall()
     return [_row_to_dict(r) for r in rows]
+
+
+def next_license_no(db) -> str:
+    ensure_super_admin_schema(db)
+    year = datetime.now().strftime("%Y")
+    prefix = f"LIC-{year}-"
+    rows = db.execute(
+        "SELECT license_no FROM erp_licenses WHERE license_no LIKE ?",
+        (f"{prefix}%",),
+    ).fetchall()
+    max_seq = 0
+    for row in rows:
+        raw = str(row["license_no"] or "")
+        suffix = raw.replace(prefix, "", 1)
+        if suffix.isdigit():
+            max_seq = max(max_seq, int(suffix))
+    return f"{prefix}{max_seq + 1:04d}"
 
 
 def save_license(db, data: dict[str, Any], record_id: int | None = None) -> int:
@@ -1472,6 +1491,42 @@ def save_license(db, data: dict[str, Any], record_id: int | None = None) -> int:
     )
     log_audit(db, None, None, "Create", "License Master", f"Created license {license_no}")
     return int(cur.lastrowid)
+
+
+def get_license_handover_details(db, license_id: int) -> dict[str, Any] | None:
+    ensure_super_admin_schema(db)
+    row = db.execute(
+        """
+        SELECT l.*, c.customer_code, c.company_name, c.country, c.contact_person,
+               c.mobile, c.email, c.vat_gst_number, c.num_branches, c.num_users,
+               c.plan AS customer_plan, c.package_code, c.address,
+               ul.users_allowed, ul.current_users,
+               bl.branches_allowed, bl.current_branches,
+               sl.storage_allowed_mb, sl.current_usage_mb
+        FROM erp_licenses l
+        JOIN erp_customers c ON c.id = l.customer_id
+        LEFT JOIN erp_user_limits ul ON ul.customer_id = c.id
+        LEFT JOIN erp_branch_limits bl ON bl.customer_id = c.id
+        LEFT JOIN erp_storage_limits sl ON sl.customer_id = c.id
+        WHERE l.id=?
+        """,
+        (license_id,),
+    ).fetchone()
+    if not row:
+        return None
+    data = _row_to_dict(row)
+    user = db.execute(
+        """
+        SELECT username, role, employee_name, email, mobile
+        FROM users
+        WHERE customer_id=?
+        ORDER BY CASE WHEN role IN ('admin', 'super_admin', 'Super Admin') THEN 0 ELSE 1 END, id
+        LIMIT 1
+        """,
+        (data["customer_id"],),
+    ).fetchone()
+    data["login_user"] = _row_to_dict(user) if user else {}
+    return data
 
 
 def delete_license(db, license_id: int | None) -> None:

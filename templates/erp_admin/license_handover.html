@@ -1,0 +1,93 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'License Handover Details' %}
+{% set breadcrumbs = '<a href="' ~ safe_url_for('super_admin_platform_dashboard') ~ '">Platform Command Centre</a> &gt; <a href="' ~ url_for('erp_admin_licenses') ~ '">License Master</a> &gt; Handover' %}
+
+{% block content %}
+{% set mail_body %}
+MAXEK ERP License Details
+
+Company: {{ details.company_name or '-' }}
+Customer Code: {{ details.customer_code or '-' }}
+License No: {{ details.license_no or '-' }}
+Package: {{ details.plan or details.customer_plan or details.package_code or '-' }}
+Validity: {{ details.start_date or '-' }} to {{ details.expiry_date or '-' }}
+User Limit: {{ details.users_allowed or details.num_users or '-' }}
+Login Username: {{ login_username or '-' }}
+Password: {{ login_password or 'Provided separately' }}
+{% endset %}
+
+<div class="erp-form-card license-handover-card" id="license-handover-print">
+  <div class="license-handover-head">
+    <div>
+      <p class="license-handover-eyebrow">MAXEK ERP CUSTOMER HANDOVER</p>
+      <h2>{{ details.company_name or details.customer_code }}</h2>
+      <p>License and login details for customer onboarding.</p>
+    </div>
+    <div class="license-handover-actions no-print">
+      <button type="button" class="erp-btn erp-btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+      <a class="erp-btn erp-btn-ghost" href="mailto:{{ details.email or '' }}?subject={{ ('MAXEK ERP License - ' ~ (details.company_name or details.customer_code))|urlencode }}&body={{ mail_body|urlencode }}"><i class="fa-solid fa-envelope"></i> Mail</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('erp_admin_licenses') }}">Back</a>
+    </div>
+  </div>
+
+  <section class="license-handover-section">
+    <h3>Customer Details</h3>
+    <div class="license-handover-grid">
+      <div><span>Customer Code</span><strong>{{ details.customer_code or '-' }}</strong></div>
+      <div><span>Company Name</span><strong>{{ details.company_name or '-' }}</strong></div>
+      <div><span>Contact Person</span><strong>{{ details.contact_person or '-' }}</strong></div>
+      <div><span>Mobile</span><strong>{{ details.mobile or '-' }}</strong></div>
+      <div><span>Email</span><strong>{{ details.email or '-' }}</strong></div>
+      <div><span>VAT / GST</span><strong>{{ details.vat_gst_number or '-' }}</strong></div>
+      <div class="span-2"><span>Address</span><strong>{{ details.address or '-' }}</strong></div>
+    </div>
+  </section>
+
+  <section class="license-handover-section">
+    <h3>License Details</h3>
+    <div class="license-handover-grid">
+      <div><span>License Number</span><strong>{{ details.license_no or '-' }}</strong></div>
+      <div><span>Product</span><strong>{{ details.product or 'MAXEK ERP' }}</strong></div>
+      <div><span>Package / Plan</span><strong>{{ details.plan or details.customer_plan or details.package_code or '-' }}</strong></div>
+      <div><span>Status</span><strong>{{ details.status or '-' }}</strong></div>
+      <div><span>Start Date</span><strong>{{ details.start_date or '-' }}</strong></div>
+      <div><span>Validity / Expiry</span><strong>{{ details.expiry_date or '-' }}</strong></div>
+      <div><span>User Limit</span><strong>{{ details.users_allowed or details.num_users or '-' }}</strong></div>
+      <div><span>Branch Limit</span><strong>{{ details.branches_allowed or details.num_branches or '-' }}</strong></div>
+      <div><span>Storage Limit</span><strong>{% if details.storage_allowed_mb %}{{ details.storage_allowed_mb }} MB{% else %}-{% endif %}</strong></div>
+    </div>
+  </section>
+
+  <section class="license-handover-section">
+    <h3>Login Details</h3>
+    <div class="license-handover-grid">
+      <div><span>Login URL</span><strong>{{ request.url_root.rstrip('/') }}</strong></div>
+      <div><span>Customer Code</span><strong>{{ details.customer_code or '-' }}</strong></div>
+      <div><span>Username</span><strong>{{ login_username or (details.login_user.username if details.login_user else '-') }}</strong></div>
+      <div><span>Password</span><strong>{{ login_password or 'Provided separately / reset required' }}</strong></div>
+      <div><span>User Role</span><strong>{{ details.login_user.role if details.login_user else '-' }}</strong></div>
+    </div>
+  </section>
+</div>
+
+<style>
+  .license-handover-card { max-width: 980px; margin: 0 auto; }
+  .license-handover-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1rem; }
+  .license-handover-eyebrow { margin: 0 0 0.25rem; font-size: 0.78rem; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; }
+  .license-handover-head h2 { margin: 0; }
+  .license-handover-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+  .license-handover-section { margin-top: 1.25rem; }
+  .license-handover-section h3 { margin: 0 0 0.75rem; color: var(--text-main); }
+  .license-handover-grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 0.75rem; }
+  .license-handover-grid > div { border: 1px solid var(--border-form); border-radius: 8px; padding: 0.75rem; background: rgba(255,255,255,0.03); }
+  .license-handover-grid .span-2 { grid-column: 1 / -1; }
+  .license-handover-grid span { display: block; color: var(--text-muted); font-size: 0.78rem; margin-bottom: 0.25rem; }
+  .license-handover-grid strong { color: var(--text-main); }
+  @media print {
+    .no-print, .maxek-shell-sidebar, .maxek-shell-header, .pro-dash-sidebar, .pro-dash-topbar, .ai-launcher { display: none !important; }
+    body { background: #fff !important; color: #111 !important; }
+    .license-handover-card { box-shadow: none !important; border: none !important; max-width: none; }
+    .license-handover-grid > div { border-color: #ccc; background: #fff; }
+  }
+</style>
+{% endblock %}
