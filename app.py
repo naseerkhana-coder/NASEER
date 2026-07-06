@@ -10879,6 +10879,21 @@ def _build_dashboard_shared_context(db):
         {"workflow_checker_cards": [], "workflow_approver_cards": []},
         "workflow_dashboard_cards",
     )
+    system_rows = _dashboard_payload(
+        lambda: build_system_rows(user_id, is_admin_user(), limit=8),
+        [],
+        "system_rows",
+    )
+    recent_activities = _dashboard_payload(
+        lambda: get_recent_activities(db, limit=8),
+        [],
+        "recent_activities",
+    )
+    dashboard_display = _dashboard_payload(
+        lambda: get_dashboard_display_settings(db),
+        {},
+        "dashboard_display",
+    )
 
     return {
         "command_centre_cards": command_centre_cards,
@@ -10886,6 +10901,11 @@ def _build_dashboard_shared_context(db):
         "command_centre_quick_actions": command_centre_quick_actions,
         "dashboard_greeting": greeting,
         "dashboard_stats": stats,
+        "stats": stats,
+        "system_rows": system_rows,
+        "recent_activities": recent_activities,
+        "dashboard_display": dashboard_display,
+        "alert_count": pending_approvals,
         "approval_summary": approval_summary,
         "financial_summary": _build_executive_financial_summary(db, stats),
         "company_summary": _build_executive_company_summary(stats),

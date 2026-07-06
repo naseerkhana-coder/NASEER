@@ -1,35 +1,303 @@
 {% extends 'base_maxek.html' %}
 
-{% block body_class %} dashboard-mode pro-dashboard-mode{% endblock %}
+{% block body_class %} dashboard-mode enterprise-dashboard-mode{% endblock %}
 
-{% block title %}Dashboard — MAXEK ERP{% endblock %}
+{% block title %}Dashboard - MAXEK Private Limited ERP{% endblock %}
 
 {% block content %}
-<div class="pro-dash-content pro-dash-content--home pro-dash-theme-layout" data-dashboard-theme="command-centre">
-  <header class="pro-dash-greeting-row" aria-labelledby="pro-dash-greeting-title">
-    <div class="pro-dash-greeting-text">
-      <h1 id="pro-dash-greeting-title">Good {{ dashboard_greeting.period }}, {{ dashboard_greeting.name }} 👋</h1>
-      <p class="pro-dash-greeting-sub">{% if dashboard_greeting.company_name %}Here's what's happening at <strong>{{ dashboard_greeting.company_name }}</strong> today.{% else %}Here's what's happening with your business today.{% endif %}</p>
-    </div>
-    <div class="pro-dash-date-chip" aria-label="Today's date">
-      <i class="fa-regular fa-calendar" aria-hidden="true"></i>
-      <span>{{ dashboard_greeting.date_label }}</span>
-      <i class="fa-solid fa-chevron-down pro-dash-date-chevron" aria-hidden="true"></i>
-    </div>
-  </header>
+{% set customer_name = selected_branch or 'MAXEK Private Limited' %}
+{% set user_name = welcome_name or session.get('username') or 'Administrator' %}
+{% set designation = session.get('role') or session.get('workflow_role') or 'ERP User' %}
+{% set department = session.get('department') or (current_nav_group.label if current_nav_group else 'Operations') %}
+{% set featured_project = stats.featured_project if stats is defined else none %}
+{% set workflow_total = stats.workflow_tasks|default(0) %}
+{% set pending_verification = stats.pending_mrs|default(0) + stats.pending_purchase_requests|default(0) + stats.pending_purchase_orders|default(0) %}
 
-  {% include 'partials/workflow_approval_cards.html' %}
-
-  <section class="pro-dash-dept-section pro-dash-dept-section--tiles" aria-labelledby="pro-dash-dept-heading">
-    <div class="pro-dash-dept-section-head">
+<div class="enterprise-dashboard" data-dash-tabs>
+  <section class="enterprise-hero" aria-labelledby="enterprise-dashboard-title">
+    <div class="enterprise-hero-main">
+      <div class="enterprise-logo-mark">
+        <img src="{{ url_for('static', filename='images/maxek-logo-official.png') }}" alt="MAXEK Private Limited">
+      </div>
       <div>
-        <h3 id="pro-dash-dept-heading" class="erp-module-section-title pro-dash-dept-section-title">Department Workspaces</h3>
-        <p class="pro-dash-dept-section-sub">Open a department portal to manage workflows and reports.</p>
+        <p class="enterprise-eyebrow" data-i18n="dashboard.enterprise_home">Enterprise Home Dashboard</p>
+        <h1 id="enterprise-dashboard-title" data-i18n="dashboard.title">MAXEK Construction ERP</h1>
+        <div class="enterprise-meta-grid">
+          <span><i class="fa-solid fa-building"></i> {{ customer_name }}</span>
+          <span><i class="fa-solid fa-user-tie"></i> {{ user_name }}</span>
+          <span><i class="fa-solid fa-id-badge"></i> {{ designation }}</span>
+          <span><i class="fa-solid fa-sitemap"></i> {{ department }}</span>
+          <span><i class="fa-regular fa-clock"></i> {{ timestamp }}</span>
+        </div>
       </div>
     </div>
-    <div class="erp-module-grid dept-module-grid pro-dash-dept-tile-grid pro-dash-dept-tile-grid--mockup">
-      {% include 'partials/command_centre_dept_tiles.html' %}
+    <div class="enterprise-hero-actions">
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm dash-settings-btn" data-modal-open="dash-display-modal" title="Dashboard display settings">
+        <i class="fa-solid fa-sliders"></i> <span data-i18n="dashboard.display">Display</span>
+      </button>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" onclick="window.print()">
+        <i class="fa-solid fa-print"></i> <span data-i18n="dashboard.print">Print</span>
+      </button>
+      <a href="{{ url_for('reports') }}" class="erp-btn erp-btn-primary erp-btn-sm">
+        <i class="fa-solid fa-file-lines"></i> <span data-i18n="dashboard.reports">Reports</span>
+      </a>
     </div>
   </section>
+
+  <section class="enterprise-command-grid" aria-label="Executive dashboard summary">
+    <article class="enterprise-panel enterprise-panel-wide">
+      <div class="enterprise-panel-head">
+        <div>
+          <p class="enterprise-section-kicker" data-i18n="dashboard.project_summary">Project Summary</p>
+          <h2>{% if featured_project %}{{ featured_project.project_name }}{% else %}<span data-i18n="dashboard.no_featured_project">No featured project selected</span>{% endif %}</h2>
+        </div>
+        <span class="enterprise-status-pill">{{ stats.progress_pct|default(0) }}%</span>
+      </div>
+      <div class="enterprise-progress-line">
+        <span style="width: {{ stats.progress_pct|default(0) }}%;"></span>
+      </div>
+      <div class="enterprise-mini-metrics">
+        <div><strong>{{ stats.active_projects|default(0) }}</strong><span data-i18n="dashboard.active_projects">Active Projects</span></div>
+        <div><strong>{{ stats.total_projects|default(0) }}</strong><span data-i18n="dashboard.total_projects">Total Projects</span></div>
+        <div><strong>{{ stats.present_today|default(0) }}</strong><span data-i18n="dashboard.present_today">Present Today</span></div>
+        <div><strong>{{ workflow_total }}</strong><span data-i18n="dashboard.open_workflows">Open Workflows</span></div>
+      </div>
+    </article>
+
+    <article class="enterprise-panel">
+      <p class="enterprise-section-kicker" data-i18n="dashboard.workflow_summary">Workflow Summary</p>
+      <div class="enterprise-ring">
+        <div class="dash-donut dash-donut-compact"><div class="dash-donut-inner">{{ stats.health_score|default(0) }}</div></div>
+        <div>
+          <h3 data-i18n="dashboard.operations_health">Operations Health</h3>
+          <p>{{ workflow_total }} <span data-i18n="dashboard.items_in_workflow">items in workflow</span></p>
+        </div>
+      </div>
+    </article>
+
+    <article class="enterprise-panel">
+      <p class="enterprise-section-kicker" data-i18n="dashboard.pending_work">Pending Work</p>
+      <div class="enterprise-pending-stack">
+        <a href="{{ url_for('approvals') }}"><strong>{{ alert_count|default(0) }}</strong><span data-i18n="dashboard.pending_approvals">Pending Approvals</span></a>
+        <a href="{{ url_for('material_request') }}"><strong>{{ pending_verification }}</strong><span data-i18n="dashboard.pending_verification">Pending Verification</span></a>
+        <a href="{{ url_for('notifications') }}"><strong>{{ notification_count|default(0) }}</strong><span data-i18n="dashboard.notifications">Notifications</span></a>
+      </div>
+    </article>
+  </section>
+
+  <section class="enterprise-kpi-grid" aria-label="Executive KPIs">
+    <div class="enterprise-kpi-card"><i class="fa-solid fa-folder-open"></i><span data-i18n="dashboard.project_kpi">Projects</span><strong>{{ stats.active_projects|default(0) }}</strong><small>{{ stats.total_projects|default(0) }} total</small></div>
+    <div class="enterprise-kpi-card"><i class="fa-solid fa-helmet-safety"></i><span data-i18n="dashboard.workforce_kpi">Workforce</span><strong>{{ stats.active_workers|default(0) }}</strong><small>{{ stats.present_today|default(0) }} present</small></div>
+    <div class="enterprise-kpi-card"><i class="fa-solid fa-building-user"></i><span data-i18n="dashboard.staff_kpi">Office Staff</span><strong>{{ stats.active_staff|default(0) }}</strong><small data-i18n="dashboard.active_staff">active staff</small></div>
+    <div class="enterprise-kpi-card"><i class="fa-solid fa-clipboard-check"></i><span data-i18n="dashboard.workflow_kpi">Workflow</span><strong>{{ workflow_total }}</strong><small data-i18n="dashboard.open_items">open items</small></div>
+    <div class="enterprise-kpi-card"><i class="fa-solid fa-cart-flatbed"></i><span data-i18n="dashboard.material_kpi">Material</span><strong>{{ stats.pending_mrs|default(0) }}</strong><small data-i18n="dashboard.pending_mrs">pending MRs</small></div>
+    <div class="enterprise-kpi-card"><i class="fa-solid fa-chart-line"></i><span data-i18n="dashboard.health_kpi">Health Score</span><strong>{{ stats.health_score|default(0) }}</strong><small data-i18n="dashboard.enterprise_index">enterprise index</small></div>
+  </section>
+
+  <div class="enterprise-tabs" role="tablist" aria-label="Dashboard workspaces">
+    <button type="button" class="dash-tab active" role="tab" aria-selected="true" data-dash-tab="overview" id="dash-tab-overview"><i class="fa-solid fa-table-columns"></i> <span data-i18n="dashboard.overview">Overview</span></button>
+    <button type="button" class="dash-tab" role="tab" aria-selected="false" data-dash-tab="departments" id="dash-tab-departments"><i class="fa-solid fa-sitemap"></i> <span data-i18n="dashboard.departments">Departments</span></button>
+    <button type="button" class="dash-tab" role="tab" aria-selected="false" data-dash-tab="workflow" id="dash-tab-workflow"><i class="fa-solid fa-route"></i> <span data-i18n="dashboard.workflow">Workflow</span></button>
+    <button type="button" class="dash-tab" role="tab" aria-selected="false" data-dash-tab="intelligence" id="dash-tab-intelligence"><i class="fa-solid fa-brain"></i> <span data-i18n="dashboard.ai_insights">AI Insights</span></button>
+  </div>
+
+  <div class="dash-tab-panels enterprise-tab-panels">
+    <section class="dash-tab-panel active" data-dash-panel="overview" role="tabpanel" aria-labelledby="dash-tab-overview">
+      <div class="enterprise-two-col">
+        <article class="enterprise-panel">
+          <div class="enterprise-panel-head">
+            <h2 data-i18n="dashboard.department_performance">Department Performance</h2>
+            <span class="enterprise-status-pill" data-i18n="dashboard.target_vs_actual">Target vs Actual</span>
+          </div>
+          <div class="enterprise-target-list">
+            {% for seg in stats.health_segments %}
+            <div>
+              <span>{{ seg.label }}</span>
+              <strong>{{ seg.pct }}%</strong>
+              <div class="enterprise-progress-line"><span style="width: {{ seg.pct }}%;"></span></div>
+            </div>
+            {% endfor %}
+          </div>
+        </article>
+
+        <article class="enterprise-panel">
+          <div class="enterprise-panel-head">
+            <h2 data-i18n="dashboard.weekly_attendance">Weekly Attendance</h2>
+            <span class="enterprise-status-pill">{{ stats.present_today|default(0) }}</span>
+          </div>
+          <div class="dash-bar-chart dash-bar-chart-compact enterprise-chart" role="img" aria-label="Weekly attendance bar chart">
+            {% for bar in stats.attendance_bars %}
+            <div class="dash-bar-col">
+              <div class="dash-bar" style="height: {{ bar.height }}%;" title="{{ bar.count }} records"></div>
+              <span>{{ bar.label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </article>
+      </div>
+
+      <div class="enterprise-three-col">
+        <article class="enterprise-panel">
+          <h2 data-i18n="dashboard.quick_actions">Quick Actions</h2>
+          <div class="enterprise-action-list">
+            <a href="{{ url_for('projects') }}"><i class="fa-solid fa-plus"></i><span data-i18n="dashboard.project_master">Project Master</span></a>
+            <a href="{{ url_for('dpr_entry') }}"><i class="fa-solid fa-clipboard-list"></i><span data-i18n="dashboard.dpr_entry">DPR Entry</span></a>
+            <a href="{{ url_for('material_request', nav='store-procurement') }}"><i class="fa-solid fa-boxes-stacked"></i><span data-i18n="dashboard.material_request">Material Request</span></a>
+            <a href="{{ url_for('approvals') }}"><i class="fa-solid fa-check-to-slot"></i><span data-i18n="dashboard.approvals">Approvals</span></a>
+          </div>
+        </article>
+
+        <article class="enterprise-panel">
+          <h2 data-i18n="dashboard.recent_activities">Recent Activities</h2>
+          <div class="enterprise-feed">
+            {% for activity in recent_activities[:5] %}
+            <div><i class="fa-solid fa-circle-dot"></i><span>{{ activity.action }} · {{ activity.module }} · {{ activity.document }}</span></div>
+            {% else %}
+            <div><i class="fa-solid fa-circle-info"></i><span data-i18n="dashboard.no_recent_activities">No recent activities</span></div>
+            {% endfor %}
+          </div>
+        </article>
+
+        <article class="enterprise-panel">
+          <h2 data-i18n="dashboard.notifications">Notifications</h2>
+          <div class="enterprise-feed">
+            {% for note in user_notifications[:5] %}
+            <div><i class="fa-regular fa-bell"></i><span>{{ note.title or note.message }}</span></div>
+            {% else %}
+            <div><i class="fa-solid fa-circle-check"></i><span data-i18n="dashboard.no_notifications">No notifications</span></div>
+            {% endfor %}
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="dash-tab-panel" data-dash-panel="departments" role="tabpanel" aria-labelledby="dash-tab-departments">
+      <div class="enterprise-section-head">
+        <div>
+          <p class="enterprise-section-kicker" data-i18n="dashboard.enterprise_departments">Enterprise Departments</p>
+          <h2 data-i18n="dashboard.department_cards">Department Cards</h2>
+        </div>
+        <div class="enterprise-search-export">
+          <label class="enterprise-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-enterprise-card-search placeholder="Search departments"></label>
+          <button class="erp-btn erp-btn-ghost erp-btn-sm" type="button" data-enterprise-export><i class="fa-solid fa-file-export"></i> <span data-i18n="dashboard.export">Export</span></button>
+        </div>
+      </div>
+
+      <div class="enterprise-department-grid" data-enterprise-card-grid>
+        {% set departments = [
+          {'title':'Project','icon':'fa-diagram-project','href':safe_url_for('department_hub', slug='projects'),'modules':'Project Master, BOQ, WBS, Cost, DPR, Billing, QC','metrics':[('Progress', stats.progress_pct|default(0) ~ '%'),('BOQ', stats.total_projects|default(0)),('Workflow', workflow_total)]},
+          {'title':'Procurement','icon':'fa-cart-shopping','href':safe_url_for('department_hub', slug='procurement'),'modules':'Vendor Master, PR, PO, GRN, Vendor Bills, Stock Report','metrics':[('Pending PR', stats.pending_purchase_requests|default(0)),('Pending PO', stats.pending_purchase_orders|default(0)),('GRN', stats.pending_grn|default(0))]},
+          {'title':'Store','icon':'fa-warehouse','href':safe_url_for('department_hub', slug='store-procurement'),'modules':'Material Request, Receipt, Issue, Stock, Diesel, Fuel Register','metrics':[('Current Stock', stats.stock_items|default(0)),('Low Stock', stats.low_stock_count|default(0)),('Issues', stats.pending_mrs|default(0))]},
+          {'title':'HR & Payroll','icon':'fa-users-gear','href':safe_url_for('department_hub', slug='workforce'),'modules':'Employee Master, Timesheet, Payroll, Attendance, Salary, PF/ESI','metrics':[('Attendance', stats.present_today|default(0)),('Workforce', stats.active_workers|default(0)),('Staff', stats.active_staff|default(0))]},
+          {'title':'Quality Control','icon':'fa-vial-circle-check','href':safe_url_for('department_hub', slug='quality-control'),'modules':'QC Test Master, Plant QC, Mix Design, QC Reports, Test Request','metrics':[('Pending Tests', stats.pending_qc|default(0)),('Failed Tests', stats.failed_qc|default(0)),('Approved', stats.approved_qc|default(0))]},
+          {'title':'Vehicle & Mechanical','icon':'fa-truck-moving','href':safe_url_for('department_hub', slug='fleet'),'modules':'Vehicle Master, Documents, Running Log, Maintenance, Breakdown, Tyre Register','metrics':[('Availability', 'Live'),('Maintenance', stats.open_maintenance_jobs|default(0)),('Fuel', 'Track')]},
+          {'title':'Plant','icon':'fa-industry','href':safe_url_for('department_hub', slug='plant'),'modules':'Asphalt, Concrete, Wet Mix, Crusher, Production, Dispatch, Stock','metrics':[('Production', 'Today'),('Consumption', 'Live'),('Workflow', workflow_total)]},
+          {'title':'Subcontractor','icon':'fa-people-roof','href':safe_url_for('department_hub', slug='subcontract'),'modules':'Subcontractors, Work Orders, Worker Payroll, Timesheet, Bills, Payments','metrics':[('Bills', stats.pending_sub_bills|default(0)),('Work Orders', stats.running_work_orders|default(0)),('Labour', stats.active_workers|default(0))]},
+          {'title':'Accounts','icon':'fa-landmark','href':safe_url_for('department_hub', slug='accounts'),'modules':'Petty Cash, Expenses, Receipts, GST, TDS, Vouchers, Registers','metrics':[('Payments', stats.pending_payments|default(0)),('Receivables', stats.receivables|default(0)),('Workflow', workflow_total)]},
+          {'title':'Administration','icon':'fa-building-shield','href':safe_url_for('department_hub', slug='office'),'modules':'Inward, Outward, Letters, Agreements, Legal Documents, Corporate DMS','metrics':[('Letters', stats.pending_letters|default(0)),('Documents', stats.pending_documents|default(0)),('Approvals', alert_count|default(0))]},
+          {'title':'Reports','icon':'fa-chart-simple','href':safe_url_for('department_hub', slug='reports'),'modules':'Project, Store, HR, Accounts, Workflow, Audit and Department Reports','metrics':[('Central', 'Hub'),('Export', 'Ready'),('Audit', 'Live')]},
+          {'title':'User Administration','icon':'fa-user-shield','href':safe_url_for('department_hub', slug='user-administration'),'modules':'User Creation, Workflow, Monitoring, Permissions, Audit','metrics':[('Users', 'Admin'),('Audit', 'Enabled'),('Permissions', 'Role Based')]},
+          {'title':'Customer Administration','icon':'fa-people-arrows','href':safe_url_for('department_hub', slug='customer-administration'),'modules':'Customer Creation, Users, Workflow, License Issue, Renewal, Subscription','metrics':[('Customers', 'Master'),('License', 'Track'),('Subscription', 'Ready')]}
+        ] %}
+        {% for dept in departments %}
+        <a class="enterprise-department-card" href="{{ dept.href }}" data-enterprise-card>
+          <div class="enterprise-dept-top"><i class="fa-solid {{ dept.icon }}"></i><h3>{{ dept.title }}</h3></div>
+          <p>{{ dept.modules }}</p>
+          <div class="enterprise-dept-metrics">
+            {% for label, value in dept.metrics %}
+            <span><strong>{{ value }}</strong>{{ label }}</span>
+            {% endfor %}
+          </div>
+          <div class="enterprise-dept-footer"><span data-i18n="dashboard.open_dashboard">Open Dashboard</span><i class="fa-solid fa-arrow-right"></i></div>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="dash-tab-panel" data-dash-panel="workflow" role="tabpanel" aria-labelledby="dash-tab-workflow">
+      <div class="enterprise-two-col">
+        <article class="enterprise-panel">
+          <h2 data-i18n="dashboard.workflow_timeline">Workflow Timeline</h2>
+          <div class="enterprise-timeline">
+            {% for item in system_rows[:6] %}
+            <a href="{{ item.action_url or url_for('approvals') }}">
+              <span></span>
+              <div><strong>{{ item.label }} · {{ item.ref }}</strong><p>{{ item.status_label or 'Pending action' }}</p></div>
+            </a>
+            {% else %}
+            <div class="enterprise-empty"><i class="fa-solid fa-check"></i><span data-i18n="dashboard.no_workflow_items">No workflow items pending</span></div>
+            {% endfor %}
+          </div>
+        </article>
+
+        <article class="enterprise-panel">
+          <h2 data-i18n="dashboard.pending_queue">Pending Queue</h2>
+          <div class="enterprise-feed enterprise-feed-strong">
+            <a href="{{ url_for('approvals') }}"><strong>{{ approval_summary.pending_checker|default(0) }}</strong><span>Pending Checker</span></a>
+            <a href="{{ url_for('approvals') }}"><strong>{{ approval_summary.pending_approval|default(0) }}</strong><span>Pending Approval</span></a>
+            <a href="{{ url_for('approvals') }}"><strong>{{ approval_summary.approved_today|default(0) }}</strong><span>Approved Today</span></a>
+            <a href="{{ url_for('approvals') }}"><strong>{{ approval_summary.rejected_today|default(0) }}</strong><span>Rejected Today</span></a>
+            <a href="{{ url_for('approvals') }}"><strong>{{ approval_summary.reopened_today|default(0) }}</strong><span>Reopened Today</span></a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="dash-tab-panel" data-dash-panel="intelligence" role="tabpanel" aria-labelledby="dash-tab-intelligence">
+      <div class="enterprise-section-head">
+        <div>
+          <p class="enterprise-section-kicker" data-i18n="dashboard.future_ai">Future AI Foundation</p>
+          <h2 data-i18n="dashboard.ai_placeholders">AI Insight Placeholders</h2>
+        </div>
+        <span class="enterprise-status-pill" data-i18n="dashboard.placeholder_only">Placeholder only</span>
+      </div>
+      <div class="enterprise-ai-grid">
+        {% for ai in [
+          ('AI Project Assistant','fa-user-gear','Project planning, risk and action suggestions'),
+          ('AI DPR','fa-clipboard-list','DPR review, productivity signals and exceptions'),
+          ('OCR','fa-file-lines','Document and bill extraction queue'),
+          ('Voice Commands','fa-microphone-lines','Hands-free site entry and search'),
+          ('Photo Progress','fa-camera-retro','Photo-based progress comparison'),
+          ('Forecasting','fa-chart-line','Cost, delay and consumption forecasts'),
+          ('Executive AI','fa-brain','Executive summaries and decision briefs')
+        ] %}
+        <article class="enterprise-ai-card">
+          <i class="fa-solid {{ ai[1] }}"></i>
+          <h3>{{ ai[0] }}</h3>
+          <p>{{ ai[2] }}</p>
+          <span data-i18n="dashboard.not_implemented">Not implemented</span>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="erp-modal" id="dash-display-modal" hidden>
+    <div class="erp-modal-backdrop" data-modal-close></div>
+    <div class="erp-modal-panel" role="dialog" aria-modal="true" aria-labelledby="dash-display-title">
+      <div class="erp-modal-header">
+        <h3 id="dash-display-title" data-i18n="dashboard.display_settings">Dashboard Display Settings</h3>
+        <button type="button" class="erp-icon-btn" data-modal-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form method="post" action="{{ url_for('settings') }}" class="dash-display-form">
+        <input type="hidden" name="form_type" value="dashboard_display">
+        <div class="dash-display-grid">
+          <label><input type="checkbox" name="dash_hero"{% if dashboard_display.hero %} checked{% endif %}> Welcome header</label>
+          <label><input type="checkbox" name="dash_context_bar"{% if dashboard_display.context_bar %} checked{% endif %}> Project context bar</label>
+          <label><input type="checkbox" name="dash_kpis"{% if dashboard_display.kpis %} checked{% endif %}> KPI cards</label>
+          <label><input type="checkbox" name="dash_charts"{% if dashboard_display.charts %} checked{% endif %}> Charts</label>
+          <label><input type="checkbox" name="dash_approval_summary"{% if dashboard_display.approval_summary %} checked{% endif %}> Approval counters</label>
+          <label><input type="checkbox" name="dash_activities"{% if dashboard_display.activities %} checked{% endif %}> Recent activities</label>
+          <label><input type="checkbox" name="dash_notifications"{% if dashboard_display.notifications %} checked{% endif %}> Notifications</label>
+          <label><input type="checkbox" name="dash_approval_center"{% if dashboard_display.approval_center %} checked{% endif %}> Approval center links</label>
+          <label><input type="checkbox" name="dash_workflow_queue"{% if dashboard_display.workflow_queue %} checked{% endif %}> Workflow queue table</label>
+        </div>
+        <div class="erp-modal-actions">
+          <button type="button" class="erp-btn erp-btn-ghost" data-modal-close>Cancel</button>
+          <button type="submit" class="erp-btn erp-btn-primary">Save display</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}
