@@ -845,9 +845,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function activateDashView(root, viewName, options) {
     const opts = options || {};
-    const requestedView = viewName === 'operations' ? 'departments' : viewName;
-    const allowedViews = ['overview', 'departments', 'workflow', 'intelligence'];
-    const normalized = allowedViews.includes(requestedView) ? requestedView : 'overview';
+    const normalized = viewName === 'operations' ? 'operations' : 'overview';
     root.querySelectorAll('[data-dash-tab]').forEach(function (tab) {
       const isActive = tab.getAttribute('data-dash-tab') === normalized;
       tab.classList.toggle('active', isActive);
@@ -866,7 +864,7 @@ document.addEventListener('DOMContentLoaded', function () {
       link.classList.toggle('active', link.getAttribute('data-dash-subbar-anchor') === normalized);
     });
     if (opts.updateHash !== false) {
-      const nextHash = '#' + normalized;
+      const nextHash = normalized === 'operations' ? '#operations' : '#overview';
       if (window.location.hash !== nextHash) {
         history.replaceState(null, '', window.location.pathname + window.location.search + nextHash);
       }
@@ -890,10 +888,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function syncDashFromHash() {
       const hash = (window.location.hash || '').replace('#', '').toLowerCase();
-      const requestedView = hash === 'operations' ? 'departments' : hash;
-      const allowedViews = ['overview', 'departments', 'workflow', 'intelligence'];
-      const view = allowedViews.includes(requestedView) ? requestedView : 'overview';
-      activateDashView(root, view, { updateHash: !allowedViews.includes(requestedView) });
+      const view = hash === 'operations' ? 'operations' : 'overview';
+      activateDashView(root, view, { updateHash: hash !== 'operations' && hash !== 'overview' });
     }
 
     syncDashFromHash();
