@@ -9304,16 +9304,21 @@ def department_portal(slug):
         menu,
         full_access=is_admin_user() or is_super_admin_user() or is_guest_user(),
     )
+    if portal["slug"] == "boq":
+        allowed_boq_endpoints = {"boq_management", "boq_multiple_entry"}
+        menu = [item for item in menu if item.get("endpoint") in allowed_boq_endpoints]
     portal_view = dict(portal)
     portal_view["menu"] = menu
+    report_modules = [] if portal["slug"] == "boq" else build_workspace_report_modules(portal["slug"])
+    ticket_types = [] if portal["slug"] == "boq" else get_workspace_ticket_types(db, portal["slug"])
     session["active_dept_portal_slug"] = portal["slug"]
     return render_template(
         "department_workspace.html",
         portal=portal_view,
         stat_cards=stat_cards,
         page_title=portal_view.get("title") or portal_view.get("card_label"),
-        report_modules=build_workspace_report_modules(portal["slug"]),
-        ticket_types=get_workspace_ticket_types(db, portal["slug"]),
+        report_modules=report_modules,
+        ticket_types=ticket_types,
         **_command_centre_sidebar_context(db, active_slug=portal["slug"]),
     )
 
