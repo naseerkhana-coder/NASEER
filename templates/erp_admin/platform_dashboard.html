@@ -6,6 +6,34 @@
 
 {% block content %}
 <div class="erp-platform-dashboard">
+  <section class="erp-platform-ticket-strip" aria-labelledby="platform-ticket-heading">
+    <div class="erp-platform-ticket-head">
+      <h2 id="platform-ticket-heading" class="erp-module-section-title">Ticket Type & Approval</h2>
+    </div>
+    <div class="erp-platform-ticket-grid">
+      <a href="{{ url_for('erp_admin_support_tickets') }}" class="erp-platform-ticket-card">
+        <i class="fa-solid fa-ticket" aria-hidden="true"></i>
+        <span>Support Tickets</span>
+        <strong>{{ platform_data.metrics.open_tickets }}</strong>
+      </a>
+      <a href="{{ url_for('approvals', role='checker', tab='pending') }}" class="erp-platform-ticket-card">
+        <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+        <span>Approval Checker</span>
+        <strong>{{ platform_data.metrics.pending_approvals }}</strong>
+      </a>
+      <a href="{{ url_for('approvals', role='approver', tab='pending') }}" class="erp-platform-ticket-card">
+        <i class="fa-solid fa-stamp" aria-hidden="true"></i>
+        <span>Approval Approver</span>
+        <strong>{{ platform_data.metrics.pending_approvals }}</strong>
+      </a>
+      <a href="{{ url_for('erp_admin_change_requests') }}" class="erp-platform-ticket-card">
+        <i class="fa-solid fa-code-pull-request" aria-hidden="true"></i>
+        <span>Change Requests</span>
+        <strong>{{ platform_data.metrics.pending_change_requests }}</strong>
+      </a>
+    </div>
+  </section>
+
   <section class="erp-form-card erp-platform-recent-customers" aria-labelledby="platform-recent-customers-heading">
     <div class="erp-platform-recent-head">
       <h2 id="platform-recent-customers-heading" class="erp-form-title">Recent Customers</h2>
@@ -64,34 +92,6 @@
     </div>
   </section>
   {% endif %}
-
-  <section class="erp-platform-ticket-strip" aria-labelledby="platform-ticket-heading">
-    <div class="erp-platform-ticket-head">
-      <h2 id="platform-ticket-heading" class="erp-module-section-title">Ticket Type & Approval</h2>
-    </div>
-    <div class="erp-platform-ticket-grid">
-      <a href="{{ url_for('erp_admin_support_tickets') }}" class="erp-platform-ticket-card">
-        <i class="fa-solid fa-ticket" aria-hidden="true"></i>
-        <span>Support Tickets</span>
-        <strong>{{ platform_data.metrics.open_tickets }}</strong>
-      </a>
-      <a href="{{ url_for('approvals', role='checker', tab='pending') }}" class="erp-platform-ticket-card">
-        <i class="fa-solid fa-user-check" aria-hidden="true"></i>
-        <span>Approval Checker</span>
-        <strong>{{ platform_data.metrics.pending_approvals }}</strong>
-      </a>
-      <a href="{{ url_for('approvals', role='approver', tab='pending') }}" class="erp-platform-ticket-card">
-        <i class="fa-solid fa-stamp" aria-hidden="true"></i>
-        <span>Approval Approver</span>
-        <strong>{{ platform_data.metrics.pending_approvals }}</strong>
-      </a>
-      <a href="{{ url_for('erp_admin_change_requests') }}" class="erp-platform-ticket-card">
-        <i class="fa-solid fa-code-pull-request" aria-hidden="true"></i>
-        <span>Change Requests</span>
-        <strong>{{ platform_data.metrics.pending_change_requests }}</strong>
-      </a>
-    </div>
-  </section>
 
   <section class="erp-platform-quick-actions" aria-labelledby="platform-quick-actions-heading">
     <h2 id="platform-quick-actions-heading" class="erp-module-section-title">Platform Quick Actions</h2>

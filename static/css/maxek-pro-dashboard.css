@@ -200,6 +200,7 @@
 .pro-dash-main {
   flex: 1;
   min-width: 0;
+  width: calc(100vw - var(--pro-sidebar-current));
   margin-left: var(--pro-sidebar-current);
   display: flex;
   flex-direction: column;
@@ -215,6 +216,15 @@
   display: grid;
   grid-template-rows: auto minmax(220px, 1fr) auto;
   gap: 14px;
+}
+
+.pro-dash-content {
+  scrollbar-width: none;
+}
+
+.pro-dash-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .pro-dash-content--home {
