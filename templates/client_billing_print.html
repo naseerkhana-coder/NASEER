@@ -9,7 +9,64 @@
   <style>
     .num { text-align: right; }
     .report-card { border: 1.5px solid var(--maxek-secondary); padding: 0.55rem; background: #fff; }
-    .section-title { margin: 0.35rem 0 0.25rem; padding: 0.22rem 0; border-bottom: 2px solid var(--maxek-secondary); color: var(--maxek-secondary); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+    .client-ra-header {
+      display: grid;
+      grid-template-columns: 145px 1fr 300px;
+      gap: 0.55rem;
+      align-items: stretch;
+      margin-bottom: 0.55rem;
+    }
+    .client-ra-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 105px;
+    }
+    .client-ra-logo img {
+      max-width: 128px;
+      max-height: 96px;
+      object-fit: contain;
+    }
+    .client-ra-title-box {
+      border: 2px solid var(--maxek-secondary);
+      text-align: center;
+      padding: 0.38rem 0.5rem;
+    }
+    .client-ra-title-box .company-name { margin: 0; font-size: 0.98rem; font-weight: 800; }
+    .client-ra-title-box .tagline { margin: 0.14rem 0 0; color: var(--maxek-primary); font-size: 0.82rem; font-weight: 800; }
+    .client-ra-title-box .doc-title { margin: 0.38rem 0 0; font-size: 1.28rem; font-weight: 900; letter-spacing: 0.04em; }
+    .client-ra-title-box .ra-title { margin: 0.12rem 0 0; color: var(--maxek-primary); font-size: 0.82rem; font-weight: 900; }
+    .client-ra-address-box {
+      border: 1.5px solid var(--maxek-secondary);
+      padding: 0.35rem 0.45rem;
+      font-size: 0.68rem;
+      line-height: 1.28;
+      text-align: right;
+      min-height: 105px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-wrap: anywhere;
+    }
+    .client-ra-address-box .seal-wrap { text-align: right; margin-top: 0.25rem; }
+    .client-ra-address-box .seal-wrap img { max-height: 42px; max-width: 64px; object-fit: contain; }
+    .client-ra-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--maxek-secondary);
+      border-bottom: none;
+      margin: 0 0 0.55rem 145px;
+      font-size: 0.7rem;
+    }
+    .client-ra-meta > div {
+      min-height: 1.75rem;
+      padding: 0.24rem 0.36rem;
+      border-right: 1px solid var(--maxek-secondary);
+      border-bottom: 1px solid var(--maxek-secondary);
+    }
+    .client-ra-meta > div:nth-child(3n) { border-right: none; }
+    .client-ra-meta .highlight { color: var(--maxek-primary); font-weight: 900; }
+    .section-title { margin: 0.45rem 0 0.25rem; padding: 0.32rem 0.45rem; background: var(--maxek-secondary); color: #fff; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
     .contractor-box, .summary-box { border: 1px solid var(--maxek-secondary); padding: 0.4rem; margin: 0.35rem 0; font-size: 0.72rem; min-height: 5.4rem; }
     .summary-box .net { color: var(--maxek-primary); font-weight: 800; border-top: 1px solid var(--maxek-secondary); margin-top: 0.18rem; padding-top: 0.18rem; }
     .bill-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
@@ -27,7 +84,10 @@
     .bill-signatures td { height: 3.1rem; vertical-align: bottom; }
     .client-bill-report .corp-watermark { display: none; }
     @media print {
-      .section-title { color: #232323; border-bottom-color: #232323; }
+      body.corporate-report { margin: 0.25rem; }
+      .client-ra-header { grid-template-columns: 145px 1fr 300px; gap: 0.45rem; }
+      .client-ra-meta { margin-left: 145px; }
+      .section-title { background: #232323 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .client-bill-report .corp-watermark { display: none !important; }
     }
   </style>
@@ -37,12 +97,45 @@
   {{ corporate_report_action_bar(ctx) }}
   {{ corporate_report_watermark(ctx) }}
   <div class="corp-report-body">
-    {{ corporate_report_header(ctx, document_title='CLIENT RA BILL', extra_meta=[
-      ('Bill No', bill.ra_number or bill.bill_number),
-      ('Period From', bill.period_from),
-      ('Period To', bill.period_to),
-      ('Work Order', bill.work_order_number),
-    ]) }}
+    <header class="client-ra-header">
+      <div class="client-ra-logo">
+        {% if ctx.company_logo_path %}
+        <img src="{{ url_for('corporate_template_asset', filename=ctx.company_logo_path) }}" alt="MAXEK">
+        {% else %}
+        <strong>MAXEK</strong>
+        {% endif %}
+      </div>
+      <div class="client-ra-title-box">
+        <p class="company-name">{{ ctx.header_title_line1 }}</p>
+        <p class="tagline">{{ ctx.header_title_line2 }}</p>
+        <p class="doc-title">CLIENT RA BILL</p>
+        <p class="ra-title">{{ bill.ra_number or bill.bill_number or 'RA BILL' }}</p>
+      </div>
+      <div class="client-ra-address-box">
+        <div>
+          {% if ctx.footer_address %}<div>{{ ctx.footer_address }}</div>{% endif %}
+          {% if ctx.footer_phone %}<div>Tel: {{ ctx.footer_phone }}</div>{% endif %}
+          {% if ctx.footer_email %}<div>{{ ctx.footer_email }}</div>{% endif %}
+          {% if ctx.footer_website %}<div>{{ ctx.footer_website }}</div>{% endif %}
+        </div>
+        {% if ctx.company_seal_path %}
+        <div class="seal-wrap"><img src="{{ url_for('corporate_template_asset', filename=ctx.company_seal_path) }}" alt="Seal"></div>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="client-ra-meta">
+      <div><strong>Project Name:</strong> {{ ctx.project_name or '—' }}</div>
+      <div><strong>Project ID:</strong> {{ ctx.project_id or '—' }}</div>
+      <div><strong>Document Type:</strong> {{ ctx.document_type or 'Client RA Bill' }}</div>
+      <div><strong>Document No:</strong> <span class="highlight">{{ ctx.document_number or '—' }}</span></div>
+      <div><strong>Date:</strong> {{ ctx.report_date or '—' }}</div>
+      <div><strong>Prepared By:</strong> {{ ctx.prepared_by or '—' }}</div>
+      <div><strong>Bill No:</strong> {{ bill.ra_number or bill.bill_number or '—' }}</div>
+      <div><strong>Period From:</strong> {{ bill.period_from or '—' }}</div>
+      <div><strong>Period To:</strong> {{ bill.period_to or '—' }}</div>
+      <div><strong>Work Order:</strong> {{ bill.work_order_number or '—' }}</div>
+    </div>
 
     <main class="report-card">
       <div class="section-title">Client and Bill Summary</div>
