@@ -2108,7 +2108,62 @@
 }
 
 .maxek-layout .settings-module-layout {
-  grid-template-columns: minmax(280px, 360px) minmax(420px, 1fr);
+  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.4fr);
+  gap: 1.25rem;
+}
+
+.maxek-layout .settings-dashboard-layout .settings-actions-card,
+.maxek-layout .settings-dashboard-layout #settings-modules,
+.maxek-layout .settings-dashboard-layout .erp-table-panel:last-child {
+  grid-column: 1 / -1;
+}
+
+.maxek-layout .settings-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.maxek-layout .settings-action-card {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 64px;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  background: var(--bg-display-panel, #1e2533);
+  color: var(--text-main, #e2e8f0);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.maxek-layout .settings-action-card i {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+}
+
+.maxek-layout .settings-action-card:hover {
+  border-color: rgba(59, 130, 246, 0.42);
+  background: var(--bg-display-panel-top, #242d3d);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .settings-action-card {
+  background: #ffffff;
+  color: #1e293b;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.maxek-layout.pro-dashboard-mode[data-pro-theme="business"] .settings-action-card:hover {
+  background: #f8fafc;
+  border-color: rgba(20, 184, 166, 0.35);
 }
 
 .maxek-layout .settings-module-layout #department-master {
