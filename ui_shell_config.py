@@ -35,9 +35,6 @@ HELP_CENTER_ITEMS = [
 # Financial KPIs/widgets live on /dept/accounts, not here.
 MAIN_DASHBOARD_DEPARTMENT_SLUGS: list[tuple[str, str]] = [
     ("projects", "Projects"),
-    ("planning-wbs", "Planning & WBS"),
-    ("boq", "BOQ"),
-    ("dpr", "DPR"),
     ("procurement", "Procurement"),
     ("store", "Store"),
     ("hr-payroll", "HR & Payroll"),
