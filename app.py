@@ -7874,7 +7874,7 @@ def module_sub_toolbar_for_request(endpoint):
     return None, None
 
 
-PRO_SHELL_EXCLUDED_ENDPOINTS = frozenset({"login", "logout"})
+PRO_SHELL_EXCLUDED_ENDPOINTS = frozenset({"login", "logout", "dashboard", "dashboard_choice_b"})
 
 
 def endpoint_uses_pro_shell(endpoint):
