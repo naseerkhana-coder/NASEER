@@ -20,6 +20,10 @@
     .amount-box span { display: block; margin-top: 0.15rem; font-size: 1rem; font-weight: 800; text-align: right; }
     .amount-box.net { border: 2px solid var(--maxek-primary); color: var(--maxek-primary); }
     .remarks-box { border: 1px solid var(--maxek-secondary); min-height: 3.2rem; padding: 0.4rem; font-size: 0.72rem; }
+    .voucher-signatures { width: 100%; border-collapse: collapse; margin-top: 0.9rem; font-size: 0.7rem; }
+    .voucher-signatures th, .voucher-signatures td { border: 1px solid var(--maxek-secondary); padding: 0.35rem; text-align: center; }
+    .voucher-signatures th { background: #f2f2f2; }
+    .voucher-signatures td { height: 3.1rem; vertical-align: bottom; }
     @media print {
       .voucher-info-grid { grid-template-columns: repeat(4, 1fr); }
       .amount-grid { grid-template-columns: repeat(3, 1fr); }
@@ -70,7 +74,24 @@
       <div class="remarks-box">{{ voucher.remarks or '—' }}</div>
     </main>
 
-    {{ corporate_report_signatures(ctx) }}
+    <table class="voucher-signatures">
+      <thead>
+        <tr>
+          <th>Prepared By</th>
+          <th>Checked By</th>
+          <th>Approved By</th>
+          <th>Paid / Received By</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ ctx.prepared_by or 'Accounts' }}</td>
+          <td></td>
+          <td></td>
+          <td>{{ voucher.vendor_name or '' }}</td>
+        </tr>
+      </tbody>
+    </table>
     {{ corporate_report_footer(ctx) }}
   </div>
 </body>

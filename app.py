@@ -4773,6 +4773,23 @@ def _fetch_client_bill_rows(measurement_ids=None, pending_only=True):
     )
 
 
+def _fetch_dpr_print_attachments(measurement_ids):
+    if not measurement_ids:
+        return []
+    placeholders = ",".join("?" * len(measurement_ids))
+    return [
+        dict(row) for row in query_db(
+            "SELECT a.*, m.boq_number, m.boq_description, p.project_code, p.project_name "
+            "FROM dpr_attachments a "
+            "LEFT JOIN dpr_measurements m ON a.measurement_id = m.id "
+            "LEFT JOIN projects p ON a.project_id = p.id "
+            f"WHERE a.measurement_id IN ({placeholders}) "
+            "ORDER BY a.report_date DESC, a.id DESC",
+            measurement_ids,
+        )
+    ]
+
+
 def _manpower_line_cost(mp_row):
     hours = float(mp_row.get("hours_worked") or 0)
     if hours <= 0:
@@ -17606,6 +17623,8 @@ def dpr_client_bill_print():
         rows = _fetch_client_bill_rows(measurement_ids=measurement_ids, pending_only=False)
     bills = [dict(r) for r in rows]
     total_amount = round(sum(float(b.get("bill_amount") or 0) for b in bills), 2)
+    attachment_ids = [int(b["id"]) for b in bills if b.get("id")]
+    attachments = _fetch_dpr_print_attachments(attachment_ids)
     db = get_db()
     _prepare_corporate_template_db(db)
     first = bills[0] if bills else {}
@@ -17624,6 +17643,7 @@ def dpr_client_bill_print():
         "dpr_client_bill_print.html",
         bills=bills,
         total_amount=total_amount,
+        attachments=attachments,
         ctx=ctx,
         autoprint=request.args.get("print") == "1",
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -17639,6 +17659,7 @@ def dpr_client_bill_print_one(measurement_id):
         flash("Client bill measurement not found.")
         return redirect(url_for("dpr_client_bill_pending"))
     total_amount = round(sum(float(b.get("bill_amount") or 0) for b in bills), 2)
+    attachments = _fetch_dpr_print_attachments([measurement_id])
     db = get_db()
     _prepare_corporate_template_db(db)
     first = bills[0]
@@ -17657,6 +17678,7 @@ def dpr_client_bill_print_one(measurement_id):
         "dpr_client_bill_print.html",
         bills=bills,
         total_amount=total_amount,
+        attachments=attachments,
         ctx=ctx,
         autoprint=request.args.get("print") == "1",
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),

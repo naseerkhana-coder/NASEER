@@ -21,6 +21,10 @@
     .bank-box, .fin-summary { border: 1px solid var(--maxek-secondary); padding: 0.45rem; font-size: 0.72rem; }
     .fin-summary .net-pay { color: var(--maxek-primary); font-weight: 800; }
     .net-pay-row td { border-top: 2px solid var(--maxek-primary) !important; border-bottom: 2px solid var(--maxek-primary) !important; }
+    .bill-signatures { width: 100%; border-collapse: collapse; margin-top: 0.9rem; font-size: 0.7rem; }
+    .bill-signatures th, .bill-signatures td { border: 1px solid var(--maxek-secondary); padding: 0.35rem; text-align: center; }
+    .bill-signatures th { background: #f2f2f2; }
+    .bill-signatures td { height: 3.1rem; vertical-align: bottom; }
   </style>
   {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
 </head>
@@ -118,7 +122,24 @@
       </div>
     </main>
 
-    {{ corporate_report_signatures(ctx) }}
+    <table class="bill-signatures">
+      <thead>
+        <tr>
+          <th>Prepared By</th>
+          <th>Checked By</th>
+          <th>Approved By</th>
+          <th>Client / Consultant Signature</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ ctx.prepared_by or 'Billing Team' }}</td>
+          <td></td>
+          <td></td>
+          <td>{{ bill.client_display or '' }}</td>
+        </tr>
+      </tbody>
+    </table>
     {{ corporate_report_footer(ctx) }}
   </div>
 </body>

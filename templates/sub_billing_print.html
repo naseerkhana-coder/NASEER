@@ -18,6 +18,10 @@
     .deduction-table td { padding: 0.28rem 0.38rem; }
     .net { color: var(--maxek-primary); font-weight: 800; font-size: 0.82rem; }
     .net-row td { border: 2px solid var(--maxek-primary); }
+    .bill-signatures { width: 100%; border-collapse: collapse; margin-top: 0.9rem; font-size: 0.7rem; }
+    .bill-signatures th, .bill-signatures td { border: 1px solid var(--maxek-secondary); padding: 0.35rem; text-align: center; }
+    .bill-signatures th { background: #f2f2f2; }
+    .bill-signatures td { height: 3.1rem; vertical-align: bottom; }
   </style>
   {% if autoprint %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
 </head>
@@ -74,6 +78,9 @@
           {% endif %}
           <tr><td><strong>Total Amount</strong></td><td class="num"><strong>{{ '%.2f'|format(bill.gross_amount or 0) }}</strong></td></tr>
           <tr><td>TDS {{ bill.tds_percent or 1 }}%</td><td class="num">{{ '%.2f'|format(bill.tds_amount or 0) }}</td></tr>
+          {% if bill.retention_amount %}
+          <tr><td>Retention</td><td class="num">{{ '%.2f'|format(bill.retention_amount or 0) }}</td></tr>
+          {% endif %}
           <tr><td>Mess Deduction</td><td class="num">{{ '%.2f'|format(bill.mess_deduction or 0) }}</td></tr>
           <tr><td>Advance Deduction</td><td class="num">{{ '%.2f'|format(bill.advance_deduction or 0) }}</td></tr>
           <tr class="net-row"><td><strong>Net Payment</strong></td><td class="num net">₹ {{ '%.2f'|format(bill.net_payment or 0) }}</td></tr>
@@ -81,7 +88,24 @@
       </div>
     </main>
 
-    {{ corporate_report_signatures(ctx) }}
+    <table class="bill-signatures">
+      <thead>
+        <tr>
+          <th>Prepared By</th>
+          <th>Checked By</th>
+          <th>Approved By</th>
+          <th>Subcontractor Signature</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ ctx.prepared_by or 'Project Team' }}</td>
+          <td></td>
+          <td></td>
+          <td>{{ bill.subcontractor_name or '' }}</td>
+        </tr>
+      </tbody>
+    </table>
     {{ corporate_report_footer(ctx) }}
   </div>
 </body>

@@ -105,7 +105,20 @@
       font-size: 0.66rem;
       line-height: 1.35;
     }
-    .salary-slip .corp-signature-table { margin-top: 0.85rem; }
+    .payroll-signatures {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.85rem;
+      font-size: 0.7rem;
+    }
+    .payroll-signatures th,
+    .payroll-signatures td {
+      border: 1px solid var(--maxek-secondary);
+      padding: 0.35rem;
+      text-align: center;
+    }
+    .payroll-signatures th { background: #f2f2f2; }
+    .payroll-signatures td { height: 3.1rem; vertical-align: bottom; }
     @media print {
       body.corporate-report { margin: 0.3rem; }
       .salary-slip { break-inside: avoid; }
@@ -196,7 +209,22 @@
         This is a system-generated salary slip. Amounts are based on the approved payroll run and recorded deductions for the above pay period.
       </p>
 
-      {{ corporate_report_signatures(ctx) }}
+      <table class="payroll-signatures">
+        <thead>
+          <tr>
+            <th>Prepared By</th>
+            <th>Approved By</th>
+            <th>Received By Employee</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ ctx.prepared_by or 'HR / Payroll' }}</td>
+            <td></td>
+            <td>{{ line.employee_name or '' }}</td>
+          </tr>
+        </tbody>
+      </table>
     </main>
 
     {{ corporate_report_footer(ctx) }}
