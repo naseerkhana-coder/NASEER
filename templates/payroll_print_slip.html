@@ -3,54 +3,202 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Salary Slip — {{ line.employee_name }}</title>
+  <title>Salary Slip - {{ line.employee_name }}</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   {{ corporate_report_styles(ctx) }}
   <style>
-    .slip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-size: 0.72rem; margin-bottom: 0.35rem; }
-    .slip-grid div { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 0.35rem; font-size: 0.72rem; }
-    th, td { border: 1px solid var(--maxek-secondary); padding: 0.25rem 0.4rem; }
-    th { background: #f0f0f0; width: 55%; }
+    body.corporate-report { font-size: 0.76rem; }
+    .salary-slip {
+      border: 1.5px solid var(--maxek-secondary);
+      padding: 0.55rem;
+      margin-top: 0.35rem;
+      background: #fff;
+    }
+    .slip-section-title {
+      margin: 0.5rem 0 0.25rem;
+      padding: 0.22rem 0.4rem;
+      background: var(--maxek-secondary);
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.68rem;
+    }
+    .slip-info-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid var(--maxek-secondary);
+      border-bottom: none;
+    }
+    .slip-info-grid > div {
+      min-height: 2.2rem;
+      padding: 0.28rem 0.38rem;
+      border-right: 1px solid var(--maxek-secondary);
+      border-bottom: 1px solid var(--maxek-secondary);
+    }
+    .slip-info-grid > div:nth-child(4n) { border-right: none; }
+    .slip-label {
+      display: block;
+      color: #555;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.1rem;
+    }
+    .slip-value { font-weight: 700; color: var(--maxek-secondary); }
+    .salary-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      margin-top: 0.55rem;
+    }
+    .salary-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 0.72rem;
+    }
+    .salary-table th,
+    .salary-table td {
+      border: 1px solid var(--maxek-secondary);
+      padding: 0.28rem 0.4rem;
+      vertical-align: top;
+    }
+    .salary-table th {
+      background: #f2f2f2;
+      text-align: left;
+      font-weight: 700;
+    }
+    .salary-table .amount { text-align: right; white-space: nowrap; }
+    .salary-table .total-row th,
+    .salary-table .total-row td {
+      background: #f8fafc;
+      font-weight: 800;
+      border-top-width: 2px;
+    }
+    .net-pay-box {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.65rem;
+      border: 2px solid var(--maxek-primary);
+      padding: 0.5rem 0.65rem;
+    }
+    .net-pay-box .net-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 800;
+      color: var(--maxek-secondary);
+    }
+    .net-pay-box .net-period { color: #555; font-size: 0.68rem; margin-top: 0.1rem; }
+    .net-pay-box .net-amount {
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: var(--maxek-primary);
+      white-space: nowrap;
+    }
+    .slip-note {
+      margin: 0.5rem 0 0;
+      color: #555;
+      font-size: 0.66rem;
+      line-height: 1.35;
+    }
+    .salary-slip .corp-signature-table { margin-top: 0.85rem; }
+    @media print {
+      body.corporate-report { margin: 0.3rem; }
+      .salary-slip { break-inside: avoid; }
+      .salary-columns { gap: 0.4rem; }
+    }
   </style>
   {% if print_mode %}<script>window.addEventListener('load', function () { window.print(); });</script>{% endif %}
 </head>
 <body class="corporate-report">
+  {% set gross = line.gross_salary or 0 %}
+  {% set deductions = line.deductions or 0 %}
+  {% set advance = line.advance_deduction or 0 %}
+  {% set total_deductions = deductions + advance %}
+  {% set net = line.net_salary or 0 %}
+  {% set period_label = (line.period_start or '-') ~ ' to ' ~ (line.period_end or '-') %}
+
   {{ corporate_report_action_bar(ctx) }}
   {{ corporate_report_watermark(ctx) }}
+
   <div class="corp-report-body">
     {{ corporate_report_header(ctx, document_title='SALARY SLIP', extra_meta=[
       ('Employee', line.employee_name),
       ('Code', line.employee_code),
-      ('Period', (line.period_start or '') ~ ' to ' ~ (line.period_end or '')),
+      ('Period', period_label),
       ('Run Ref', line.run_ref),
     ]) }}
 
-    <div class="slip-grid">
-      <div><strong>Type:</strong> {{ line.employee_type }}</div>
-      <div><strong>Department:</strong> {{ line.department or '—' }}</div>
-      <div><strong>Bank A/C:</strong> {{ bank.bank_account or '—' }}</div>
-      <div><strong>IFSC:</strong> {{ bank.ifsc_code or '—' }}</div>
-    </div>
+    <main class="salary-slip">
+      <div class="slip-section-title">Employee & Payroll Details</div>
+      <div class="slip-info-grid">
+        <div><span class="slip-label">Employee Name</span><span class="slip-value">{{ line.employee_name or '-' }}</span></div>
+        <div><span class="slip-label">Employee Code</span><span class="slip-value">{{ line.employee_code or '-' }}</span></div>
+        <div><span class="slip-label">Employee Type</span><span class="slip-value">{{ line.employee_type or '-' }}</span></div>
+        <div><span class="slip-label">Department</span><span class="slip-value">{{ line.department or '-' }}</span></div>
+        <div><span class="slip-label">Pay Period</span><span class="slip-value">{{ period_label }}</span></div>
+        <div><span class="slip-label">Working Days</span><span class="slip-value">{{ line.working_days or 0 }}</span></div>
+        <div><span class="slip-label">Present Days</span><span class="slip-value">{{ line.present_days or 0 }}</span></div>
+        <div><span class="slip-label">Payment Status</span><span class="slip-value">{{ line.payment_status or 'Pending' }}</span></div>
+      </div>
 
-    <table>
-      <tbody>
-        <tr><th>Base / Daily Rate</th><td>₹ {{ '%.2f'|format(line.base_salary or 0) }}</td></tr>
-        <tr><th>Present Days</th><td>{{ line.present_days or 0 }} / {{ line.working_days or 0 }}</td></tr>
-        <tr><th>OT ({{ line.ot_hours or 0 }} hrs)</th><td>₹ {{ '%.2f'|format(line.ot_amount or 0) }}</td></tr>
-        <tr><th>Holiday Pay</th><td>₹ {{ '%.2f'|format(line.holiday_pay or 0) }}</td></tr>
-        <tr><th><strong>Gross Salary</strong></th><td><strong>₹ {{ '%.2f'|format(line.gross_salary or 0) }}</strong></td></tr>
-        <tr><th>Deductions</th><td>₹ {{ '%.2f'|format(line.deductions or 0) }}</td></tr>
-        <tr><th>Advance Deduction</th><td>₹ {{ '%.2f'|format(line.advance_deduction or 0) }}</td></tr>
-        <tr><th><strong>Net Salary</strong></th><td><strong>₹ {{ '%.2f'|format(line.net_salary or 0) }}</strong></td></tr>
-      </tbody>
-    </table>
-    {% if payment %}
-    <p style="font-size:0.72rem;margin-top:0.5rem;"><strong>Paid:</strong> {{ payment.payment_date }} via {{ payment.payment_mode }}
-      {% if payment.utr_ref %}| UTR: {{ payment.utr_ref }}{% endif %}</p>
-    {% endif %}
+      <div class="salary-columns">
+        <section>
+          <div class="slip-section-title">Earnings</div>
+          <table class="salary-table">
+            <tbody>
+              <tr><th>Base / Daily Rate</th><td class="amount">₹ {{ '%.2f'|format(line.base_salary or 0) }}</td></tr>
+              <tr><th>Overtime Amount ({{ line.ot_hours or 0 }} hrs)</th><td class="amount">₹ {{ '%.2f'|format(line.ot_amount or 0) }}</td></tr>
+              <tr><th>Holiday Pay</th><td class="amount">₹ {{ '%.2f'|format(line.holiday_pay or 0) }}</td></tr>
+              <tr class="total-row"><th>Gross Salary</th><td class="amount">₹ {{ '%.2f'|format(gross) }}</td></tr>
+            </tbody>
+          </table>
+        </section>
 
-    {{ corporate_report_signatures(ctx) }}
+        <section>
+          <div class="slip-section-title">Deductions</div>
+          <table class="salary-table">
+            <tbody>
+              <tr><th>Statutory / Other Deductions</th><td class="amount">₹ {{ '%.2f'|format(deductions) }}</td></tr>
+              <tr><th>Advance Deduction</th><td class="amount">₹ {{ '%.2f'|format(advance) }}</td></tr>
+              <tr><th>&nbsp;</th><td class="amount">&nbsp;</td></tr>
+              <tr class="total-row"><th>Total Deductions</th><td class="amount">₹ {{ '%.2f'|format(total_deductions) }}</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <div class="net-pay-box">
+        <div>
+          <div class="net-title">Net Salary Payable</div>
+          <div class="net-period">For {{ period_label }}</div>
+        </div>
+        <div class="net-amount">₹ {{ '%.2f'|format(net) }}</div>
+      </div>
+
+      <div class="slip-section-title">Bank & Payment Details</div>
+      <div class="slip-info-grid">
+        <div><span class="slip-label">Bank Name</span><span class="slip-value">{{ bank.bank_name or '-' }}</span></div>
+        <div><span class="slip-label">Account Number</span><span class="slip-value">{{ bank.bank_account or '-' }}</span></div>
+        <div><span class="slip-label">IFSC</span><span class="slip-value">{{ bank.ifsc_code or '-' }}</span></div>
+        <div><span class="slip-label">Branch</span><span class="slip-value">{{ bank.branch_name or '-' }}</span></div>
+        <div><span class="slip-label">Paid Date</span><span class="slip-value">{{ payment.payment_date if payment else '-' }}</span></div>
+        <div><span class="slip-label">Payment Mode</span><span class="slip-value">{{ payment.payment_mode if payment else '-' }}</span></div>
+        <div><span class="slip-label">UTR / Reference</span><span class="slip-value">{{ payment.utr_ref if payment and payment.utr_ref else '-' }}</span></div>
+        <div><span class="slip-label">Remarks</span><span class="slip-value">{{ payment.remarks if payment and payment.remarks else '-' }}</span></div>
+      </div>
+
+      <p class="slip-note">
+        This is a system-generated salary slip. Amounts are based on the approved payroll run and recorded deductions for the above pay period.
+      </p>
+
+      {{ corporate_report_signatures(ctx) }}
+    </main>
+
     {{ corporate_report_footer(ctx) }}
   </div>
 </body>
