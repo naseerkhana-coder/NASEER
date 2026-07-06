@@ -876,6 +876,7 @@ BILLING_DOCS_DIR = os.path.join(UPLOADS_DIR, "client_billing")
 PROJECT_PHOTOS_DIR = os.path.join(UPLOADS_DIR, "project_photos")
 CORPORATE_DMS_DIR = os.path.join(UPLOADS_DIR, "corporate_dms")
 CORPORATE_TEMPLATE_DIR = os.path.join(UPLOADS_DIR, "corporate_templates")
+DEFAULT_REPORT_LOGO_PATH = os.path.join(BASE_DIR, "photos", "LOGO", "MAXEK Logo jpeg.jpg")
 SUPPORT_TICKETS_DIR = os.path.join(UPLOADS_DIR, "support")
 DPR_ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
 PETTY_CASH_ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx", ".xls", ".xlsx"}
@@ -14643,6 +14644,8 @@ def corporate_template_master():
 @login_required
 def corporate_template_asset(filename):
     safe = secure_filename(filename)
+    if safe == "maxek-logo.jpg" and os.path.isfile(DEFAULT_REPORT_LOGO_PATH):
+        return send_file(DEFAULT_REPORT_LOGO_PATH)
     path = os.path.join(CORPORATE_TEMPLATE_DIR, safe)
     if not os.path.isfile(path):
         abort(404)

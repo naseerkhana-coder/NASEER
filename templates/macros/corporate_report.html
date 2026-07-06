@@ -116,14 +116,14 @@
      data-report-slug="{{ ctx.report_slug or '' }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/corporate-report.css') }}">
   <div class="corp-action-bar">
-    <button type="button" class="corp-action-btn" data-action="print" title="Print / Save as PDF"><i class="fa-solid fa-print"></i> Print / PDF</button>
-    <button type="button" class="corp-action-btn" data-action="excel" title="Export Excel"><i class="fa-solid fa-file-excel"></i> Excel</button>
-    <button type="button" class="corp-action-btn" data-action="email" title="Email"><i class="fa-solid fa-envelope"></i> Email</button>
-    <button type="button" class="corp-action-btn" data-action="whatsapp" title="WhatsApp Share"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
-    <button type="button" class="corp-action-btn" data-action="qr" title="QR Verification"><i class="fa-solid fa-qrcode"></i> QR Verify</button>
-    <button type="button" class="corp-action-btn" data-action="sign" title="Digital Signature"><i class="fa-solid fa-signature"></i> Sign</button>
+    <button type="button" class="corp-action-btn" data-action="print" title="Print / Save as PDF" aria-label="Print / Save as PDF"><i class="fa-solid fa-print"></i></button>
+    <button type="button" class="corp-action-btn" data-action="excel" title="Export Excel" aria-label="Export Excel"><i class="fa-solid fa-file-excel"></i></button>
+    <button type="button" class="corp-action-btn" data-action="email" title="Email" aria-label="Email"><i class="fa-solid fa-envelope"></i></button>
+    <button type="button" class="corp-action-btn" data-action="whatsapp" title="WhatsApp Share" aria-label="WhatsApp Share"><i class="fa-brands fa-whatsapp"></i></button>
+    <button type="button" class="corp-action-btn" data-action="qr" title="QR Verification" aria-label="QR Verification"><i class="fa-solid fa-qrcode"></i></button>
+    <button type="button" class="corp-action-btn" data-action="sign" title="Digital Signature" aria-label="Digital Signature"><i class="fa-solid fa-signature"></i></button>
     {% if ctx.back_url %}
-    <a href="{{ ctx.back_url }}" class="corp-action-btn corp-action-link"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <a href="{{ ctx.back_url }}" class="corp-action-btn corp-action-link" title="Back" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></a>
     {% endif %}
   </div>
   <div class="corp-qr-panel no-print" data-qr-panel hidden>

@@ -13,6 +13,7 @@ DEFAULT_BACKGROUND = "#FFFFFF"
 DEFAULT_FONT = "Arial, Helvetica, sans-serif"
 DEFAULT_HEADER_LINE1 = "MAXEK PRIVATE LIMITED"
 DEFAULT_HEADER_LINE2 = "MAXEK CONSTRUCTION SYSTEM"
+DEFAULT_COMPANY_LOGO = "maxek-logo.jpg"
 
 FONT_OPTIONS = (
     "Arial, Helvetica, sans-serif",
@@ -240,7 +241,7 @@ def _fallback_template() -> dict[str, Any]:
         "footer_phone": "+91-XXXXXXXXXX",
         "footer_email": "info@maxek.com",
         "footer_website": "www.maxek.com",
-        "company_logo_path": None,
+        "company_logo_path": DEFAULT_COMPANY_LOGO,
         "watermark_logo_path": None,
         "company_seal_path": None,
         "signatory_image_path": None,
@@ -492,7 +493,7 @@ def build_print_context(
         "footer_website": footer_website,
         "letterhead_html": template.get("letterhead_html") or "",
         "footer_html": template.get("footer_html") or "",
-        "company_logo_path": template.get("company_logo_path"),
+        "company_logo_path": template.get("company_logo_path") or DEFAULT_COMPANY_LOGO,
         "watermark_logo_path": template.get("watermark_logo_path"),
         "company_seal_path": template.get("company_seal_path"),
         "signatory_image_path": template.get("signatory_image_path"),
