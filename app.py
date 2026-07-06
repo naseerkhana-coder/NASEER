@@ -6004,6 +6004,7 @@ def init_db():
     _ensure_column(db, "projects", "agreement_number", "TEXT")
     _ensure_column(db, "projects", "agreement_date", "TEXT")
     _ensure_column(db, "projects", "completion_date", "TEXT")
+    _ensure_column(db, "projects", "warranty_completion_period", "TEXT")
     _ensure_column(db, "projects", "agreement_amount", "REAL")
     _ensure_column(db, "projects", "treasury_details", "TEXT")
     _ensure_column(db, "projects", "completion_time", "TEXT")
@@ -12187,6 +12188,7 @@ def projects():
         completion_months_raw = request.form.get("completion_months", "").strip()
         gov_completion_date = request.form.get("gov_completion_date", "").strip()
         completion_date = gov_completion_date
+        warranty_completion_period = request.form.get("warranty_completion_period", "").strip()
         agreement_amount = request.form.get("agreement_amount", "0").strip()
         treasury_details = request.form.get("treasury_details", "").strip()
         quoted_amount = request.form.get("quoted_amount", "0").strip()
@@ -12272,6 +12274,8 @@ def projects():
             )
             if completion_date:
                 end_date = completion_date
+            if approved_total_val <= 0:
+                approved_total_val = agreement_amount_val or quoted_val
             # Legacy columns: mirror first guarantee row of each kind for Project 360 / reports
             guarantee_type = ""
             bank_guarantee_number = ""
@@ -12316,6 +12320,7 @@ def projects():
             agreement_number = ""
             agreement_date = ""
             completion_date = ""
+            warranty_completion_period = ""
             agreement_amount_val = 0
             treasury_details = ""
             completion_time = ""
@@ -12347,7 +12352,7 @@ def projects():
             project_name, project_type, client_id, private_client_name, location,
             start_date, end_date, "", approved_total_val, approved_total_val, status, gov_department,
             notice_issued_date, agreement_last_date, letter_number, agreement_number,
-            agreement_date, completion_date, agreement_amount_val, treasury_details,
+            agreement_date, completion_date, warranty_completion_period, agreement_amount_val, treasury_details,
             completion_time, completion_months_val, completion_mode,
             quoted_val, sd_pct_val,
             guarantee_type, bank_guarantee_number, bank_guarantee_issued_date,
@@ -12369,7 +12374,8 @@ def projects():
                 "UPDATE projects SET project_name=?, project_type=?, client_id=?, private_client_name=?, "
                 "location=?, start_date=?, end_date=?, project_manager=?, budget=?, approved_total_amount=?, "
                 "status=?, gov_department=?, notice_issued_date=?, agreement_last_date=?, letter_number=?, "
-                "agreement_number=?, agreement_date=?, completion_date=?, agreement_amount=?, treasury_details=?, "
+                "agreement_number=?, agreement_date=?, completion_date=?, warranty_completion_period=?, "
+                "agreement_amount=?, treasury_details=?, "
                 "completion_time=?, completion_months=?, completion_mode=?, "
                 "quoted_amount=?, security_deposit_pct=?, guarantee_type=?, bank_guarantee_number=?, "
                 "bank_guarantee_issued_date=?, bank_guarantee_expiry_date=?, bank_guarantee_amount=?, "
@@ -12393,7 +12399,7 @@ def projects():
             "project_code, project_name, project_type, client_id, private_client_name, location, "
             "start_date, end_date, project_manager, budget, approved_total_amount, status, "
             "gov_department, notice_issued_date, agreement_last_date, letter_number, agreement_number, "
-            "agreement_date, completion_date, agreement_amount, treasury_details, completion_time, "
+            "agreement_date, completion_date, warranty_completion_period, agreement_amount, treasury_details, completion_time, "
             "completion_months, completion_mode, "
             "quoted_amount, security_deposit_pct, guarantee_type, "
             "bank_guarantee_number, bank_guarantee_issued_date, bank_guarantee_expiry_date, "
@@ -12402,7 +12408,7 @@ def projects():
             "bank_guarantee_document, security_deposit_document, work_order_number, work_order_date, "
             "work_order_amount, project_contact_person, work_order_document, created_by, created_at, "
             "customer_id, company_id, branch_id, approval_status"
-            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (project_code,) + project_values + (
                 username, now_ts,
                 session.get("customer_id"),

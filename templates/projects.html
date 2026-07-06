@@ -115,9 +115,9 @@
         <div class="erp-field"><input name="agreement_number" value="{{ form_project.agreement_number if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.agreement_number %}has-value{% endif %}"><label>Agreement Number</label></div>
         <div class="erp-field"><input name="agreement_date" type="date" value="{{ form_project.agreement_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.agreement_date %}has-value{% endif %}"><label>Agreement Date</label></div>
         <div class="erp-field"><input name="gov_completion_date" type="date" value="{{ form_project.completion_date if form_project and form_project.completion_date else (form_project.end_date if form_project and form_project.completion_mode == 'date' else '') }}" placeholder=" " class="{% if form_project and (form_project.completion_date or (form_project.completion_mode == 'date' and form_project.end_date)) %}has-value{% endif %}"><label>Completion Date</label></div>
+        <div class="erp-field"><input name="warranty_completion_period" value="{{ form_project.warranty_completion_period if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.warranty_completion_period %}has-value{% endif %}"><label>Warranty Completion Period</label></div>
         <div class="erp-field"><input name="agreement_amount" type="number" step="0.01" value="{{ form_project.agreement_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.agreement_amount %}has-value{% endif %}"><label>Agreement Amount</label></div>
         <div class="erp-field"><input name="quoted_amount" id="project_quoted_amount" type="number" step="0.01" value="{{ form_project.quoted_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.quoted_amount %}has-value{% endif %}"><label>Quoted Amount</label></div>
-        <div class="erp-field span-2"><textarea name="treasury_details" placeholder=" " class="{% if form_project and form_project.treasury_details %}has-value{% endif %}">{{ form_project.treasury_details if form_project else '' }}</textarea><label>Treasury Details</label></div>
       </div>
 
       <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Bank Guarantee (BG)</div>
@@ -232,32 +232,6 @@
         </div>
       </div>
 
-      <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Project Completion</div>
-      <div class="erp-field span-2 erp-field-radio-group" data-project-section="government" hidden>
-        <div class="erp-radio-row">
-          <label><input type="radio" name="completion_mode" value="months"{% if not form_project or form_project.completion_mode != 'date' %} checked{% endif %}> Completion (months)</label>
-          <label><input type="radio" name="completion_mode" value="date"{% if form_project and form_project.completion_mode == 'date' %} checked{% endif %}> Completion date</label>
-        </div>
-        <label>How to specify completion</label>
-      </div>
-      <div class="erp-field" data-gov-completion="months" data-project-section="government" hidden>
-        <input name="completion_months" type="number" step="1" min="1" value="{{ form_project.completion_months if form_project and form_project.completion_months else (form_project.completion_time if form_project and form_project.completion_time else '') }}" placeholder=" " class="{% if form_project and (form_project.completion_months or form_project.completion_time) %}has-value{% endif %}">
-        <label>Completion (months)</label>
-      </div>
-      <div class="erp-field erp-project-hidden-date" data-gov-completion="date" data-project-section="government" hidden aria-hidden="true">
-        <input type="date" value="{{ form_project.end_date if form_project and form_project.completion_mode == 'date' else '' }}" placeholder=" " disabled>
-        <label>Completion date</label>
-      </div>
-      <p class="erp-form-hint span-2" data-project-section="government" hidden>For government projects, completion date is stored as the project end date.</p>
-
-      <div class="erp-form-subtitle span-2" data-project-section="government" hidden>Security Deposit</div>
-      <div class="erp-field" data-project-section="government" hidden><input name="security_deposit_pct" id="project_security_pct" type="number" step="0.01" value="{{ form_project.security_deposit_pct if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.security_deposit_pct %}has-value{% endif %}"><label>Security Deposit %</label></div>
-      <div class="erp-field" data-project-section="government" hidden>
-        <input name="security_deposit_amount" id="project_security_amount" type="number" step="0.01" value="{{ form_project.security_deposit_amount if form_project else '' }}" placeholder=" " data-security-amount class="{% if form_project and form_project.security_deposit_amount %}has-value{% endif %}">
-        <label>Security Deposit Amount</label>
-      </div>
-      <p class="erp-form-hint span-2" data-project-section="government" hidden>Security amount is calculated from quoted amount × % — you may edit it manually. Security deposit and bank guarantee may both apply before bills are cleared.</p>
-
       <div class="erp-field span-2 erp-field-with-action" data-project-section="private" hidden>
         <select name="client_id" id="project_client_id" class="{% if selected_client_id or (form_project and form_project.client_id) %}has-value{% endif %}">
           <option value="">Select client (optional)</option>
@@ -278,9 +252,9 @@
       </div>
 
       <div class="erp-field"><input name="location" value="{{ form_project.location if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.location %}has-value{% endif %}"><label>Location</label></div>
-      <div class="erp-field"><input name="start_date" type="date" value="{{ form_project.start_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.start_date %}has-value{% endif %}"><label>Start Date</label></div>
+      <div class="erp-field" data-project-section="private" hidden><input name="start_date" type="date" value="{{ form_project.start_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.start_date %}has-value{% endif %}"><label>Start Date</label></div>
       <div class="erp-field" data-project-section="private" hidden><input name="end_date" type="date" value="{{ form_project.end_date if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.end_date %}has-value{% endif %}"><label>End Date</label></div>
-      <div class="erp-field"><input name="approved_total_amount" type="number" step="0.01" value="{{ form_project.approved_total_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.approved_total_amount %}has-value{% endif %}"><label>Approved Total Amount</label></div>
+      <div class="erp-field" data-project-section="private" hidden><input name="approved_total_amount" type="number" step="0.01" value="{{ form_project.approved_total_amount if form_project else '' }}" placeholder=" " class="{% if form_project and form_project.approved_total_amount %}has-value{% endif %}"><label>Approved Total Amount</label></div>
       <div class="erp-field"><select name="status" class="has-value"><option{% if not form_project or form_project.status == 'Active' %} selected{% endif %}>Active</option><option{% if form_project and form_project.status == 'Completed' %} selected{% endif %}>Completed</option><option{% if form_project and form_project.status == 'On Hold' %} selected{% endif %}>On Hold</option></select><label>Status</label></div>
       <div class="erp-form-actions span-2">
         <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> {{ 'Update Project' if form_project else 'Save Project' }}</button>
