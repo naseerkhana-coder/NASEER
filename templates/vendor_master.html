@@ -1,0 +1,286 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Vendor / Supplier Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Vendor Master' %}
+{% block page_actions %}
+{% if vendor_permissions.create %}
+<a href="{{ url_for('vendor_master', new=1) }}#vendor-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Vendor</a>
+{% endif %}
+{% if vendor_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="vendor-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if vendor_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/vendor-master/export?format=xlsx{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&vendor_type={{ type_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/vendor-master/export?format=csv{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/vendor-master/export?format=pdf{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('purchase_vendors') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-truck-field"></i> Legacy Vendors</a>
+<a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Central vendor and supplier registry for purchase orders, GRN, quotations, and subcontractor linking.
+  Documents attach via <a href="{{ url_for('document_management') }}">Document Management</a> (module: vendor_master).
+</p>
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search vendors...',
+    search_name='q',
+    export_name='vendors',
+    print_target='#vendor-records',
+    form_panel_id='vendor-form',
+    table_panel_id='vendor-records',
+    new_url=url_for('vendor_master', new=1) ~ '#vendor-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="vendor-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Vendors ({{ vendor_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in vendor_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <select name="vendor_type" onchange="this.form.submit()">
+          <option value="">All types</option>
+          {% for vt in vendor_types %}
+          <option value="{{ vt }}" {% if type_filter == vt %}selected{% endif %}>{{ vt }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="blacklisted" value="1" {% if blacklisted_filter %}checked{% endif %} onchange="this.form.submit()"> Blacklisted</label>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>GSTIN</th>
+            <th>Type</th>
+            <th>City</th>
+            <th>Rating</th>
+            <th>Status</th>
+            <th>Approval</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in vendors %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% elif row.is_blacklisted %}class="erp-row-warn"{% endif %}>
+            <td>{{ row.code or '—' }}</td>
+            <td>{{ row.name }}{% if row.is_blacklisted %} <span class="erp-badge erp-badge-warn">Blacklisted</span>{% endif %}</td>
+            <td>{{ row.gstin or '—' }}</td>
+            <td>{{ row.vendor_type or '—' }}</td>
+            <td>{{ row.city or '—' }}</td>
+            <td>{{ row.rating if row.rating is not none else '—' }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>{{ row.approval_status or 'Draft' }}</td>
+            <td>
+              <a href="{{ url_for('vendor_master', vendor_id=row.id, view=1) }}#vendor-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if vendor_permissions.edit %}
+              <a href="{{ url_for('vendor_master', vendor_id=row.id) }}#vendor-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No vendors registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if vendor_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, vendor_pagination.pages + 1) %}
+      <a href="{{ url_for('vendor_master', q=search, status=status_filter, vendor_type=type_filter, sort_by=sort_by, sort_dir=sort_dir, page=p, blacklisted=1 if blacklisted_filter else None, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == vendor_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_vendor_form %}
+  <div class="erp-form-card" id="vendor-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and selected_vendor %}View {{ selected_vendor.code }}
+      {% elif selected_vendor %}Edit {{ selected_vendor.code }}
+      {% else %}New Vendor{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_vendor">
+      {% if selected_vendor %}<input type="hidden" name="vendor_id" value="{{ selected_vendor.id }}">{% endif %}
+
+      <div class="erp-field"><input name="vendor_code" placeholder=" " value="{{ selected_vendor.code if selected_vendor else next_vendor_code }}" {% if view_mode %}readonly{% endif %}><label>Vendor Code</label></div>
+      <div class="erp-field"><input name="vendor_name" required placeholder=" " value="{{ selected_vendor.name if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Vendor Name *</label></div>
+      <div class="erp-field"><input name="gstin" placeholder=" " value="{{ selected_vendor.gstin if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>GSTIN</label></div>
+      <div class="erp-field"><input name="pan" placeholder=" " value="{{ selected_vendor.pan if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>PAN</label></div>
+      <div class="erp-field"><input name="msme_number" placeholder=" " value="{{ selected_vendor.msme_number if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>MSME / Udyam</label></div>
+      <div class="erp-field"><input name="cin_number" placeholder=" " value="{{ selected_vendor.cin_number if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>CIN</label></div>
+
+      <div class="erp-field span-2">
+        <label class="erp-field-label">Vendor Types</label>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+          {% set selected_types = selected_vendor.vendor_types_list if selected_vendor else [] %}
+          {% for vt in vendor_types %}
+          <label style="font-size:0.85rem;"><input type="checkbox" name="vendor_types[]" value="{{ vt }}" {% if vt in selected_types %}checked{% endif %} {% if view_mode %}disabled{% endif %}> {{ vt }}</label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="erp-field"><input name="contact_person" placeholder=" " value="{{ selected_vendor.contact_person if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Primary Contact</label></div>
+      <div class="erp-field"><input name="phone" placeholder=" " value="{{ selected_vendor.phone if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Phone</label></div>
+      <div class="erp-field"><input name="email" type="email" placeholder=" " value="{{ selected_vendor.email if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Email</label></div>
+      <div class="erp-field span-2"><input name="address" placeholder=" " value="{{ selected_vendor.address if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Primary Address</label></div>
+      <div class="erp-field"><input name="city" placeholder=" " value="{{ selected_vendor.city if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>City</label></div>
+      <div class="erp-field"><input name="state" placeholder=" " value="{{ selected_vendor.state if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>State</label></div>
+      <div class="erp-field"><input name="pincode" placeholder=" " value="{{ selected_vendor.pincode if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Pincode</label></div>
+      <div class="erp-field"><input name="website" placeholder=" " value="{{ selected_vendor.website if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Website</label></div>
+
+      <div class="erp-field">
+        <select name="payment_terms" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select —</option>
+          {% for pt in payment_terms_options %}
+          <option value="{{ pt }}" {% if selected_vendor and selected_vendor.payment_terms == pt %}selected{% endif %}>{{ pt }}</option>
+          {% endfor %}
+        </select>
+        <label>Payment Terms</label>
+      </div>
+      <div class="erp-field"><input name="credit_limit" type="number" step="0.01" placeholder=" " value="{{ selected_vendor.credit_limit if selected_vendor else '0' }}" {% if view_mode %}readonly{% endif %}><label>Credit Limit</label></div>
+      <div class="erp-field"><input name="rating" type="number" step="0.1" min="0" max="5" placeholder=" " value="{{ selected_vendor.rating if selected_vendor and selected_vendor.rating is not none else '' }}" {% if view_mode %}readonly{% endif %}><label>Rating (0–5)</label></div>
+
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in vendor_statuses %}
+          <option value="{{ s }}" {% if selected_vendor and selected_vendor.status == s %}selected{% elif not selected_vendor and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status</label>
+      </div>
+      <div class="erp-field" style="display:flex;align-items:center;gap:0.5rem;padding-top:1.25rem;">
+        <label><input type="checkbox" name="is_approved" value="1" {% if selected_vendor and selected_vendor.is_approved %}checked{% endif %} {% if view_mode %}disabled{% endif %}> Approved Vendor</label>
+        <label><input type="checkbox" name="is_blacklisted" value="1" {% if selected_vendor and selected_vendor.is_blacklisted %}checked{% endif %} {% if view_mode %}disabled{% endif %}> Blacklisted</label>
+      </div>
+      <div class="erp-field span-2"><textarea name="remarks" placeholder=" " rows="2" {% if view_mode %}readonly{% endif %}>{{ selected_vendor.remarks if selected_vendor else '' }}</textarea><label>Remarks</label></div>
+
+      {% if selected_vendor and selected_vendor.bank_accounts %}
+      <div class="erp-field span-2">
+        <h4>Bank Accounts</h4>
+        <ul>
+          {% for bank in selected_vendor.bank_accounts %}
+          <li>{{ bank.bank_name or '—' }} — {{ bank.account_number or '—' }} ({{ bank.ifsc_code or '—' }})</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% else %}
+      <div class="erp-field"><input name="bank_account" placeholder=" " value="{{ selected_vendor.bank_account if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Bank Account</label></div>
+      <div class="erp-field"><input name="bank_name" placeholder=" " value="{{ selected_vendor.bank_name if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>Bank Name</label></div>
+      <div class="erp-field"><input name="ifsc_code" placeholder=" " value="{{ selected_vendor.ifsc_code if selected_vendor else '' }}" {% if view_mode %}readonly{% endif %}><label>IFSC</label></div>
+      {% endif %}
+
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        {% if vendor_permissions.edit or vendor_permissions.create %}
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Vendor</button>
+        {% endif %}
+        {% if selected_vendor %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="vendor-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        <span id="vendor-ai-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+        {% endif %}
+        {% if selected_vendor and vendor_permissions.approve and selected_vendor.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_vendor" class="erp-btn erp-btn-ghost">Approve</button>
+        <button type="submit" name="form_action" value="reject_vendor" class="erp-btn erp-btn-ghost" onclick="return confirm('Reject this vendor?');">Reject</button>
+        {% endif %}
+        {% if selected_vendor and vendor_permissions.activate and selected_vendor.status == 'Inactive' %}
+        <button type="submit" name="form_action" value="activate_vendor" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if selected_vendor and vendor_permissions.deactivate and selected_vendor.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_vendor" class="erp-btn erp-btn-ghost" onclick="return confirm('Deactivate this vendor?');">Deactivate</button>
+        {% endif %}
+        {% if selected_vendor and vendor_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_vendor" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this vendor?');">Delete</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+
+    {% if selected_vendor and audit_trail %}
+    <div style="margin-top:1rem;">
+      <h4>Audit Trail</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>When</th><th>By</th><th>Action</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+        <tbody>
+          {% for entry in audit_trail %}
+          <tr>
+            <td>{{ entry.changed_at }}</td>
+            <td>{{ entry.changed_by }}</td>
+            <td>{{ entry.action }}</td>
+            <td>{{ entry.field_name or '—' }}</td>
+            <td>{{ entry.old_value or '—' }}</td>
+            <td>{{ entry.new_value or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if selected_vendor and selected_vendor.documents %}
+    <div style="margin-top:1rem;">
+      <h4>Documents (DMS)</h4>
+      <ul>
+        {% for doc in selected_vendor.documents %}
+        <li>{{ doc.document_name or doc.document_number }} — {{ doc.document_type or '—' }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if vendor_permissions.view %}
+  <div class="erp-form-card" style="margin-top:1rem;">
+    <h3 class="erp-form-title">Reports</h3>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <a href="/api/vendor-master/reports/directory" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Vendor Directory</a>
+      <a href="/api/vendor-master/reports/contact" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Contact Report</a>
+      <a href="/api/vendor-master/reports/rating" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Rating Report</a>
+      <a href="/api/vendor-master/reports/active" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Active Vendors</a>
+      <a href="/api/vendor-master/reports/inactive" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Inactive Vendors</a>
+      <a href="/api/vendor-master/export?format=pdf&report=active" class="erp-btn erp-btn-ghost erp-btn-sm">Active Vendors PDF</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if vendor_permissions.import %}
+<div id="vendor-import-modal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <div class="erp-form-card" style="max-width:480px;width:90%;">
+    <h3 class="erp-form-title">Import Vendors</h3>
+    <p class="erp-form-section-help"><a href="/api/vendor-master/import/template">Download Excel template</a></p>
+    <input type="file" id="vendor-import-file" accept=".xlsx,.xls,.csv">
+    <div id="vendor-import-status" style="margin-top:0.75rem;font-size:0.9rem;"></div>
+    <div class="erp-form-actions" style="margin-top:1rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="vendor-import-run">Validate &amp; Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="vendor-import-close">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+window.VENDOR_MASTER_BOOT = { vendorId: {{ selected_vendor.id if selected_vendor else 'null' }} };
+</script>
+<script src="{{ url_for('static', filename='js/vendor-master.js') }}"></script>
+{% endblock %}

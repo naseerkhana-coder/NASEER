@@ -146,11 +146,55 @@
     renderDirectorFields(sel, targetId, prefix, values || {});
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function () {
     var boot = window.COMPANY_MASTER_BOOT || {};
     bindCountryToggle("company-country", "company-country-fields", "cf_", boot.countryFields || {});
     bindCountryToggle("branch-country", "branch-country-fields", "cf_", boot.branchCountryFields || {});
     bindDirectorToggle("director-country", "director-id-fields", "dp_", boot.directorIdFields || {});
+
+    var importBtn = document.getElementById("company-import-btn");
+    var importModal = document.getElementById("company-import-modal");
+    var importClose = document.getElementById("company-import-close");
+    var importRun = document.getElementById("company-import-run");
+    var importFile = document.getElementById("company-import-file");
+    var importStatus = document.getElementById("company-import-status");
+
+    function showImportModal(show) {
+      if (!importModal) return;
+      importModal.hidden = !show;
+      importModal.style.display = show ? "flex" : "none";
+    }
+    if (importBtn) {
+      importBtn.addEventListener("click", function () { showImportModal(true); });
+    }
+    if (importClose) {
+      importClose.addEventListener("click", function () { showImportModal(false); });
+    }
+    if (importRun && importFile) {
+      importRun.addEventListener("click", function () {
+        if (!importFile.files || !importFile.files[0]) {
+          if (importStatus) importStatus.textContent = "Choose a file first.";
+          return;
+        }
+        if (importStatus) importStatus.textContent = "Importing…";
+        var fd = new FormData();
+        fd.append("file", importFile.files[0]);
+        fetch("/api/company-master/import/save", { method: "POST", body: fd, credentials: "same-origin" })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+          .then(function (res) {
+            if (res.ok && res.body.ok) {
+              if (importStatus) importStatus.textContent = "Imported " + (res.body.imported || 0) + " companies.";
+              setTimeout(function () { window.location.reload(); }, 800);
+            } else {
+              var msg = (res.body && (res.body.error || (res.body.errors && res.body.errors.length))) || "Import failed.";
+              if (importStatus) importStatus.textContent = typeof msg === "string" ? msg : "Validation failed.";
+            }
+          })
+          .catch(function () {
+            if (importStatus) importStatus.textContent = "Import request failed.";
+          });
+      });
+    }
 
     var tabBtns = document.querySelectorAll("[data-company-tab]");
     var panels = document.querySelectorAll("[data-company-panel]");

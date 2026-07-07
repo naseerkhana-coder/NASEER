@@ -1,0 +1,387 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Employee Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Employee Master' %}
+{% block page_actions %}
+{% if employee_permissions.create %}
+<a href="{{ url_for('employee_master', new=1) }}#employee-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Employee</a>
+{% endif %}
+{% if employee_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="employee-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if employee_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/employee-master/export?format=xlsx{% if company_filter %}&company_id={{ company_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/employee-master/export?format=csv{% if company_filter %}&company_id={{ company_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/employee-master/export?format=pdf{% if company_filter %}&company_id={{ company_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('staff') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-users"></i> Legacy Staff / Payroll</a>
+<a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Company staff registry for HR, payroll, and user linking. Construction site workers belong in
+  <a href="{{ url_for('worker_master') }}">Worker Master (MODULE-015)</a>, not here.
+  Documents attach via <a href="{{ url_for('document_management') }}">Document Management</a> (module: employee_master).
+</p>
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search employees...',
+    search_name='q',
+    export_name='employees',
+    print_target='#employee-records',
+    form_panel_id='employee-form',
+    table_panel_id='employee-records',
+    new_url=url_for('employee_master', new=1) ~ '#employee-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="employee-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Employees ({{ employee_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="company_id" id="filter-company-id" onchange="this.form.submit()">
+          <option value="">All companies</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="department_id" onchange="this.form.submit()">
+          <option value="">All departments</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}" {% if department_filter == d.id %}selected{% endif %}>{{ d.department_code }} — {{ d.department_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in employee_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Designation</th>
+            <th>Mobile</th>
+            <th>Joining</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in employees %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
+            <td>{{ row.employee_code or '—' }}</td>
+            <td>{{ row.staff_name }}</td>
+            <td>{{ row.dept_master_name or row.department or '—' }}</td>
+            <td>{{ row.desig_master_name or row.designation or '—' }}</td>
+            <td>{{ row.mobile or '—' }}</td>
+            <td>{{ row.joining_date or '—' }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>
+              <a href="{{ url_for('employee_master', staff_id=row.id, view=1) }}#employee-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if employee_permissions.edit %}
+              <a href="{{ url_for('employee_master', staff_id=row.id) }}#employee-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8">No employees registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if employee_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, employee_pagination.pages + 1) %}
+      <a href="{{ url_for('employee_master', q=search, company_id=company_filter, department_id=department_filter, status=status_filter, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == employee_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_employee_form %}
+  {% set emp = selected_employee %}
+  <div class="erp-form-card" id="employee-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and emp %}View {{ emp.employee_code }}
+      {% elif emp %}Edit {{ emp.employee_code }}
+      {% else %}New Employee{% endif %}
+    </h3>
+    <form method="post" enctype="multipart/form-data" class="erp-form-grid" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_employee">
+      {% if emp %}<input type="hidden" name="staff_id" value="{{ emp.id }}">{% endif %}
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Identity &amp; Org</h4></div>
+      <div class="erp-field"><input name="employee_code" placeholder=" " value="{{ emp.employee_code if emp else next_employee_code }}" {% if view_mode %}readonly{% endif %}><label>Employee Code</label></div>
+      <div class="erp-field">
+        <select name="employee_type" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for t in employee_types %}
+          <option value="{{ t }}" {% if emp and emp.employee_type == t %}selected{% elif not emp and t == 'Permanent' %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <label>Employee Type</label>
+      </div>
+      <div class="erp-field"><input name="first_name" required placeholder=" " value="{{ emp.first_name if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>First Name *</label></div>
+      <div class="erp-field"><input name="middle_name" placeholder=" " value="{{ emp.middle_name if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Middle Name</label></div>
+      <div class="erp-field"><input name="last_name" placeholder=" " value="{{ emp.last_name if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Last Name</label></div>
+      <div class="erp-field">
+        <select name="company_id" id="emp-company-id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select Company —</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if emp and emp.company_id == co.id %}selected{% elif not emp and company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Company *</label>
+      </div>
+      <div class="erp-field">
+        <select name="branch_id" id="emp-branch-id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Branch —</option>
+          {% for br in branches %}
+          <option value="{{ br.id }}" data-company="{{ br.company_id }}" {% if emp and emp.branch_id == br.id %}selected{% endif %}>{{ br.branch_code }} — {{ br.branch_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Branch</label>
+      </div>
+      <div class="erp-field">
+        <select name="department_id" id="emp-dept-id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Department * —</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}" data-company="{{ d.company_id }}" {% if emp and emp.department_id == d.id %}selected{% endif %}>{{ d.department_code }} — {{ d.department_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Department *</label>
+      </div>
+      <div class="erp-field">
+        <select name="designation_id" id="emp-desig-id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Designation * —</option>
+          {% for des in designations %}
+          <option value="{{ des.id }}" data-company="{{ des.company_id }}" {% if emp and emp.designation_id == des.id %}selected{% endif %}>{{ des.designation_code }} — {{ des.designation_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Designation *</label>
+      </div>
+      <div class="erp-field">
+        <select name="reporting_manager_id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Reporting Manager —</option>
+          {% for m in managers %}
+          <option value="{{ m.id }}" {% if emp and emp.reporting_manager_id == m.id %}selected{% endif %}>{{ m.employee_code }} — {{ m.staff_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Reporting Manager</label>
+      </div>
+      <div class="erp-field"><input name="joining_date" type="date" required placeholder=" " value="{{ emp.joining_date if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Joining Date *</label></div>
+      <div class="erp-field"><input name="confirmation_date" type="date" placeholder=" " value="{{ emp.confirmation_date if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Confirmation Date</label></div>
+      <div class="erp-field"><input name="relieving_date" type="date" placeholder=" " value="{{ emp.relieving_date if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Relieving Date</label></div>
+      <div class="erp-field">
+        <select name="employment_status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for es in employment_statuses %}
+          <option value="{{ es }}" {% if emp and emp.employment_status == es %}selected{% elif not emp and es == 'Active' %}selected{% endif %}>{{ es }}</option>
+          {% endfor %}
+        </select>
+        <label>Employment Status</label>
+      </div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Contact</h4></div>
+      <div class="erp-field"><input name="official_email" type="email" placeholder=" " value="{{ emp.official_email if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Official Email</label></div>
+      <div class="erp-field"><input name="personal_email" type="email" placeholder=" " value="{{ emp.personal_email if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Personal Email</label></div>
+      <div class="erp-field"><input name="mobile" placeholder=" " value="{{ emp.mobile if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Mobile</label></div>
+      <div class="erp-field"><input name="alternative_mobile" placeholder=" " value="{{ emp.alternative_mobile if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Alt. Mobile</label></div>
+      <div class="erp-field span-2"><textarea name="current_address" placeholder=" " rows="2" {% if view_mode %}readonly{% endif %}>{{ emp.current_address if emp else '' }}</textarea><label>Current Address</label></div>
+      <div class="erp-field span-2"><textarea name="permanent_address" placeholder=" " rows="2" {% if view_mode %}readonly{% endif %}>{{ emp.permanent_address if emp else '' }}</textarea><label>Permanent Address</label></div>
+      <div class="erp-field"><input name="city" placeholder=" " value="{{ emp.city if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>City</label></div>
+      <div class="erp-field"><input name="state" placeholder=" " value="{{ emp.state if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>State</label></div>
+      <div class="erp-field"><input name="pin_code" placeholder=" " value="{{ emp.pin_code if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Pin Code</label></div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Personal</h4></div>
+      <div class="erp-field">
+        <select name="gender" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">—</option>
+          {% for g in gender_options %}
+          <option value="{{ g }}" {% if emp and emp.gender == g %}selected{% endif %}>{{ g }}</option>
+          {% endfor %}
+        </select>
+        <label>Gender</label>
+      </div>
+      <div class="erp-field"><input name="date_of_birth" type="date" placeholder=" " value="{{ emp.date_of_birth if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Date of Birth</label></div>
+      <div class="erp-field">
+        <select name="blood_group" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">—</option>
+          {% for bg in blood_groups %}
+          <option value="{{ bg }}" {% if emp and emp.blood_group == bg %}selected{% endif %}>{{ bg }}</option>
+          {% endfor %}
+        </select>
+        <label>Blood Group</label>
+      </div>
+      <div class="erp-field"><input name="nationality" placeholder=" " value="{{ emp.nationality if emp else 'Indian' }}" {% if view_mode %}readonly{% endif %}><label>Nationality</label></div>
+      <div class="erp-field">
+        <select name="marital_status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">—</option>
+          {% for ms in marital_statuses %}
+          <option value="{{ ms }}" {% if emp and emp.marital_status == ms %}selected{% endif %}>{{ ms }}</option>
+          {% endfor %}
+        </select>
+        <label>Marital Status</label>
+      </div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Identity Documents</h4></div>
+      <div class="erp-field"><input name="aadhaar_number" placeholder=" " value="{{ emp.aadhaar_number if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Aadhaar</label></div>
+      <div class="erp-field"><input name="pan_number" placeholder=" " value="{{ emp.pan_number if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>PAN</label></div>
+      <div class="erp-field"><input name="passport_number" placeholder=" " value="{{ emp.passport_number if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Passport</label></div>
+      <div class="erp-field"><input name="driving_license" placeholder=" " value="{{ emp.driving_license if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Driving Licence</label></div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">PF / ESI / Bank / Salary</h4></div>
+      <div class="erp-field"><input name="pf_number" placeholder=" " value="{{ emp.pf_number if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>PF Number</label></div>
+      <div class="erp-field"><input name="esi_number" placeholder=" " value="{{ emp.esi_number if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>ESI Number</label></div>
+      <div class="erp-field"><input name="uan_number" placeholder=" " value="{{ emp.uan_number if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>UAN</label></div>
+      <div class="erp-field"><input name="bank_name" placeholder=" " value="{{ emp.bank_name if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Bank Name</label></div>
+      <div class="erp-field"><input name="bank_account" placeholder=" " value="{{ emp.bank_account if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Account Number</label></div>
+      <div class="erp-field"><input name="ifsc_code" placeholder=" " value="{{ emp.ifsc_code if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>IFSC</label></div>
+      <div class="erp-field"><input name="bank_branch_name" placeholder=" " value="{{ emp.branch_name if emp else '' }}" {% if view_mode %}readonly{% endif %}><label>Bank Branch</label></div>
+      <div class="erp-field">
+        <select name="salary_type" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for st in salary_types %}
+          <option value="{{ st }}" {% if emp and emp.salary_type == st %}selected{% elif not emp and st == 'Monthly' %}selected{% endif %}>{{ st }}</option>
+          {% endfor %}
+        </select>
+        <label>Salary Type</label>
+      </div>
+      <div class="erp-field"><input name="salary_amount" type="number" step="0.01" placeholder=" " value="{{ emp.salary_amount if emp and emp.salary_amount is not none else '' }}" {% if view_mode %}readonly{% endif %}><label>Salary Amount</label></div>
+      <div class="erp-field span-2"><textarea name="salary_structure" placeholder=" " rows="2" {% if view_mode %}readonly{% endif %}>{{ emp.salary_structure if emp else '' }}</textarea><label>Salary Structure Notes</label></div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Photo &amp; Signature</h4></div>
+      {% if emp and (emp.profile_photo or emp.photo) %}
+      <div class="erp-field"><img src="{{ url_for('static', filename='uploads/employees/' ~ (emp.profile_photo or emp.photo)) }}" alt="Photo" style="max-height:80px;border-radius:6px;"></div>
+      {% endif %}
+      {% if not view_mode %}
+      <div class="erp-field"><input type="file" name="profile_photo_file" accept="image/*"><label>Profile Photo</label></div>
+      <div class="erp-field"><input type="file" name="digital_signature_file" accept="image/*"><label>Digital Signature</label></div>
+      <div class="erp-field"><input type="file" name="aadhaar_document_file" accept="image/*,.pdf"><label>Aadhaar Document</label></div>
+      <div class="erp-field"><input type="file" name="pan_document_file" accept="image/*,.pdf"><label>PAN Document</label></div>
+      {% endif %}
+
+      <div class="erp-field span-2" id="emergency-contacts-section">
+        <h4 class="erp-form-subtitle">Emergency Contacts</h4>
+        <div id="emergency-contacts-rows">
+          {% set ecs = emp.emergency_contacts if emp and emp.emergency_contacts else [{'contact_name':'','relationship':'','phone':'','email':'','address':''}] %}
+          {% for ec in ecs %}
+          <div class="employee-repeat-row" style="display:grid;grid-template-columns:repeat(5,1fr) auto;gap:0.5rem;margin-bottom:0.5rem;">
+            <input type="hidden" name="ec_id[]" value="{{ ec.id if ec.id else '' }}">
+            <input name="contact_name[]" placeholder="Name" value="{{ ec.contact_name or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="relationship[]" placeholder="Relationship" value="{{ ec.relationship or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="phone[]" placeholder="Phone" value="{{ ec.phone or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="email[]" placeholder="Email" value="{{ ec.email or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="address[]" placeholder="Address" value="{{ ec.address or '' }}" {% if view_mode %}readonly{% endif %}>
+            {% if not view_mode %}<button type="button" class="erp-btn erp-btn-ghost erp-btn-sm employee-remove-row">×</button>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% if not view_mode %}<button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="employee-add-ec">+ Add Contact</button>{% endif %}
+      </div>
+
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in employee_statuses %}
+          <option value="{{ s }}" {% if emp and emp.status == s %}selected{% elif not emp and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Record Status</label>
+      </div>
+
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        {% if employee_permissions.edit or employee_permissions.create %}
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Employee</button>
+        {% endif %}
+        {% if emp %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="employee-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        <span id="employee-ai-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+        {% endif %}
+        {% if emp and employee_permissions.approve and emp.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_employee" class="erp-btn erp-btn-ghost">Approve</button>
+        <button type="submit" name="form_action" value="reject_employee" class="erp-btn erp-btn-ghost" onclick="return confirm('Reject this employee?');">Reject</button>
+        {% endif %}
+        {% if emp and employee_permissions.activate and emp.status == 'Inactive' %}
+        <button type="submit" name="form_action" value="activate_employee" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if emp and employee_permissions.deactivate and emp.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_employee" class="erp-btn erp-btn-ghost" onclick="return confirm('Deactivate this employee?');">Deactivate</button>
+        {% endif %}
+        {% if emp and employee_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_employee" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this employee?');">Delete</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+    {% if emp and audit_trail %}
+    <div style="margin-top:1rem;">
+      <h4>Audit Trail</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>When</th><th>By</th><th>Action</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+        <tbody>
+          {% for entry in audit_trail %}
+          <tr>
+            <td>{{ entry.changed_at }}</td>
+            <td>{{ entry.changed_by }}</td>
+            <td>{{ entry.action }}</td>
+            <td>{{ entry.field_name or '—' }}</td>
+            <td>{{ entry.old_value or '—' }}</td>
+            <td>{{ entry.new_value or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if employee_permissions.view %}
+  <div class="erp-form-card" style="margin-top:1rem;">
+    <h3 class="erp-form-title">Reports</h3>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <a href="/api/employee-master/reports/directory" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Directory</a>
+      <a href="/api/employee-master/reports/department_wise" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Department-wise</a>
+      <a href="/api/employee-master/reports/designation_wise" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Designation-wise</a>
+      <a href="/api/employee-master/reports/joining" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Joining</a>
+      <a href="/api/employee-master/reports/relieving" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Relieving</a>
+      <a href="/api/employee-master/reports/active" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Active</a>
+      <a href="/api/employee-master/reports/inactive" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Inactive</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if employee_permissions.import %}
+<div id="employee-import-modal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <div class="erp-form-card" style="max-width:480px;width:90%;">
+    <h3 class="erp-form-title">Import Employees</h3>
+    <p class="erp-form-section-help"><a href="/api/employee-master/import/template">Download Excel template</a></p>
+    <input type="file" id="employee-import-file" accept=".xlsx,.xls,.csv">
+    <div id="employee-import-status" style="margin-top:0.75rem;font-size:0.9rem;"></div>
+    <div class="erp-form-actions" style="margin-top:1rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="employee-import-run">Validate &amp; Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="employee-import-close">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+window.EMPLOYEE_MASTER_BOOT = { staffId: {{ selected_employee.id if selected_employee else 'null' }} };
+</script>
+<script src="{{ url_for('static', filename='js/employee-master.js') }}"></script>
+{% endblock %}

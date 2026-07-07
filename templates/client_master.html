@@ -1,0 +1,363 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Client Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Client Master' %}
+{% block page_actions %}
+{% if client_permissions.create %}
+<a href="{{ url_for('client_master', new=1) }}#client-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Client</a>
+{% endif %}
+{% if client_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="client-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if client_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/client-master/export?format=xlsx{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if client_type_filter %}&client_type={{ client_type_filter }}{% endif %}{% if search %}&q={{ search }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/client-master/export?format=csv{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/client-master/export?format=pdf{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('projects') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-diagram-project"></i> Projects</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Register and manage clients for whom projects are executed. Every project must link to one client.
+  Documents attach via <a href="{{ url_for('document_management') }}">Document Management</a> (module: client_master).
+</p>
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search clients...',
+    search_name='q',
+    export_name='clients',
+    print_target='#client-records',
+    form_panel_id='client-form',
+    table_panel_id='client-records',
+    new_url=url_for('client_master', new=1) ~ '#client-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="client-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Clients ({{ client_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="company_id" onchange="this.form.submit()">
+          <option value="">All companies</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="client_type" onchange="this.form.submit()">
+          <option value="">All types</option>
+          {% for t in client_types %}
+          <option value="{{ t }}" {% if client_type_filter == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in client_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th><a href="{{ url_for('client_master', q=search, company_id=company_filter, client_type=client_type_filter, status=status_filter, sort_by='client_code', sort_dir='desc' if sort_by == 'client_code' and sort_dir == 'asc' else 'asc') }}">Code</a></th>
+            <th><a href="{{ url_for('client_master', q=search, company_id=company_filter, client_type=client_type_filter, status=status_filter, sort_by='client_name', sort_dir='desc' if sort_by == 'client_name' and sort_dir == 'asc' else 'asc') }}">Client Name</a></th>
+            <th>Type</th>
+            <th>GST</th>
+            <th>City</th>
+            <th>Contact</th>
+            <th>Status</th>
+            <th>Approval</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in clients %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
+            <td>{{ row.client_code or '—' }}</td>
+            <td>{{ row.client_name }}</td>
+            <td>{{ row.client_type or '—' }}</td>
+            <td>{{ row.gst_number or '—' }}</td>
+            <td>{{ row.city or '—' }}</td>
+            <td>{{ row.contact_person or row.mobile or '—' }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>{{ row.approval_status or 'Draft' }}</td>
+            <td>
+              <a href="{{ url_for('client_master', client_id=row.id, view=1) }}#client-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if client_permissions.edit %}
+              <a href="{{ url_for('client_master', client_id=row.id) }}#client-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No clients registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if client_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, client_pagination.pages + 1) %}
+      <a href="{{ url_for('client_master', q=search, company_id=company_filter, client_type=client_type_filter, status=status_filter, sort_by=sort_by, sort_dir=sort_dir, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == client_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_client_form %}
+  <div class="erp-form-card" id="client-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and selected_client %}View {{ selected_client.client_code }}
+      {% elif selected_client %}Edit {{ selected_client.client_code }}
+      {% else %}New Client{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid" enctype="multipart/form-data" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_client">
+      {% if selected_client %}<input type="hidden" name="client_id" value="{{ selected_client.id }}">{% endif %}
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Identity</h4></div>
+      <div class="erp-field"><input name="client_code" placeholder=" " value="{{ selected_client.client_code if selected_client else next_client_code }}" {% if view_mode %}readonly{% endif %}><label>Client Code</label></div>
+      <div class="erp-field"><input name="client_name" required placeholder=" " value="{{ selected_client.client_name if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Client Name *</label></div>
+      <div class="erp-field"><input name="legal_name" placeholder=" " value="{{ selected_client.legal_name if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Legal Name</label></div>
+      <div class="erp-field"><input name="company_name" placeholder=" " value="{{ selected_client.company_name if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Display / Company Name</label></div>
+      <div class="erp-field">
+        <select name="client_type" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select —</option>
+          {% for t in client_types %}
+          <option value="{{ t }}" {% if selected_client and selected_client.client_type == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <label>Client Type</label>
+      </div>
+      <div class="erp-field">
+        <select name="industry" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select —</option>
+          {% for ind in client_industries %}
+          <option value="{{ ind }}" {% if selected_client and selected_client.industry == ind %}selected{% endif %}>{{ ind }}</option>
+          {% endfor %}
+        </select>
+        <label>Industry</label>
+      </div>
+      <div class="erp-field">
+        <select name="company_id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Optional ERP Company —</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if selected_client and selected_client.company_id == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Linked Company (multi-tenant)</label>
+      </div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Tax &amp; Registration</h4></div>
+      <div class="erp-field"><input name="gst_number" placeholder=" " value="{{ selected_client.gst_number if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>GST Number</label></div>
+      <div class="erp-field"><input name="pan_number" placeholder=" " value="{{ selected_client.pan_number if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>PAN Number</label></div>
+      <div class="erp-field span-2"><input name="registration_number" placeholder=" " value="{{ selected_client.registration_number if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Registration / CIN</label></div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Communication</h4></div>
+      <div class="erp-field"><input name="email" type="email" placeholder=" " value="{{ selected_client.email if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Email</label></div>
+      <div class="erp-field"><input name="phone" placeholder=" " value="{{ selected_client.phone if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Phone</label></div>
+      <div class="erp-field"><input name="mobile" placeholder=" " value="{{ selected_client.mobile if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Mobile</label></div>
+      <div class="erp-field"><input name="website" placeholder=" " value="{{ selected_client.website if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Website</label></div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Primary Address (summary)</h4></div>
+      <div class="erp-field span-2"><textarea name="billing_address" placeholder=" " rows="2" {% if view_mode %}readonly{% endif %}>{{ selected_client.billing_address if selected_client else '' }}</textarea><label>Billing Address</label></div>
+      <div class="erp-field span-2"><textarea name="site_address" placeholder=" " rows="2" {% if view_mode %}readonly{% endif %}>{{ selected_client.site_address if selected_client else '' }}</textarea><label>Site Address</label></div>
+      <div class="erp-field"><input name="city" placeholder=" " value="{{ selected_client.city if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>City</label></div>
+      <div class="erp-field"><input name="state" placeholder=" " value="{{ selected_client.state if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>State</label></div>
+      <div class="erp-field"><input name="district" placeholder=" " value="{{ selected_client.district if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>District</label></div>
+      <div class="erp-field"><input name="pin_code" placeholder=" " value="{{ selected_client.pin_code if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Pin Code</label></div>
+      <div class="erp-field">
+        <select name="country" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for c in client_countries %}
+          <option value="{{ c }}" {% if (selected_client and selected_client.country == c) or (not selected_client and c == 'India') %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+        <label>Country</label>
+      </div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Commercial</h4></div>
+      <div class="erp-field"><input name="payment_terms" placeholder=" " value="{{ selected_client.payment_terms if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Payment Terms</label></div>
+      <div class="erp-field"><input name="credit_limit" type="number" step="0.01" placeholder=" " value="{{ selected_client.credit_limit if selected_client and selected_client.credit_limit is not none else '' }}" {% if view_mode %}readonly{% endif %}><label>Credit Limit</label></div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Primary Bank</h4></div>
+      <div class="erp-field"><input name="bank_name" placeholder=" " value="{{ selected_client.bank_name if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Bank Name</label></div>
+      <div class="erp-field"><input name="account_number" placeholder=" " value="{{ selected_client.account_number if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>Account Number</label></div>
+      <div class="erp-field"><input name="ifsc_swift" placeholder=" " value="{{ selected_client.ifsc_swift if selected_client else '' }}" {% if view_mode %}readonly{% endif %}><label>IFSC / SWIFT</label></div>
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in client_statuses %}
+          <option value="{{ s }}" {% if selected_client and selected_client.status == s %}selected{% elif not selected_client and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status</label>
+      </div>
+
+      <div class="erp-field span-2" id="client-contacts-section">
+        <h4 class="erp-form-subtitle">Contact Persons</h4>
+        <div id="client-contacts-rows">
+          {% set contacts = selected_client.contacts if selected_client and selected_client.contacts else [{'contact_name':'','designation':'','email':'','mobile':'','is_primary':1}] %}
+          {% for c in contacts %}
+          <div class="client-repeat-row" style="display:grid;grid-template-columns:repeat(5,1fr) auto;gap:0.5rem;margin-bottom:0.5rem;align-items:end;">
+            <input type="hidden" name="contact_id[]" value="{{ c.id if c.id else '' }}">
+            <input name="contact_name[]" placeholder="Name" value="{{ c.contact_name or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="contact_designation[]" placeholder="Designation" value="{{ c.designation or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="contact_email[]" placeholder="Email" value="{{ c.email or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="contact_mobile[]" placeholder="Mobile" value="{{ c.mobile or '' }}" {% if view_mode %}readonly{% endif %}>
+            <label style="font-size:0.8rem;"><input type="radio" name="contact_primary_index" value="{{ loop.index0 }}" {% if c.is_primary or loop.first %}checked{% endif %} {% if view_mode %}disabled{% endif %}> Primary</label>
+            {% if not view_mode %}<button type="button" class="erp-btn erp-btn-ghost erp-btn-sm client-remove-row">×</button>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% if not view_mode %}<button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="client-add-contact">+ Add Contact</button>{% endif %}
+      </div>
+
+      <div class="erp-field span-2" id="client-addresses-section">
+        <h4 class="erp-form-subtitle">Addresses</h4>
+        <div id="client-addresses-rows">
+          {% set addresses = selected_client.addresses if selected_client and selected_client.addresses else [] %}
+          {% if not addresses and selected_client and selected_client.billing_address %}
+          {% set addresses = [{'address_type':'Billing','address_line1': selected_client.billing_address, 'city': selected_client.city or '', 'state': selected_client.state or '', 'pin_code': selected_client.pin_code or '', 'is_primary': 1}] %}
+          {% endif %}
+          {% if not addresses %}{% set addresses = [{'address_type':'Billing','address_line1':'','city':'','state':'','pin_code':'','is_primary':1}] %}{% endif %}
+          {% for a in addresses %}
+          <div class="client-repeat-row" style="display:grid;grid-template-columns:100px 1fr 1fr 1fr 80px auto;gap:0.5rem;margin-bottom:0.5rem;align-items:end;">
+            <input type="hidden" name="address_id[]" value="{{ a.id if a.id else '' }}">
+            <select name="address_type[]" {% if view_mode %}disabled{% endif %}>
+              {% for at in address_types %}<option value="{{ at }}" {% if a.address_type == at %}selected{% endif %}>{{ at }}</option>{% endfor %}
+            </select>
+            <input name="address_line1[]" placeholder="Address line" value="{{ a.address_line1 or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="address_city[]" placeholder="City" value="{{ a.city or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="address_state[]" placeholder="State" value="{{ a.state or '' }}" {% if view_mode %}readonly{% endif %}>
+            <input name="address_pin_code[]" placeholder="PIN" value="{{ a.pin_code or '' }}" {% if view_mode %}readonly{% endif %}>
+            <label style="font-size:0.8rem;"><input type="radio" name="address_primary_index" value="{{ loop.index0 }}" {% if a.is_primary or loop.first %}checked{% endif %} {% if view_mode %}disabled{% endif %}> Primary</label>
+            {% if not view_mode %}<button type="button" class="erp-btn erp-btn-ghost erp-btn-sm client-remove-row">×</button>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% if not view_mode %}<button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="client-add-address">+ Add Address</button>{% endif %}
+      </div>
+
+      {% if selected_client and client_permissions.edit and not view_mode %}
+      <div class="erp-field span-2">
+        <h4 class="erp-form-subtitle">Attach Document</h4>
+        <input type="file" name="client_document" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+        <p class="erp-form-section-help">Uploaded to DMS with module <code>client_master</code>.</p>
+      </div>
+      {% endif %}
+
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        {% if client_permissions.edit or client_permissions.create %}
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Client</button>
+        {% endif %}
+        {% if selected_client %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="client-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        <span id="client-ai-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+        {% if selected_client.project_count %}<span class="erp-form-section-help">Linked projects: {{ selected_client.project_count }}</span>{% endif %}
+        {% if client_permissions.approve and selected_client.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_client" class="erp-btn erp-btn-ghost">Approve</button>
+        <button type="submit" name="form_action" value="reject_client" class="erp-btn erp-btn-ghost" onclick="return confirm('Reject this client?');">Reject</button>
+        {% endif %}
+        {% if client_permissions.activate and selected_client.status == 'Inactive' %}
+        <button type="submit" name="form_action" value="activate_client" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if client_permissions.deactivate and selected_client.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_client" class="erp-btn erp-btn-ghost" onclick="return confirm('Deactivate this client?');">Deactivate</button>
+        {% endif %}
+        {% if client_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_client" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this client?');">Delete</button>
+        {% endif %}
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+
+    {% if selected_client and client_documents %}
+    <div style="margin-top:1rem;">
+      <h4>Documents</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>Name</th><th>Type</th><th>Uploaded</th><th></th></tr></thead>
+        <tbody>
+          {% for doc in client_documents %}
+          <tr>
+            <td>{{ doc.document_name or doc.original_filename or '—' }}</td>
+            <td>{{ doc.document_type or '—' }}</td>
+            <td>{{ doc.created_at or '—' }}</td>
+            <td><a href="/api/document-management/{{ doc.id }}/download" class="erp-btn erp-btn-ghost erp-btn-sm">Download</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if selected_client and audit_trail %}
+    <div style="margin-top:1rem;">
+      <h4>Audit Trail</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>When</th><th>By</th><th>Action</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+        <tbody>
+          {% for entry in audit_trail %}
+          <tr>
+            <td>{{ entry.changed_at }}</td>
+            <td>{{ entry.changed_by }}</td>
+            <td>{{ entry.action }}</td>
+            <td>{{ entry.field_name or '—' }}</td>
+            <td>{{ entry.old_value or '—' }}</td>
+            <td>{{ entry.new_value or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if client_permissions.view %}
+  <div class="erp-form-card" style="margin-top:1rem;">
+    <h3 class="erp-form-title">Reports</h3>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <a href="/api/client-master/reports/directory" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Client Directory</a>
+      <a href="/api/client-master/reports/active" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Active Clients</a>
+      <a href="/api/client-master/reports/inactive" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Inactive Clients</a>
+      <a href="/api/client-master/reports/contacts" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Client Contact Report</a>
+      <a href="/api/client-master/export?format=pdf&report=active" class="erp-btn erp-btn-ghost erp-btn-sm">Active Clients PDF</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if client_permissions.import %}
+<div id="client-import-modal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <div class="erp-form-card" style="max-width:480px;width:90%;">
+    <h3 class="erp-form-title">Import Clients</h3>
+    <p class="erp-form-section-help"><a href="/api/client-master/import/template">Download Excel template</a></p>
+    <input type="file" id="client-import-file" accept=".xlsx,.xls,.csv">
+    <div id="client-import-status" style="margin-top:0.75rem;font-size:0.9rem;"></div>
+    <div class="erp-form-actions" style="margin-top:1rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="client-import-run">Validate &amp; Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="client-import-close">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+window.CLIENT_MASTER_BOOT = {
+  clientId: {{ selected_client.id if selected_client else 'null' }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/client-master.js') }}"></script>
+{% endblock %}

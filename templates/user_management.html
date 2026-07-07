@@ -1,192 +1,360 @@
 {% extends 'base_maxek.html' %}
-{% from 'macros/erp_ui.html' import erp_module_toolbar, workflow_badge, erp_pagination %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar, workflow_badge %}
 {% set page_title = 'User Management' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; User Management' %}
 {% block page_actions %}
+{% if user_permissions.create %}
+<a href="{{ url_for('user_management', new=1) }}#user-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-user-plus"></i> New User</a>
+{% endif %}
+{% if user_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="user-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if user_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/user-management/export?format=xlsx{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if branch_filter %}&branch_id={{ branch_filter }}{% endif %}{% if department_filter %}&department_id={{ department_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/user-management/export?format=csv{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if branch_filter %}&branch_id={{ branch_filter }}{% endif %}{% if department_filter %}&department_id={{ department_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/user-management/export?format=pdf{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if branch_filter %}&branch_id={{ branch_filter }}{% endif %}{% if department_filter %}&department_id={{ department_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
 <a href="{{ url_for('user_settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-user-gear"></i> User Access Settings</a>
 {% endblock %}
 {% block content %}
-<div class="erp-validation" style="margin-bottom: 1rem;">
-  Create login accounts for staff, guests, and external users without linking to the employee master.
-  For staff-linked users and maker module assignments, use
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Manage ERP login accounts with company, branch, and department assignment.
+  For staff-linked permissions and maker module assignments, use
   <a href="{{ url_for('user_settings') }}">User Access Settings</a>.
-</div>
+</p>
 
 <div class="erp-module-layout">
   {{ erp_module_toolbar(
     mode='standard',
     search_placeholder='Search users...',
-    export_name='user_management',
-    print_target='#user-mgmt-records',
-    form_panel_id='user-mgmt-form',
-    table_panel_id='user-mgmt-records',
-    new_url=url_for('user_management') ~ 'user-mgmt-form',
+    search_name='q',
+    export_name='users',
+    print_target='#user-records',
+    form_panel_id='user-form',
+    table_panel_id='user-records',
+    new_url=url_for('user_management', new=1) ~ '#user-form',
+    settings_url=url_for('settings'),
   ) }}
 
-  <div class="erp-form-card" style="margin-bottom: 1rem;">
-    <div class="erp-form-actions" style="margin-bottom: 0; gap: 0.5rem;">
-      <a href="{{ url_for('user_management', tab='create') }}"
-         class="erp-btn {% if active_tab == 'create' %}erp-btn-primary{% else %}erp-btn-ghost{% endif %}">
-        <i class="fa-solid fa-user-plus"></i> Create User
-      </a>
-      <a href="{{ url_for('user_management', tab='list') }}"
-         class="erp-btn {% if active_tab == 'list' %}erp-btn-primary{% else %}erp-btn-ghost{% endif %}">
-        <i class="fa-solid fa-users"></i> User List
-      </a>
-    </div>
-  </div>
-
-  {% if active_tab == 'create' %}
-  <div class="erp-form-card" id="create-user-form">
-    <h3 class="erp-form-title">Create User</h3>
-    <form method="post" class="erp-form-grid" id="user-create-form" novalidate>
-      <input type="hidden" name="action" value="create">
-
-      <div class="erp-field">
-        <input name="username" id="username" placeholder=" " required autocomplete="off">
-        <label>Username (Login ID)</label>
-      </div>
-      <div class="erp-field">
-        <input name="display_name" placeholder=" " autocomplete="off">
-        <label>Display Name (optional)</label>
-      </div>
-      <div class="erp-field">
-        <input type="password" name="password" id="password" placeholder=" " required autocomplete="new-password">
-        <label>Password</label>
-      </div>
-      <div class="erp-field">
-        <input type="password" name="confirm_password" id="confirm_password" placeholder=" " required autocomplete="new-password">
-        <label>Confirm Password</label>
-      </div>
-      <div class="erp-field">
-        <select name="workflow_role" id="workflow_role" class="has-value" required>
-          {% for wr in workflow_roles %}
-          <option value="{{ wr }}"{% if wr == 'Maker' %} selected{% endif %}>{{ wr }}</option>
-          {% endfor %}
-        </select>
-        <label>Workflow Role</label>
-      </div>
-      <div class="erp-field">
-        <select name="system_role" id="system_role" class="has-value" required>
-          {% for sr in system_roles %}
-          <option value="{{ sr }}"{% if sr == 'User' %} selected{% endif %}>{{ sr }}</option>
-          {% endfor %}
-        </select>
-        <label>System Role</label>
-      </div>
-      <div class="erp-field">
-        <select name="status" class="has-value" required>
-          <option value="Active" selected>Active</option>
-          <option value="Inactive">Inactive</option>
-        </select>
-        <label>Status</label>
-      </div>
-
-      <div class="span-2">
-        <p class="erp-hint">
-          <strong>Guest / external users:</strong> choose System Role <em>Guest</em> or <em>User</em> and assign the workflow role they need (Maker, Checker, or Approver).
-          <strong>Administrators:</strong> select Workflow Role <em>Administrator</em> — system role is set to Admin automatically.
-        </p>
-      </div>
-
-      <div class="erp-form-actions span-2">
-        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Create User</button>
-      </div>
-    </form>
-  </div>
-  {% else %}
-  <div class="erp-table-panel" id="user-mgmt-records" data-erp-table data-erp-table>
+  <div class="erp-table-panel" id="user-records" data-erp-table style="margin-bottom:1rem;">
     <div class="erp-table-toolbar">
-      <h3 class="erp-table-title">All Users</h3>
-      <div class="erp-table-controls">
-        <div class="erp-table-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-table-search placeholder="Search users..."></div>
-      </div>
+      <h3 class="erp-table-title">Users ({{ user_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="company_id" id="filter-company-id" onchange="this.form.submit()">
+          <option value="">All companies</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="branch_id" onchange="this.form.submit()">
+          <option value="">All branches</option>
+          {% for br in branches %}
+          <option value="{{ br.id }}" {% if branch_filter == br.id %}selected{% endif %}>{{ br.branch_code }} — {{ br.branch_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="department_id" onchange="this.form.submit()">
+          <option value="">All departments</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}" {% if department_filter == d.id %}selected{% endif %}>{{ d.department_code }} — {{ d.department_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in user_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <select name="locked" onchange="this.form.submit()">
+          <option value="">Lock filter</option>
+          <option value="1" {% if locked_filter == '1' %}selected{% endif %}>Locked only</option>
+          <option value="0" {% if locked_filter == '0' %}selected{% endif %}>Unlocked only</option>
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
     </div>
     <div class="erp-table-scroll">
-      <table class="erp-table erp-table-module">
+      <table class="erp-table">
         <thead>
           <tr>
-            <th>Username</th>
+            <th><a href="{{ url_for('user_management', q=search, company_id=company_filter, branch_id=branch_filter, department_id=department_filter, status=status_filter, locked=locked_filter, sort_by='username', sort_dir='desc' if sort_by == 'username' and sort_dir == 'asc' else 'asc') }}">Username</a></th>
             <th>Display Name</th>
-            <th>Type</th>
+            <th>Company</th>
+            <th>Branch</th>
+            <th>Department</th>
             <th>System Role</th>
-            <th>Workflow Role</th>
+            <th>Workflow</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th>Locked</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          {% for row in rows %}
-          <tr>
+          {% for row in users %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
             <td>{{ row.username }}</td>
-            <td>{{ row.employee_name or '—' }}</td>
-            <td>{{ row.user_type }}</td>
+            <td>{{ row.display_name or '—' }}</td>
+            <td>{{ row.company_code or '—' }}</td>
+            <td>{{ row.branch_name or '—' }}</td>
+            <td>{{ row.department_name or '—' }}</td>
             <td>{{ row.role or '—' }}</td>
             <td>{{ workflow_badge(row.workflow_role or '—') }}</td>
             <td><span class="status-pill {{ 'active' if row.status == 'Active' else 'pending' }}">{{ row.status }}</span></td>
+            <td>{% if row.account_locked %}<span class="status-pill pending">Locked</span>{% else %}—{% endif %}</td>
             <td>
-              <div class="workflow-row-actions">
-                {% if row.staff_id %}
-                <a href="{{ url_for('user_settings', edit=row.id) }}#user-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit Access</a>
-                {% endif %}
-                <form method="post" style="display:inline;">
-                  <input type="hidden" name="action" value="toggle">
-                  <input type="hidden" name="user_id" value="{{ row.id }}">
-                  <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">
-                    {{ 'Deactivate' if row.status == 'Active' else 'Activate' }}
-                  </button>
-                </form>
-              </div>
+              <a href="{{ url_for('user_management', user_id=row.id, view=1) }}#user-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if user_permissions.edit %}
+              <a href="{{ url_for('user_management', user_id=row.id) }}#user-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="7">No users configured.</td></tr>
+          <tr><td colspan="10">No users registered yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {{ erp_pagination(rows|length) }}
+    {% if user_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, user_pagination.pages + 1) %}
+      <a href="{{ url_for('user_management', q=search, company_id=company_filter, branch_id=branch_filter, department_id=department_filter, status=status_filter, locked=locked_filter, sort_by=sort_by, sort_dir=sort_dir, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == user_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_user_form %}
+  <div class="erp-form-card" id="user-form">
+    <h3 class="erp-form-title">
+      {% if view_mode %}User Details{% elif selected_user %}Edit User{% else %}Create User{% endif %}
+    </h3>
+    {% if selected_user and selected_user.profile_photo %}
+    <div style="margin-bottom:1rem;">
+      <img src="{{ url_for('static', filename=selected_user.profile_photo) }}" alt="Profile" style="max-width:96px;border-radius:8px;">
+    </div>
+    {% endif %}
+    <form method="post" class="erp-form-grid" id="user-master-form" {% if view_mode %}data-readonly="1"{% endif %} novalidate>
+      <input type="hidden" name="form_action" value="save_user">
+      {% if selected_user %}<input type="hidden" name="user_id" value="{{ selected_user.id }}">{% endif %}
+
+      <div class="erp-field">
+        <select name="company_id" id="user-company-id" class="has-value" required {% if view_mode %}disabled{% endif %}>
+          <option value="">Select company</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if selected_user and selected_user.company_id == co.id %}selected{% elif not selected_user and company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Company *</label>
+      </div>
+      <div class="erp-field">
+        <select name="branch_id" id="user-branch-id" class="has-value" required {% if view_mode %}disabled{% endif %}>
+          <option value="">Select branch</option>
+          {% for br in branches %}
+          <option value="{{ br.id }}" data-company="{{ br.company_id }}" {% if selected_user and selected_user.branch_id == br.id %}selected{% endif %}>{{ br.branch_code }} — {{ br.branch_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Branch *</label>
+      </div>
+      <div class="erp-field">
+        <select name="department_id" id="user-department-id" class="has-value" required {% if view_mode %}disabled{% endif %}>
+          <option value="">Select department</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}" data-company="{{ d.company_id }}" {% if selected_user and selected_user.department_id == d.id %}selected{% endif %}>{{ d.department_code }} — {{ d.department_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Department *</label>
+      </div>
+      <div class="erp-field">
+        <input name="username" value="{{ selected_user.username if selected_user else '' }}" placeholder=" " required {% if view_mode or selected_user %}readonly{% endif %} autocomplete="off">
+        <label>Username *</label>
+      </div>
+      <div class="erp-field">
+        <input name="first_name" value="{{ selected_user.first_name if selected_user else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>First Name</label>
+      </div>
+      <div class="erp-field">
+        <input name="middle_name" value="{{ selected_user.middle_name if selected_user else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Middle Name</label>
+      </div>
+      <div class="erp-field">
+        <input name="last_name" value="{{ selected_user.last_name if selected_user else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Last Name</label>
+      </div>
+      <div class="erp-field">
+        <input name="display_name" value="{{ selected_user.display_name if selected_user else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Display Name</label>
+      </div>
+      <div class="erp-field">
+        <input type="email" name="email" value="{{ selected_user.email if selected_user else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Email</label>
+      </div>
+      <div class="erp-field">
+        <input name="mobile" value="{{ selected_user.mobile if selected_user else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Mobile</label>
+      </div>
+      <div class="erp-field">
+        <input name="alternative_mobile" value="{{ selected_user.alternative_mobile if selected_user else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Alternative Mobile</label>
+      </div>
+      {% if not view_mode %}
+      <div class="erp-field">
+        <input type="password" name="password" id="user-password" placeholder=" " {% if not selected_user %}required{% endif %} autocomplete="new-password">
+        <label>{% if selected_user %}New Password (optional){% else %}Password *{% endif %}</label>
+      </div>
+      <div class="erp-field">
+        <input type="password" name="confirm_password" id="user-confirm-password" placeholder=" " {% if not selected_user %}required{% endif %} autocomplete="new-password">
+        <label>Confirm Password</label>
+      </div>
+      {% endif %}
+      <div class="erp-field">
+        <select name="workflow_role" id="user-workflow-role" class="has-value" required {% if view_mode %}disabled{% endif %}>
+          {% for wr in workflow_roles %}
+          <option value="{{ wr }}" {% if selected_user and selected_user.workflow_role == wr %}selected{% elif not selected_user and wr == 'Maker' %}selected{% endif %}>{{ wr }}</option>
+          {% endfor %}
+        </select>
+        <label>Workflow Role *</label>
+      </div>
+      <div class="erp-field">
+        <select name="system_role" id="user-system-role" class="has-value" required {% if view_mode %}disabled{% endif %}>
+          {% for sr in system_roles %}
+          <option value="{{ sr }}" {% if selected_user and selected_user.role == sr %}selected{% elif not selected_user and sr == 'User' %}selected{% endif %}>{{ sr }}</option>
+          {% endfor %}
+        </select>
+        <label>System Role *</label>
+      </div>
+      <div class="erp-field">
+        <input name="reporting_manager" value="{{ selected_user.reporting_manager if selected_user else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Reporting Manager</label>
+      </div>
+      <div class="erp-field">
+        <select name="status" class="has-value" required {% if view_mode %}disabled{% endif %}>
+          {% for s in user_statuses %}
+          <option value="{{ s }}" {% if selected_user and selected_user.status == s %}selected{% elif not selected_user and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status *</label>
+      </div>
+      <div class="erp-field">
+        <select name="language" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for lang in languages %}
+          <option value="{{ lang }}" {% if selected_user and selected_user.language == lang %}selected{% elif not selected_user and lang == 'en' %}selected{% endif %}>{{ lang }}</option>
+          {% endfor %}
+        </select>
+        <label>Language</label>
+      </div>
+      <div class="erp-field">
+        <select name="timezone" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for tz in timezones %}
+          <option value="{{ tz }}" {% if selected_user and selected_user.timezone == tz %}selected{% elif not selected_user and tz == 'Asia/Kolkata' %}selected{% endif %}>{{ tz }}</option>
+          {% endfor %}
+        </select>
+        <label>Timezone</label>
+      </div>
+      <div class="erp-field">
+        <select name="date_format" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for df in date_formats %}
+          <option value="{{ df }}" {% if selected_user and selected_user.date_format == df %}selected{% elif not selected_user and df == 'DD/MM/YYYY' %}selected{% endif %}>{{ df }}</option>
+          {% endfor %}
+        </select>
+        <label>Date Format</label>
+      </div>
+      <div class="erp-field">
+        <select name="currency" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for cur in currencies %}
+          <option value="{{ cur }}" {% if selected_user and selected_user.currency == cur %}selected{% elif not selected_user and cur == 'INR' %}selected{% endif %}>{{ cur }}</option>
+          {% endfor %}
+        </select>
+        <label>Currency</label>
+      </div>
+
+      {% if selected_user %}
+      <div class="span-2 erp-form-section-help">
+        Last login: {{ selected_user.last_login or '—' }} |
+        Password expiry: {{ selected_user.password_expiry or '—' }} |
+        Login attempts: {{ selected_user.login_attempt_count or 0 }}
+      </div>
+      {% endif %}
+
+      <div class="erp-form-actions span-2">
+        {% if not view_mode %}
+        <button class="erp-btn erp-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save User</button>
+        <button type="button" class="erp-btn erp-btn-ghost" id="user-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        {% endif %}
+        {% if selected_user and user_permissions.edit and not view_mode %}
+        <input type="file" id="user-photo-input" accept="image/jpeg,image/png,image/webp" hidden>
+        <button type="button" class="erp-btn erp-btn-ghost" id="user-photo-btn"><i class="fa-solid fa-camera"></i> Upload Photo</button>
+        {% endif %}
+        {% if selected_user and user_permissions.reset_password %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="user-reset-password-btn"><i class="fa-solid fa-key"></i> Reset Password</button>
+        {% endif %}
+        {% if selected_user and user_permissions.activate and selected_user.status != 'Active' %}
+        <button type="submit" name="form_action" value="activate_user" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if selected_user and user_permissions.deactivate and selected_user.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_user" class="erp-btn erp-btn-ghost">Deactivate</button>
+        {% endif %}
+        {% if selected_user and user_permissions.lock and not selected_user.account_locked %}
+        <button type="submit" name="form_action" value="lock_user" class="erp-btn erp-btn-ghost">Lock</button>
+        {% endif %}
+        {% if selected_user and user_permissions.unlock and selected_user.account_locked %}
+        <button type="submit" name="form_action" value="unlock_user" class="erp-btn erp-btn-ghost">Unlock</button>
+        {% endif %}
+        {% if selected_user and user_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_user" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this user?');">Delete</button>
+        {% endif %}
+        <a href="{{ url_for('user_management') }}" class="erp-btn erp-btn-ghost">Back to List</a>
+      </div>
+    </form>
+
+    {% if selected_user and audit_trail %}
+    <div class="erp-form-card" style="margin-top:1rem;">
+      <h4>Audit History</h4>
+      <div class="erp-table-scroll">
+        <table class="erp-table erp-table-sm">
+          <thead><tr><th>When</th><th>Action</th><th>Field</th><th>Old</th><th>New</th><th>By</th></tr></thead>
+          <tbody>
+            {% for ev in audit_trail %}
+            <tr>
+              <td>{{ ev.changed_at or ev.created_at or '—' }}</td>
+              <td>{{ ev.action }}</td>
+              <td>{{ ev.field_name or '—' }}</td>
+              <td>{{ ev.old_value or '—' }}</td>
+              <td>{{ ev.new_value or '—' }}</td>
+              <td>{{ ev.changed_by or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No audit events yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 </div>
+
+{% if user_permissions.import %}
+<div class="erp-modal" id="user-import-modal" hidden style="display:none;">
+  <div class="erp-modal-panel">
+    <h3>Import Users</h3>
+    <p><a href="/api/user-management/import/template">Download template</a></p>
+    <input type="file" id="user-import-file" accept=".xlsx,.csv">
+    <p id="user-import-status" class="erp-hint"></p>
+    <div class="erp-form-actions">
+      <button type="button" class="erp-btn erp-btn-primary" id="user-import-run">Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="user-import-close">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 {% block scripts %}
-<script>
-(function () {
-  var form = document.getElementById('user-create-form');
-  if (!form) return;
-
-  var workflowRole = document.getElementById('workflow_role');
-  var systemRole = document.getElementById('system_role');
-
-  function syncAdminRole() {
-    if (!workflowRole || !systemRole) return;
-    if (workflowRole.value === 'Administrator') {
-      systemRole.value = 'Admin';
-      systemRole.disabled = true;
-    } else {
-      systemRole.disabled = false;
-    }
-  }
-
-  workflowRole.addEventListener('change', syncAdminRole);
-  syncAdminRole();
-
-  form.addEventListener('submit', function (e) {
-    var password = document.getElementById('password').value;
-    var confirm = document.getElementById('confirm_password').value;
-    if (password !== confirm) {
-      e.preventDefault();
-      alert('Password and confirmation do not match.');
-      document.getElementById('confirm_password').focus();
-      return;
-    }
-    if (password.length < 4) {
-      e.preventDefault();
-      alert('Password must be at least 4 characters.');
-      document.getElementById('password').focus();
-    }
-  });
-})();
-</script>
+<script src="{{ url_for('static', filename='js/user-management.js') }}"></script>
 {% endblock %}

@@ -1,0 +1,305 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Roles & Permissions' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Roles & Permissions' %}
+{% block page_actions %}
+{% if rp_permissions.create and is_super_admin %}
+<a href="{{ url_for('roles_permissions', new=1) }}#role-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Role</a>
+{% endif %}
+{% if rp_permissions.import and is_super_admin %}
+<button type="button" class="erp-btn erp-btn-ghost" id="roles-import-btn"><i class="fa-solid fa-file-import"></i> Import Roles</button>
+{% endif %}
+{% if rp_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/roles-permissions/export?format=xlsx{% if company_filter %}&company_id={{ company_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/roles-permissions/export?format=csv{% if company_filter %}&company_id={{ company_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/roles-permissions/export?format=pdf{% if company_filter %}&company_id={{ company_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('user_management') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-users"></i> User Management</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Role master, permission master, role assignment, and module/screen/field/action permissions.
+  Only <strong>Super Administrator</strong> can create or delete roles and modify permission assignments.
+</p>
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search roles...',
+    search_name='q',
+    export_name='roles',
+    print_target='#role-records',
+    form_panel_id='role-form',
+    table_panel_id='role-records',
+    new_url=url_for('roles_permissions', new=1) ~ '#role-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-tabs" style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+    <a href="{{ url_for('roles_permissions', tab='roles', q=search, company_id=company_filter) }}" class="erp-btn erp-btn-ghost erp-btn-sm {% if active_tab == 'roles' %}is-active{% endif %}">Roles</a>
+    <a href="{{ url_for('roles_permissions', tab='permissions', q=perm_search) }}" class="erp-btn erp-btn-ghost erp-btn-sm {% if active_tab == 'permissions' %}is-active{% endif %}">Permissions</a>
+    {% if selected_role %}
+    <a href="{{ url_for('roles_permissions', role_id=selected_role.id, tab='matrix') }}" class="erp-btn erp-btn-ghost erp-btn-sm {% if active_tab == 'matrix' %}is-active{% endif %}">Permission Matrix</a>
+    <a href="{{ url_for('roles_permissions', role_id=selected_role.id, tab='users') }}" class="erp-btn erp-btn-ghost erp-btn-sm {% if active_tab == 'users' %}is-active{% endif %}">User Assignment</a>
+    {% endif %}
+  </div>
+
+  {% if active_tab == 'roles' %}
+  <div class="erp-table-panel" id="role-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Roles ({{ role_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input type="hidden" name="tab" value="roles">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="company_id" onchange="this.form.submit()">
+          <option value="">All companies</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in role_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Role Name</th>
+            <th>Company</th>
+            <th>Permissions</th>
+            <th>Users</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in roles %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
+            <td>{{ row.role_code or '—' }}</td>
+            <td>{{ row.role_name }}</td>
+            <td>{{ row.company_code or '—' }}</td>
+            <td>{{ row.permission_count or 0 }}</td>
+            <td>{{ row.user_count or 0 }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>
+              <a href="{{ url_for('roles_permissions', role_id=row.id, view=1) }}#role-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if rp_permissions.edit and is_super_admin %}
+              <a href="{{ url_for('roles_permissions', role_id=row.id) }}#role-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              <a href="{{ url_for('roles_permissions', role_id=row.id, tab='matrix') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Matrix</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7">No roles defined yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if role_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, role_pagination.pages + 1) %}
+      <a href="{{ url_for('roles_permissions', tab='roles', q=search, company_id=company_filter, status=status_filter, page=p) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == role_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if active_tab == 'permissions' %}
+  <div class="erp-table-panel" id="permission-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Permissions ({{ permission_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <input type="hidden" name="tab" value="permissions">
+        <input name="q" value="{{ perm_search }}" placeholder="Search permissions…" style="max-width:200px;">
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Search</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Module</th>
+            <th>Menu</th>
+            <th>Screen</th>
+            <th>Field</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in permissions %}
+          <tr>
+            <td>{{ row.permission_code }}</td>
+            <td>{{ row.permission_name }}</td>
+            <td>{{ row.module_name }}</td>
+            <td>{{ row.menu_name or '—' }}</td>
+            <td>{{ row.screen_name or '—' }}</td>
+            <td>{{ row.field_name or '—' }}</td>
+            <td>{{ row.status }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7">No permissions seeded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if active_tab == 'matrix' and selected_role %}
+  <div class="erp-form-card" id="permission-matrix-panel">
+    <h3 class="erp-form-title">Permission Matrix — {{ selected_role.role_name }}</h3>
+    {% if is_super_admin %}
+    <p style="font-size:0.85rem;margin-bottom:0.75rem;">Toggle action flags per permission. Save updates role assignments.</p>
+    <div class="erp-table-scroll" style="max-height:480px;overflow:auto;">
+      <table class="erp-table erp-table-compact" id="permission-matrix-table">
+        <thead>
+          <tr>
+            <th>Permission</th>
+            <th>Module / Screen</th>
+            {% for act in standard_actions %}
+            <th title="{{ action_labels.get(act, act) }}">{{ action_labels.get(act, act)[:3] }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in permission_matrix %}
+          <tr data-permission-id="{{ item.id }}">
+            <td>{{ item.permission_name }}</td>
+            <td>{{ item.module_name }} / {{ item.screen_name or '—' }}</td>
+            {% for act in standard_actions %}
+            <td><input type="checkbox" class="matrix-action" data-action="{{ act }}" {% if item.action_flags.get(act) %}checked{% endif %}></td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:0.75rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="save-matrix-btn"><i class="fa-solid fa-floppy-disk"></i> Save Matrix</button>
+      <span id="matrix-save-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+    </div>
+    {% else %}
+    <p class="erp-form-section-help">Super Administrator access is required to edit the permission matrix.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if active_tab == 'users' and selected_role %}
+  <div class="erp-form-card" id="role-users-panel">
+    <h3 class="erp-form-title">Users assigned to {{ selected_role.role_name }}</h3>
+    <ul class="erp-list-compact">
+      {% for u in role_users %}
+      <li>{{ u.username }}{% if u.employee_name %} — {{ u.employee_name }}{% endif %} ({{ u.status or 'Active' }})</li>
+      {% else %}
+      <li>No users assigned.</li>
+      {% endfor %}
+    </ul>
+    {% if is_super_admin %}
+    <p style="font-size:0.85rem;margin-top:0.75rem;">Assign roles from <a href="{{ url_for('user_management') }}">User Management</a> or use the API <code>POST /api/roles-permissions/roles/{{ selected_role.id }}/users</code>.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if show_role_form %}
+  <div class="erp-form-card" id="role-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and selected_role %}View {{ selected_role.role_code }}
+      {% elif selected_role %}Edit {{ selected_role.role_code }}
+      {% else %}New Role{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_role">
+      {% if selected_role %}<input type="hidden" name="role_id" value="{{ selected_role.id }}">{% endif %}
+      <div class="erp-field">
+        <select name="company_id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select Company —</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if selected_role and selected_role.company_id == co.id %}selected{% elif not selected_role and company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Company *</label>
+      </div>
+      <div class="erp-field"><input name="role_code" placeholder=" " value="{{ selected_role.role_code if selected_role else '' }}" {% if view_mode %}readonly{% endif %}><label>Role Code (auto if blank)</label></div>
+      <div class="erp-field"><input name="role_name" required placeholder=" " value="{{ selected_role.role_name if selected_role else '' }}" {% if view_mode %}readonly{% endif %}><label>Role Name *</label></div>
+      <div class="erp-field span-2"><textarea name="description" placeholder=" " rows="3" {% if view_mode %}readonly{% endif %}>{{ selected_role.description if selected_role else '' }}</textarea><label>Description</label></div>
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in role_statuses %}
+          <option value="{{ s }}" {% if selected_role and selected_role.status == s %}selected{% elif not selected_role and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status</label>
+      </div>
+      {% if not view_mode and is_super_admin %}
+      <div class="erp-form-actions span-2">
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Role</button>
+        {% if selected_role %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="role-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        <span id="role-ai-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+        <button type="submit" name="form_action" value="activate_role" class="erp-btn erp-btn-ghost" {% if selected_role.status == 'Active' %}disabled{% endif %}>Activate</button>
+        <button type="submit" name="form_action" value="deactivate_role" class="erp-btn erp-btn-ghost" {% if selected_role.status == 'Inactive' %}disabled{% endif %}>Deactivate</button>
+        <button type="submit" name="form_action" value="delete_role" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this role?');">Delete</button>
+        {% endif %}
+      </div>
+      {% elif not is_super_admin %}
+      <p class="erp-form-section-help span-2">Only Super Administrator can create or modify roles.</p>
+      {% endif %}
+    </form>
+    {% if selected_role and audit_trail %}
+    <div style="margin-top:1rem;">
+      <h4>Audit Trail</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>When</th><th>Action</th><th>Field</th><th>By</th></tr></thead>
+        <tbody>
+          {% for ev in audit_trail %}
+          <tr>
+            <td>{{ ev.changed_at or '—' }}</td>
+            <td>{{ ev.action }}</td>
+            <td>{{ ev.field_name or '—' }}</td>
+            <td>{{ ev.changed_by or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div id="roles-import-modal" class="erp-modal" hidden style="display:none;">
+  <div class="erp-modal-content">
+    <h3>Import Roles</h3>
+    <p><a href="/api/roles-permissions/import/template">Download template</a></p>
+    <input type="file" id="roles-import-file" accept=".xlsx,.xls,.csv">
+    <div style="margin-top:0.75rem;display:flex;gap:0.5rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="roles-import-run">Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="roles-import-close">Close</button>
+    </div>
+    <p id="roles-import-status" style="font-size:0.85rem;margin-top:0.5rem;"></p>
+  </div>
+</div>
+
+<script>
+  window.ROLES_PERMISSIONS_BOOT = {
+    roleId: {{ selected_role.id if selected_role else 'null' }},
+    isSuperAdmin: {{ 'true' if is_super_admin else 'false' }},
+    standardActions: {{ standard_actions | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/roles-permissions.js') }}"></script>
+{% endblock %}

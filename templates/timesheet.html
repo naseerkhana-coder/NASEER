@@ -111,6 +111,8 @@
 
           <th>Designation</th>
 
+          <th>Date</th>
+
           <th>Project ID</th>
 
           <th>Project Name</th>
@@ -145,6 +147,8 @@
 
           <td>{{ row.designation or row.designation_name or row.trade_name or '—' }}</td>
 
+          <td>{{ row.attendance_date or '—' }}</td>
+
           <td>{{ row.project_code or '—' }}</td>
 
           <td>{{ row.project_name or '—' }}</td>
@@ -167,7 +171,7 @@
 
         {% else %}
 
-        <tr><td colspan="12">No timesheet records yet. Use the form above to add an entry.</td></tr>
+        <tr><td colspan="13">No timesheet records yet. Use the form above to add an entry.</td></tr>
 
         {% endfor %}
 

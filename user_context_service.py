@@ -149,13 +149,14 @@ def apply_context_to_session(session_obj: dict, ctx: dict[str, Any] | None) -> N
 
 def list_context_companies(db, customer_id: int | None) -> list[dict[str, Any]]:
     try:
-        companies = list_companies(db)
+        listing = list_companies(db, per_page=1000)
+        companies = listing.get("items", []) if isinstance(listing, dict) else listing
         if customer_id:
             companies = [c for c in companies if c.get("customer_id") in (None, customer_id)]
         return [
             {
                 "id": c["id"],
-                "name": c.get("trade_name") or c.get("legal_name") or c.get("company_code") or f"Company {c['id']}",
+                "name": c.get("company_name") or c.get("trade_name") or c.get("legal_name") or c.get("company_code") or f"Company {c['id']}",
                 "code": c.get("company_code"),
             }
             for c in companies

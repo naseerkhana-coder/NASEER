@@ -3,13 +3,25 @@
 {% set page_title = 'Company Master' %}
 {% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Company Master' %}
 {% block page_actions %}
+{% if company_permissions.create %}
 <a href="{{ url_for('company_master', new=1) }}#company-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Company</a>
+{% endif %}
+{% if company_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="company-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if company_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/company-master/export?format=xlsx" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/company-master/export?format=csv" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/company-master/export?format=pdf" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
 <a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
 {% endblock %}
 {% block content %}
 <p class="erp-form-section-help" style="margin-bottom:1rem;">
   Legal registration, GST/PAN/CIN, addresses, bank accounts, branches, and compliance documents.
-  Logo and UI theme are configured per tenant under <strong>Customer Settings</strong> (Platform Command Centre), not here.
+  Tenant UI branding remains under <strong>Customer Settings</strong> (Platform Command Centre).
 </p>
 {% if expiry_alerts.total_alerts %}
 <div class="erp-alert erp-alert-warning" style="margin-bottom:1rem;">
@@ -36,14 +48,14 @@
     print_target='#company-records',
     form_panel_id='company-form',
     table_panel_id='company-records',
-    new_url=url_for('company_master', new=1) ~ 'company-form',
+    new_url=url_for('company_master', new=1) ~ '#company-form',
     settings_url=url_for('settings'),
   ) }}
 
   <div class="erp-table-panel" id="company-records" data-erp-table style="margin-bottom:1rem;">
     <div class="erp-table-toolbar">
-      <h3 class="erp-table-title">Registered Companies</h3>
-      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <h3 class="erp-table-title">Registered Companies ({{ company_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
         <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
         <select name="country" onchange="this.form.submit()">
           <option value="">All countries</option>
@@ -51,77 +63,196 @@
           <option value="{{ c }}" {% if country_filter == c %}selected{% endif %}>{{ c }}</option>
           {% endfor %}
         </select>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in company_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
         <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
       </form>
     </div>
     <div class="erp-table-scroll">
       <table class="erp-table">
-        <thead><tr><th>Code</th><th>Legal Name</th><th>Country</th><th>Status</th><th></th></tr></thead>
+        <thead>
+          <tr>
+            <th><a href="{{ url_for('company_master', q=search, country=country_filter, status=status_filter, sort_by='company_code', sort_dir='desc' if sort_by == 'company_code' and sort_dir == 'asc' else 'asc') }}">Code</a></th>
+            <th><a href="{{ url_for('company_master', q=search, country=country_filter, status=status_filter, sort_by='company_name', sort_dir='desc' if sort_by == 'company_name' and sort_dir == 'asc' else 'asc') }}">Company Name</a></th>
+            <th><a href="{{ url_for('company_master', q=search, country=country_filter, status=status_filter, sort_by='legal_name', sort_dir='desc' if sort_by == 'legal_name' and sort_dir == 'asc' else 'asc') }}">Legal Name</a></th>
+            <th>Country</th>
+            <th>Status</th>
+            <th>Approval</th>
+            <th></th>
+          </tr>
+        </thead>
         <tbody>
           {% for row in companies %}
-          <tr>
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
             <td>{{ row.company_code }}</td>
-            <td>{{ row.legal_name }}{% if row.trade_name %} <small>({{ row.trade_name }})</small>{% endif %}</td>
+            <td>{{ row.company_name or row.trade_name or '—' }}</td>
+            <td>{{ row.legal_name }}</td>
             <td>{{ row.country }}</td>
             <td>{{ row.status }}</td>
-            <td><a href="{{ url_for('company_master', company_id=row.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Open</a></td>
+            <td>{{ row.approval_status or 'Approved' }}</td>
+            <td>
+              <a href="{{ url_for('company_master', company_id=row.id, view=1) }}#company-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if company_permissions.edit %}
+              <a href="{{ url_for('company_master', company_id=row.id) }}#company-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
           </tr>
           {% else %}
-          <tr><td colspan="5">No companies registered yet.</td></tr>
+          <tr><td colspan="7">No companies registered yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    {% if company_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, company_pagination.pages + 1) %}
+      <a href="{{ url_for('company_master', q=search, country=country_filter, status=status_filter, sort_by=sort_by, sort_dir=sort_dir, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == company_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 
   {% if show_company_form or selected_company %}
   <div class="erp-form-card" id="company-form">
-    <h3 class="erp-form-title">{% if selected_company %}Edit {{ selected_company.company_code }}{% else %}New Company{% endif %}</h3>
-    <form method="post" class="erp-form-grid">
+    <h3 class="erp-form-title">
+      {% if view_mode and selected_company %}View {{ selected_company.company_code }}
+      {% elif selected_company %}Edit {{ selected_company.company_code }}
+      {% else %}New Company{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid" enctype="multipart/form-data" {% if view_mode %}data-readonly-form{% endif %}>
       <input type="hidden" name="form_action" value="save_company">
       {% if selected_company %}<input type="hidden" name="company_id" value="{{ selected_company.id }}">{% endif %}
-      <div class="erp-field"><input name="legal_name" required placeholder=" " value="{{ selected_company.legal_name if selected_company else '' }}"><label>Legal Name *</label></div>
-      <div class="erp-field"><input name="trade_name" placeholder=" " value="{{ selected_company.trade_name if selected_company else '' }}"><label>Trade Name</label></div>
+      {% if selected_company %}
+      <div class="erp-field"><input readonly placeholder=" " value="{{ selected_company.company_code }}"><label>Company Code</label></div>
+      {% endif %}
+      <div class="erp-field"><input name="company_name" required placeholder=" " value="{{ selected_company.company_name or selected_company.trade_name if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Company Name *</label></div>
+      <div class="erp-field"><input name="legal_name" required placeholder=" " value="{{ selected_company.legal_name if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Legal Name *</label></div>
       <div class="erp-field">
-        <select name="country" id="company-country" class="has-value">
+        <select name="company_type" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select —</option>
+          {% for t in company_types %}
+          <option value="{{ t }}" {% if selected_company and selected_company.company_type == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <label>Company Type</label>
+      </div>
+      <div class="erp-field">
+        <select name="country" id="company-country" class="has-value" {% if view_mode %}disabled{% endif %}>
           {% for c in company_countries %}
           <option value="{{ c }}" {% if selected_company and selected_company.country == c %}selected{% elif not selected_company and c == 'India' %}selected{% endif %}>{{ c }}</option>
           {% endfor %}
         </select>
         <label>Country *</label>
       </div>
-      <div class="erp-field"><select name="status" class="has-value">{% for s in company_statuses %}<option value="{{ s }}" {% if selected_company and selected_company.status == s %}selected{% elif not selected_company and s == 'Active' %}selected{% endif %}>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
-      <div class="erp-field span-2"><input name="address_line1" placeholder=" " value="{{ selected_company.address_line1 if selected_company else '' }}"><label>Address Line 1</label></div>
-      <div class="erp-field span-2"><input name="address_line2" placeholder=" " value="{{ selected_company.address_line2 if selected_company else '' }}"><label>Address Line 2</label></div>
-      <div class="erp-field"><input name="city" placeholder=" " value="{{ selected_company.city if selected_company else '' }}"><label>City</label></div>
-      <div class="erp-field"><input name="state_region" placeholder=" " value="{{ selected_company.state_region if selected_company else '' }}"><label>State / Region</label></div>
-      <div class="erp-field"><input name="postal_code" placeholder=" " value="{{ selected_company.postal_code if selected_company else '' }}"><label>Postal Code</label></div>
-      <div class="erp-field"><input name="phone" placeholder=" " value="{{ selected_company.phone if selected_company else '' }}"><label>Phone</label></div>
-      <div class="erp-field"><input name="email" type="email" placeholder=" " value="{{ selected_company.email if selected_company else '' }}"><label>Email</label></div>
-      <div class="erp-field span-2"><input name="website" placeholder=" " value="{{ selected_company.website if selected_company else '' }}"><label>Website</label></div>
+      <div class="erp-field"><select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>{% for s in company_statuses %}<option value="{{ s }}" {% if selected_company and selected_company.status == s %}selected{% elif not selected_company and s == 'Active' %}selected{% endif %}>{{ s }}</option>{% endfor %}</select><label>Status</label></div>
+      <div class="erp-field"><input name="gst_number" placeholder=" " value="{{ selected_company.gst_number if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>GST Number</label></div>
+      <div class="erp-field"><input name="pan_number" placeholder=" " value="{{ selected_company.pan_number if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>PAN Number</label></div>
+      <div class="erp-field"><input name="tan_number" placeholder=" " value="{{ selected_company.tan_number if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>TAN Number</label></div>
+      <div class="erp-field"><input name="cin_number" placeholder=" " value="{{ selected_company.cin_number if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>CIN Number</label></div>
+      <div class="erp-field span-2"><input name="address_line1" placeholder=" " value="{{ selected_company.address_line1 if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Address Line 1</label></div>
+      <div class="erp-field span-2"><input name="address_line2" placeholder=" " value="{{ selected_company.address_line2 if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Address Line 2</label></div>
+      <div class="erp-field"><input name="city" placeholder=" " value="{{ selected_company.city if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>City</label></div>
+      <div class="erp-field"><input name="state_region" placeholder=" " value="{{ selected_company.state_region if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>State</label></div>
+      <div class="erp-field"><input name="district" placeholder=" " value="{{ selected_company.district if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>District</label></div>
+      <div class="erp-field"><input name="postal_code" placeholder=" " value="{{ selected_company.postal_code if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>PIN Code</label></div>
+      <div class="erp-field"><input name="phone" placeholder=" " value="{{ selected_company.phone if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Phone</label></div>
+      <div class="erp-field"><input name="email" type="email" placeholder=" " value="{{ selected_company.email if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Email</label></div>
+      <div class="erp-field span-2"><input name="website" placeholder=" " value="{{ selected_company.website if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Website</label></div>
+      <div class="erp-field">
+        <select name="currency" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for cur in company_currencies %}
+          <option value="{{ cur }}" {% if selected_company and selected_company.currency == cur %}selected{% elif not selected_company and cur == 'INR' %}selected{% endif %}>{{ cur }}</option>
+          {% endfor %}
+        </select>
+        <label>Currency</label>
+      </div>
+      <div class="erp-field">
+        <select name="financial_year" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for fy in financial_years %}
+          <option value="{{ fy }}" {% if selected_company and selected_company.financial_year == fy %}selected{% elif not selected_company and fy == 'April-March' %}selected{% endif %}>{{ fy }}</option>
+          {% endfor %}
+        </select>
+        <label>Financial Year</label>
+      </div>
+      <div class="erp-field">
+        <select name="timezone" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for tz in company_timezones %}
+          <option value="{{ tz }}" {% if selected_company and selected_company.timezone == tz %}selected{% elif not selected_company and tz == 'Asia/Kolkata' %}selected{% endif %}>{{ tz }}</option>
+          {% endfor %}
+        </select>
+        <label>Timezone</label>
+      </div>
+      <div class="erp-field">
+        <select name="language" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for lang in company_languages %}
+          <option value="{{ lang }}" {% if selected_company and selected_company.language == lang %}selected{% elif not selected_company and lang == 'en' %}selected{% endif %}>{{ lang|upper }}</option>
+          {% endfor %}
+        </select>
+        <label>Language</label>
+      </div>
+      {% if not view_mode %}
+      <div class="erp-field"><input type="file" name="company_logo_file" accept=".jpg,.jpeg,.png,.webp,.svg"><label>Company Logo</label></div>
+      {% elif selected_company and selected_company.company_logo %}
+      <div class="erp-field"><img src="{{ url_for('static', filename='uploads/company/logos/' ~ selected_company.company_logo) }}" alt="Logo" style="max-height:48px;"></div>
+      {% endif %}
       <div class="span-2"><h4 style="margin:0.75rem 0 0.25rem;">Primary Bank Account</h4></div>
-      <div class="erp-field"><input name="bank_name" placeholder=" " value="{{ selected_company.bank_name if selected_company else '' }}"><label>Bank Name</label></div>
-      <div class="erp-field"><input name="bank_branch_name" placeholder=" " value="{{ selected_company.bank_branch_name if selected_company else '' }}"><label>Branch Name</label></div>
-      <div class="erp-field span-2"><input name="bank_branch_address" placeholder=" " value="{{ selected_company.bank_branch_address if selected_company else '' }}"><label>Branch Address</label></div>
-      <div class="erp-field"><input name="bank_account_name" placeholder=" " value="{{ selected_company.bank_account_name if selected_company else '' }}"><label>Account Holder</label></div>
-      <div class="erp-field"><input name="bank_account_number" placeholder=" " value="{{ selected_company.bank_account_number if selected_company else '' }}"><label>Account Number</label></div>
-      <div class="erp-field"><input name="bank_ifsc" placeholder=" " value="{{ selected_company.bank_ifsc if selected_company else '' }}"><label>IFSC Code</label></div>
-      <div class="erp-field"><input name="bank_swift" placeholder=" " value="{{ selected_company.bank_swift if selected_company else '' }}"><label>SWIFT (optional)</label></div>
-      <div class="erp-field"><input name="bank_micr" placeholder=" " value="{{ selected_company.bank_micr if selected_company else '' }}"><label>MICR (optional)</label></div>
-      <div class="erp-field"><input name="bank_upi" placeholder=" " value="{{ selected_company.bank_upi if selected_company else '' }}"><label>UPI (optional)</label></div>
+      <div class="erp-field"><input name="bank_name" placeholder=" " value="{{ selected_company.bank_name if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Bank Name</label></div>
+      <div class="erp-field"><input name="bank_branch_name" placeholder=" " value="{{ selected_company.bank_branch_name if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Branch Name</label></div>
+      <div class="erp-field span-2"><input name="bank_branch_address" placeholder=" " value="{{ selected_company.bank_branch_address if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Branch Address</label></div>
+      <div class="erp-field"><input name="bank_account_name" placeholder=" " value="{{ selected_company.bank_account_name if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Account Holder</label></div>
+      <div class="erp-field"><input name="bank_account_number" placeholder=" " value="{{ selected_company.bank_account_number if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>Account Number</label></div>
+      <div class="erp-field"><input name="bank_ifsc" placeholder=" " value="{{ selected_company.bank_ifsc if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>IFSC Code</label></div>
+      <div class="erp-field"><input name="bank_swift" placeholder=" " value="{{ selected_company.bank_swift if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>SWIFT (optional)</label></div>
+      <div class="erp-field"><input name="bank_micr" placeholder=" " value="{{ selected_company.bank_micr if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>MICR (optional)</label></div>
+      <div class="erp-field"><input name="bank_upi" placeholder=" " value="{{ selected_company.bank_upi if selected_company else '' }}" {% if view_mode %}readonly{% endif %}><label>UPI (optional)</label></div>
       <div class="span-2"><h4 style="margin:0.5rem 0;">Country-specific registration</h4></div>
       <div id="company-country-fields" class="erp-form-grid span-2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;"></div>
+      {% if not view_mode %}
       <div class="erp-form-actions span-2">
+        {% if company_permissions.edit or company_permissions.create %}
         <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Company</button>
-        {% if selected_company %}
-        <button type="submit" formaction="{{ url_for('company_master') }}" name="form_action" value="delete_company" class="erp-btn erp-btn-ghost" onclick="return confirm('Delete this company and all branches, directors, documents? This action is restricted to Super Admin.');">Delete</button>
+        {% endif %}
+        {% if selected_company and company_permissions.approve and selected_company.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_company" class="erp-btn erp-btn-ghost">Approve</button>
+        {% endif %}
+        {% if selected_company and company_permissions.delete %}
+        <button type="submit" formaction="{{ url_for('company_master') }}" name="form_action" value="delete_company" class="erp-btn erp-btn-ghost" onclick="return confirm('Delete this company? Child branches and documents will be hidden (soft delete).');">Delete</button>
         {% endif %}
       </div>
+      {% endif %}
     </form>
+    {% if selected_company and audit_trail %}
+    <div style="margin-top:1rem;">
+      <h4>Audit Trail</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>When</th><th>By</th><th>Action</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+        <tbody>
+          {% for entry in audit_trail %}
+          <tr>
+            <td>{{ entry.changed_at }}</td>
+            <td>{{ entry.changed_by }}</td>
+            <td>{{ entry.action }}</td>
+            <td>{{ entry.field_name or '—' }}</td>
+            <td>{{ entry.old_value or '—' }}</td>
+            <td>{{ entry.new_value or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 
-  {% if selected_company %}
+  {% if selected_company and not view_mode %}
   <div class="erp-tabs" style="margin:1rem 0;display:flex;gap:0.5rem;flex-wrap:wrap;">
     <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm is-active" data-company-tab="branches">Branches</button>
     <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-company-tab="directors">Directors / Partners</button>
@@ -319,6 +450,21 @@
   </div>
   {% endif %}
 </div>
+
+{% if company_permissions.import %}
+<div id="company-import-modal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <div class="erp-form-card" style="max-width:480px;width:90%;">
+    <h3 class="erp-form-title">Import Companies</h3>
+    <p class="erp-form-section-help"><a href="/api/company-master/import/template">Download Excel template</a></p>
+    <input type="file" id="company-import-file" accept=".xlsx,.xls,.csv">
+    <div id="company-import-status" style="margin-top:0.75rem;font-size:0.9rem;"></div>
+    <div class="erp-form-actions" style="margin-top:1rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="company-import-run">Validate &amp; Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="company-import-close">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <script>
 window.COMPANY_GCC_FIELD_CONFIG = {{ gcc_field_config_json|safe }};

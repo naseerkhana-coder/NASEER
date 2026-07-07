@@ -149,12 +149,15 @@ def _module_costs_labour(db, project_id: int) -> dict[str, float]:
         ).fetchone()
         actual += _safe_float(row["total"] if row else 0)
     if _table_exists(db, "payroll_runs"):
-        row = db.execute(
-            "SELECT COALESCE(SUM(total_amount), 0) AS total FROM payroll_runs "
-            "WHERE project_id=? AND COALESCE(approval_status, '') NOT IN ('Approved', 'Rejected')",
-            (project_id,),
-        ).fetchone()
-        committed += _safe_float(row["total"] if row else 0)
+        pr_cols = {r[1] for r in db.execute("PRAGMA table_info(payroll_runs)").fetchall()}
+        amount_col = "total_net" if "total_net" in pr_cols else "total_gross" if "total_gross" in pr_cols else None
+        if amount_col:
+            row = db.execute(
+                f"SELECT COALESCE(SUM({amount_col}), 0) AS total FROM payroll_runs "
+                "WHERE project_id=? AND COALESCE(approval_status, '') NOT IN ('Approved', 'Rejected')",
+                (project_id,),
+            ).fetchone()
+            committed += _safe_float(row["total"] if row else 0)
     return {"committed": round(committed, 2), "actual": round(actual, 2)}
 
 

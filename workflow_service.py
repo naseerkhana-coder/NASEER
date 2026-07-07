@@ -2471,15 +2471,26 @@ def seed_demo_sample_data(db):
                 (code, name, dept, designation, "Monthly", 45000, "Active"),
             )
 
-    worker_count = db.execute("SELECT COUNT(*) AS c FROM workers").fetchone()["c"]
-    if worker_count == 0 and project_id:
+    if project_id:
         for idx, name in enumerate(("Ravi K", "Manoj S", "Velu M"), start=1):
+            code = f"W{idx:03d}"
+            existing = db.execute(
+                "SELECT id FROM workers WHERE UPPER(TRIM(worker_code))=? LIMIT 1",
+                (code,),
+            ).fetchone()
+            if existing:
+                db.execute(
+                    "UPDATE workers SET worker_name=?, worker_category='Company Staff', "
+                    "status='Active', is_deleted=0 WHERE id=?",
+                    (name, existing["id"]),
+                )
+                continue
             db.execute(
                 "INSERT INTO workers("
                 "worker_code, worker_name, worker_category, designation, salary_type, "
                 "salary_amount, project_id, status"
                 ") VALUES(?,?,?,?,?,?,?,?)",
-                (f"W{idx:03d}", name, "Direct Labour", "Mason", "Daily", 850, project_id, "Active"),
+                (code, name, "Company Staff", "Mason", "Daily", 850, project_id, "Active"),
             )
 
     if project_id:

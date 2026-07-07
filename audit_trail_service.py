@@ -20,6 +20,21 @@ AUDIT_COLUMNS = (
 )
 
 TRANSACTION_TABLES = (
+    "companies",
+    "company_branches",
+        "departments",
+        "designations",
+        "clients",
+        "projects",
+        "staff",
+        "workers",
+        "subcontractors",
+        "workflows",
+        "roles",
+        "permissions",
+        "users",
+        "documents",
+        "vendors",
     "material_requests",
     "purchase_requests",
     "purchase_orders",
@@ -37,8 +52,14 @@ TRANSACTION_TABLES = (
     "leave_requests",
     "subcontract_requests",
     "boq_master",
+    "boq_items",
     "dpr_entries",
     "client_billing_register",
+    "notifications",
+    "notification_templates",
+    "notification_channels",
+    "notification_preferences",
+    "notification_logs",
 )
 
 

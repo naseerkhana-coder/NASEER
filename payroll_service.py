@@ -744,9 +744,19 @@ def employee_has_period_data(
 def serialize_eligible_employee(emp: dict) -> dict:
     et = emp["employee_type"]
     if et == "staff":
-        type_label = "Monthly Staff"
+        salary_type = (emp.get("salary_type") or "Monthly").strip()
+        if salary_type == "Daily":
+            type_label = "Daily Staff"
+        elif salary_type == "Hourly":
+            type_label = "Hourly Staff"
+        else:
+            type_label = "Monthly Staff"
     elif et == "company_worker":
-        type_label = "Company Worker"
+        salary_type = (emp.get("salary_type") or "Daily").strip()
+        if salary_type == "Hourly":
+            type_label = "Hourly Worker"
+        else:
+            type_label = "Company Worker"
     else:
         type_label = "Sub Contractor"
     return {
@@ -1018,10 +1028,11 @@ def list_pending_payroll_months(
 
     staff_cols = _table_columns(db, "staff")
     staff_dept_sql = ", department" if "department" in staff_cols else ""
+    staff_salary_sql = ", salary_type" if "salary_type" in staff_cols else ""
     staff_rows = {
         r["id"]: dict(r)
         for r in db.execute(
-            f"SELECT id, employee_code, staff_name{staff_dept_sql} FROM staff "
+            f"SELECT id, employee_code, staff_name{staff_dept_sql}{staff_salary_sql} FROM staff "
             "WHERE COALESCE(status, 'Active') = 'Active'"
         ).fetchall()
     }
@@ -1069,7 +1080,11 @@ def list_pending_payroll_months(
             project_id = emp.get("project_id")
 
         type_label = serialize_eligible_employee(
-            {"employee_type": employee_type, "employee_id": employee_id}
+            {
+                "employee_type": employee_type,
+                "employee_id": employee_id,
+                "salary_type": emp.get("salary_type"),
+            }
         )["type_label"]
         source_labels = ", ".join(
             _DATA_SOURCE_LABELS.get(src, src.replace("_", " ").title())

@@ -1,0 +1,78 @@
+{% extends 'base_maxek.html' %}
+{% set page_title = 'Notification Center' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Notification Center' %}
+{% block head_extra %}
+<script src="{{ url_for('static', filename='js/notification-center.js') }}?v=20260707" defer></script>
+<style>
+.nc-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+.nc-metric { padding: 0.85rem; border-radius: 8px; background: var(--erp-surface-elevated, rgba(255,255,255,0.04)); border: 1px solid var(--erp-border-subtle, rgba(255,255,255,0.08)); }
+.nc-metric-value { font-size: 1.5rem; font-weight: 700; }
+.nc-metric-label { font-size: 0.75rem; opacity: 0.75; }
+.nc-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+.nc-prefs-panel { display: none; margin-bottom: 1rem; padding: 1rem; border-radius: 8px; border: 1px solid var(--erp-border-subtle, rgba(255,255,255,0.08)); }
+.nc-prefs-panel.is-open { display: block; }
+.nc-row-unread { font-weight: 600; }
+.nc-channel-bars { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.5rem; }
+.nc-channel-bar { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; }
+.nc-channel-bar span:first-child { min-width: 4rem; }
+.nc-trend { font-size: 0.75rem; opacity: 0.85; margin-top: 0.5rem; }
+</style>
+{% endblock %}
+{% block content %}
+<div id="notification-center-root" data-can-edit="{{ '1' if can_edit else '0' }}">
+  <div class="nc-metrics" id="nc-metrics">
+    <div class="nc-metric"><div class="nc-metric-value" id="nc-total">—</div><div class="nc-metric-label">Total</div></div>
+    <div class="nc-metric"><div class="nc-metric-value" id="nc-unread">—</div><div class="nc-metric-label">Unread</div></div>
+    <div class="nc-metric"><div class="nc-metric-value" id="nc-failed">—</div><div class="nc-metric-label">Failed</div></div>
+    <div class="nc-metric"><div class="nc-metric-value" id="nc-high">—</div><div class="nc-metric-label">High Priority</div></div>
+  </div>
+
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar nc-toolbar">
+      <h3 class="erp-table-title">Notifications</h3>
+      <select id="nc-filter-unread" class="erp-input erp-input-sm" aria-label="Filter">
+        <option value="">All</option>
+        <option value="1">Unread only</option>
+      </select>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="nc-mark-all">Mark all read</button>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="nc-prefs-toggle">Preferences</button>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="nc-refresh">Refresh</button>
+    </div>
+
+    <div class="nc-prefs-panel" id="nc-prefs-panel">
+      <h4>Notification Preferences</h4>
+      <form id="nc-prefs-form" class="erp-form-grid">
+        <label><input type="checkbox" name="in_app_enabled" checked> In-App</label>
+        <label><input type="checkbox" name="email_enabled" checked> Email</label>
+        <label><input type="checkbox" name="sms_enabled"> SMS</label>
+        <label><input type="checkbox" name="daily_summary"> Daily Summary</label>
+        <label><input type="checkbox" name="weekly_summary"> Weekly Summary</label>
+        <label>Quiet hours start <input type="time" name="quiet_hours_start" class="erp-input erp-input-sm"></label>
+        <label>Quiet hours end <input type="time" name="quiet_hours_end" class="erp-input erp-input-sm"></label>
+        <button type="submit" class="erp-btn erp-btn-primary erp-btn-sm">Save preferences</button>
+      </form>
+    </div>
+
+    <div class="erp-table-scroll">
+      <table class="erp-table erp-table-module" id="nc-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Priority</th>
+            <th>Channel</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="nc-tbody">
+          <tr><td colspan="7">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="nc-channel-bars" id="nc-channels"></div>
+    <div class="nc-trend" id="nc-trend"></div>
+  </div>
+</div>
+{% endblock %}

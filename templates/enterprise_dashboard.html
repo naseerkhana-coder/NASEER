@@ -1,0 +1,142 @@
+{% extends 'base_maxek.html' %}
+
+{% block body_class %} dashboard-mode pro-dashboard-mode enterprise-dashboard-mode{% endblock %}
+
+{% block title %}Enterprise Dashboard — MAXEK ERP{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-pro-dashboard.css') }}?v=20260706-enterprise">
+<style>
+.enterprise-dash-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.enterprise-dash-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.enterprise-widget-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.75rem;
+  min-height: 200px;
+}
+.enterprise-widget {
+  background: var(--erp-surface-elevated, rgba(255,255,255,0.04));
+  border: 1px solid var(--erp-border-subtle, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  overflow: hidden;
+  position: relative;
+}
+.enterprise-widget.is-dragging { opacity: 0.65; z-index: 5; }
+.enterprise-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--erp-border-subtle, rgba(255,255,255,0.06));
+  cursor: grab;
+  user-select: none;
+}
+.enterprise-widget-header:active { cursor: grabbing; }
+.enterprise-widget-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+}
+.enterprise-widget-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+.enterprise-widget-actions button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 0.15rem 0.35rem;
+}
+.enterprise-widget-actions button:hover { opacity: 1; }
+.enterprise-widget-body {
+  flex: 1;
+  padding: 0.75rem;
+  font-size: 0.82rem;
+  overflow: auto;
+}
+.enterprise-widget-empty {
+  color: var(--erp-text-muted, #94a3b8);
+  font-style: italic;
+}
+.enterprise-widget-stat {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.enterprise-widget-resize {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 12px;
+  height: 12px;
+  cursor: se-resize;
+  opacity: 0.4;
+}
+.enterprise-widget-resize:hover { opacity: 0.9; }
+.enterprise-dash-loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--erp-text-muted, #94a3b8);
+}
+@media (max-width: 768px) {
+  .enterprise-widget-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pro-dash-content pro-dash-content--home" id="enterprise-dashboard-root"
+     data-can-configure="{{ '1' if dashboard_permissions.configure else '0' }}"
+     data-can-reset="{{ '1' if dashboard_permissions.reset else '0' }}">
+  <header class="pro-dash-greeting-row" aria-labelledby="enterprise-dash-title">
+    <div class="pro-dash-greeting-text">
+      <h1 id="enterprise-dash-title">Enterprise Dashboard</h1>
+      <p class="pro-dash-greeting-sub">Widget-based home — scoped by company, branch, role, and permissions.</p>
+    </div>
+    <div class="enterprise-dash-toolbar-actions">
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="enterprise-dash-refresh" title="Refresh all">
+        <i class="fa-solid fa-rotate"></i> Refresh
+      </button>
+      {% if dashboard_permissions.configure %}
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="enterprise-dash-save" title="Save layout">
+        <i class="fa-solid fa-floppy-disk"></i> Save layout
+      </button>
+      {% endif %}
+      {% if dashboard_permissions.reset %}
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="enterprise-dash-reset" title="Reset layout">
+        <i class="fa-solid fa-undo"></i> Reset
+      </button>
+      {% endif %}
+      <a href="{{ url_for('dashboard') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Classic dashboard</a>
+    </div>
+  </header>
+
+  <div id="enterprise-dash-status" class="erp-form-section-help" role="status" aria-live="polite"></div>
+  <div id="enterprise-widget-grid" class="enterprise-widget-grid" aria-label="Dashboard widgets">
+    <div class="enterprise-dash-loading" id="enterprise-dash-loading">Loading dashboard…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/enterprise-dashboard.js') }}?v=20260706" defer></script>
+{% endblock %}

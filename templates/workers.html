@@ -141,7 +141,13 @@
           <tr>
             <td>{{ row.worker_code or '—' }}</td>
             <td>{{ row.worker_name }}</td>
-            <td>{{ row.subcontractor_name or '—' }}{% if row.subcontractor_code %} ({{ row.subcontractor_code }}){% endif %}</td>
+            <td>
+              {% if row.subcontractor_name %}
+              {{ row.subcontractor_name }}{% if row.subcontractor_code %} ({{ row.subcontractor_code }}){% endif %}
+              {% else %}
+              —
+              {% endif %}
+            </td>
             <td>{{ row.designation or '—' }}</td>
             <td>{{ approval_badge(row.status) }}</td>
             <td style="white-space:nowrap;">

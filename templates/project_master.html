@@ -1,0 +1,315 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Project Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; Project Management &gt; Project Master' %}
+{% block page_actions %}
+{% if project_permissions.create %}
+<a href="{{ url_for('project_master', new=1) }}#project-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Project</a>
+{% endif %}
+{% if project_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="project-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if project_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/project-master/export?format=xlsx{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if client_filter %}&client_id={{ client_filter }}{% endif %}{% if project_status_filter %}&project_status={{ project_status_filter }}{% endif %}{% if search %}&q={{ search }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/project-master/export?format=csv{% if company_filter %}&company_id={{ company_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/project-master/export?format=pdf&report=register{% if company_filter %}&company_id={{ company_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('projects') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-list"></i> Legacy Project List</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Central project registry — every operational module (BOQ, DPR, purchase, payroll, workers) links here.
+  Documents attach via <a href="{{ url_for('document_management') }}">Document Management</a> (module: project_master).
+  Photos use the existing <a href="{{ url_for('project_photos_register') }}">Project Photos</a> register.
+</p>
+
+{% if selected_project and selected_project.dashboard %}
+<div class="erp-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1rem;">
+  <div class="erp-kpi-card"><span class="erp-kpi-label">BOQ</span><strong>{{ selected_project.dashboard.boq_count }}</strong></div>
+  <div class="erp-kpi-card"><span class="erp-kpi-label">DPR</span><strong>{{ selected_project.dashboard.dpr_count }}</strong></div>
+  <div class="erp-kpi-card"><span class="erp-kpi-label">Workers</span><strong>{{ selected_project.dashboard.worker_count }}</strong></div>
+  <div class="erp-kpi-card"><span class="erp-kpi-label">Expenses</span><strong>{{ selected_project.dashboard.expense_count }}</strong></div>
+  <div class="erp-kpi-card"><span class="erp-kpi-label">Billing</span><strong>{{ selected_project.dashboard.billing_count }}</strong></div>
+  <div class="erp-kpi-card"><span class="erp-kpi-label">Photos</span><strong>{{ selected_project.dashboard.photo_count }}</strong></div>
+</div>
+{% endif %}
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search projects...',
+    search_name='q',
+    export_name='projects',
+    print_target='#project-records',
+    form_panel_id='project-form',
+    table_panel_id='project-records',
+    new_url=url_for('project_master', new=1) ~ '#project-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="project-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Projects ({{ project_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="company_id" onchange="this.form.submit()">
+          <option value="">All companies</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="client_id" onchange="this.form.submit()">
+          <option value="">All clients</option>
+          {% for cl in clients %}
+          <option value="{{ cl.id }}" {% if client_filter == cl.id %}selected{% endif %}>{{ cl.client_code }} — {{ cl.client_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="project_status" onchange="this.form.submit()">
+          <option value="">All lifecycle</option>
+          {% for s in project_lifecycle_statuses %}
+          <option value="{{ s }}" {% if project_status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Project Name</th>
+            <th>Client</th>
+            <th>Manager</th>
+            <th>Lifecycle</th>
+            <th>Value</th>
+            <th>City</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in projects %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
+            <td>{{ row.project_code or '—' }}</td>
+            <td>{{ row.project_name }}</td>
+            <td>{{ row.client_name or '—' }}</td>
+            <td>{{ row.project_manager_name or row.project_manager or '—' }}</td>
+            <td>{{ row.project_status or '—' }}</td>
+            <td>{% if row.project_value %}{{ row.currency or 'INR' }} {{ '{:,.0f}'.format(row.project_value) }}{% else %}—{% endif %}</td>
+            <td>{{ row.city or '—' }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>
+              <a href="{{ url_for('project_master', project_id=row.id, view=1) }}#project-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if project_permissions.edit %}
+              <a href="{{ url_for('project_master', project_id=row.id) }}#project-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No projects registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if project_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, project_pagination.pages + 1) %}
+      <a href="{{ url_for('project_master', q=search, company_id=company_filter, client_id=client_filter, project_status=project_status_filter, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == project_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_project_form %}
+  {% set proj = selected_project %}
+  <div class="erp-form-card" id="project-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and proj %}View {{ proj.project_code }}
+      {% elif proj %}Edit {{ proj.project_code }}
+      {% else %}New Project{% endif %}
+    </h3>
+    <form method="post" enctype="multipart/form-data" class="erp-form-grid" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_project">
+      {% if proj %}<input type="hidden" name="project_id" value="{{ proj.id }}">{% endif %}
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Registration</h4></div>
+      <div class="erp-field"><input name="project_code" required placeholder=" " value="{{ proj.project_code if proj else next_project_code }}" {% if view_mode %}readonly{% endif %}><label>Project Code *</label></div>
+      <div class="erp-field"><input name="project_name" required placeholder=" " value="{{ proj.project_name if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Project Name *</label></div>
+      <div class="erp-field"><input name="short_name" placeholder=" " value="{{ proj.short_name if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Short Name</label></div>
+      <div class="erp-field">
+        <select name="project_type" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for t in project_types %}
+          <option value="{{ t }}" {% if proj and proj.project_type == t %}selected{% elif not proj and t == 'Infrastructure' %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <label>Project Type</label>
+      </div>
+      <div class="erp-field">
+        <select name="client_id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select Client —</option>
+          {% for cl in clients %}
+          <option value="{{ cl.id }}" {% if proj and proj.client_id == cl.id %}selected{% endif %}>{{ cl.client_code }} — {{ cl.client_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Client *</label>
+      </div>
+      <div class="erp-field">
+        <select name="company_id" id="proj-company-id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select Company —</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if proj and proj.company_id == co.id %}selected{% elif not proj and company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Company *</label>
+      </div>
+      <div class="erp-field">
+        <select name="branch_id" id="proj-branch-id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select Branch —</option>
+          {% for br in branches %}
+          <option value="{{ br.id }}" {% if proj and proj.branch_id == br.id %}selected{% endif %}>{{ br.branch_code }} — {{ br.branch_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Branch *</label>
+      </div>
+      <div class="erp-field">
+        <select name="project_manager_id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Project Manager —</option>
+          {% for st in staff_list %}
+          <option value="{{ st.id }}" {% if proj and proj.project_manager_id == st.id %}selected{% endif %}>{{ st.employee_code }} — {{ st.staff_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Project Manager *</label>
+      </div>
+      <div class="erp-field">
+        <select name="project_engineer_id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Site Engineer —</option>
+          {% for st in staff_list %}
+          <option value="{{ st.id }}" {% if proj and proj.project_engineer_id == st.id %}selected{% endif %}>{{ st.employee_code }} — {{ st.staff_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Project Engineer</label>
+      </div>
+      <div class="erp-field"><input name="project_coordinator" placeholder=" " value="{{ proj.project_coordinator if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Coordinator</label></div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Contract &amp; Financials</h4></div>
+      <div class="erp-field"><input name="contract_number" placeholder=" " value="{{ proj.contract_number if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Contract Number</label></div>
+      <div class="erp-field"><input name="work_order_number" placeholder=" " value="{{ proj.work_order_number if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Work Order Number</label></div>
+      <div class="erp-field"><input name="agreement_number" placeholder=" " value="{{ proj.agreement_number if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Agreement Number</label></div>
+      <div class="erp-field"><input name="project_value" type="number" step="0.01" placeholder=" " value="{{ proj.project_value if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Project Value</label></div>
+      <div class="erp-field"><input name="revised_project_value" type="number" step="0.01" placeholder=" " value="{{ proj.revised_project_value if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Revised Value</label></div>
+      <div class="erp-field">
+        <select name="currency" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for c in currencies %}
+          <option value="{{ c }}" {% if proj and proj.currency == c %}selected{% elif not proj and c == 'INR' %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+        <label>Currency</label>
+      </div>
+      <div class="erp-field"><input name="retention_pct" type="number" step="0.01" placeholder=" " value="{{ proj.retention_pct if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Retention %</label></div>
+      <div class="erp-field"><input name="performance_guarantee" type="number" step="0.01" placeholder=" " value="{{ proj.performance_guarantee if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Performance Guarantee</label></div>
+      <div class="erp-field"><input name="emd_amount" type="number" step="0.01" placeholder=" " value="{{ proj.emd_amount if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>EMD Amount</label></div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Timeline &amp; Status</h4></div>
+      <div class="erp-field"><input name="start_date" type="date" placeholder=" " value="{{ proj.start_date if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Start Date</label></div>
+      <div class="erp-field"><input name="planned_completion_date" type="date" placeholder=" " value="{{ proj.planned_completion_date if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Planned Completion</label></div>
+      <div class="erp-field"><input name="actual_completion_date" type="date" placeholder=" " value="{{ proj.actual_completion_date if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Actual Completion</label></div>
+      <div class="erp-field"><input name="dlp_end_date" type="date" placeholder=" " value="{{ proj.dlp_end_date if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>DLP End Date</label></div>
+      <div class="erp-field">
+        <select name="project_status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in project_lifecycle_statuses %}
+          <option value="{{ s }}" {% if proj and proj.project_status == s %}selected{% elif not proj and s == 'Execution' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Project Status</label>
+      </div>
+      <div class="erp-field">
+        <select name="priority" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for p in priority_levels %}
+          <option value="{{ p }}" {% if proj and proj.priority == p %}selected{% elif not proj and p == 'Medium' %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+        <label>Priority</label>
+      </div>
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in project_record_statuses %}
+          <option value="{{ s }}" {% if proj and proj.status == s %}selected{% elif not proj and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Record Status</label>
+      </div>
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Location &amp; GPS</h4></div>
+      <div class="erp-field span-2"><input name="location" placeholder=" " value="{{ proj.location if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Location Label</label></div>
+      <div class="erp-field span-2"><input name="site_address" placeholder=" " value="{{ proj.site_address if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Site Address</label></div>
+      <div class="erp-field"><input name="city" placeholder=" " value="{{ proj.city if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>City</label></div>
+      <div class="erp-field"><input name="state" placeholder=" " value="{{ proj.state if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>State</label></div>
+      <div class="erp-field"><input name="district" placeholder=" " value="{{ proj.district if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>District</label></div>
+      <div class="erp-field"><input name="pin_code" placeholder=" " value="{{ proj.pin_code if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Pin Code</label></div>
+      <div class="erp-field"><input name="latitude" type="number" step="any" placeholder=" " value="{{ proj.latitude if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Latitude</label></div>
+      <div class="erp-field"><input name="longitude" type="number" step="any" placeholder=" " value="{{ proj.longitude if proj else '' }}" {% if view_mode %}readonly{% endif %}><label>Longitude</label></div>
+      {% if proj and proj.latitude and proj.longitude %}
+      <div class="erp-field span-2">
+        <a href="https://www.google.com/maps?q={{ proj.latitude }},{{ proj.longitude }}" target="_blank" rel="noopener" class="erp-btn erp-btn-ghost erp-btn-sm"><i class="fa-solid fa-map-location-dot"></i> Open in Maps</a>
+      </div>
+      {% endif %}
+
+      <div class="erp-field span-2"><h4 class="erp-form-subtitle">Notes</h4></div>
+      <div class="erp-field span-2"><textarea name="description" rows="2" placeholder=" " {% if view_mode %}readonly{% endif %}>{{ proj.description if proj else '' }}</textarea><label>Description</label></div>
+      <div class="erp-field span-2"><textarea name="remarks" rows="2" placeholder=" " {% if view_mode %}readonly{% endif %}>{{ proj.remarks if proj else '' }}</textarea><label>Remarks</label></div>
+
+      {% if not view_mode %}
+      <div class="erp-field span-2"><input type="file" name="project_document" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx"><label>Attach Document (DMS)</label></div>
+      {% endif %}
+
+      {% if proj and project_documents %}
+      <div class="erp-field span-2">
+        <h4 class="erp-form-subtitle">Documents ({{ project_documents|length }})</h4>
+        <ul>{% for doc in project_documents %}<li>{{ doc.document_title or doc.original_filename }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        <button type="submit" class="erp-btn erp-btn-primary">Save Project</button>
+        {% if proj and project_permissions.approve and proj.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_project" class="erp-btn erp-btn-ghost">Approve</button>
+        {% endif %}
+        {% if proj and project_permissions.deactivate and proj.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_project" class="erp-btn erp-btn-ghost">Deactivate</button>
+        {% endif %}
+        {% if proj and project_permissions.activate and proj.status == 'Inactive' %}
+        <button type="submit" name="form_action" value="activate_project" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if proj and project_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_project" class="erp-btn erp-btn-danger" onclick="return confirm('Soft-delete this project?');">Delete</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div id="project-import-modal" class="erp-modal" hidden style="display:none;">
+  <div class="erp-modal-card">
+    <h3>Import Projects</h3>
+    <p><a href="/api/project-master/import/template">Download template</a></p>
+    <input type="file" id="project-import-file" accept=".xlsx,.xls,.csv">
+    <div id="project-import-result"></div>
+    <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+      <button type="button" id="project-import-validate" class="erp-btn erp-btn-ghost">Validate</button>
+      <button type="button" id="project-import-save" class="erp-btn erp-btn-primary">Import</button>
+      <button type="button" id="project-import-close" class="erp-btn erp-btn-ghost">Close</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/project-master.js') }}"></script>
+{% endblock %}

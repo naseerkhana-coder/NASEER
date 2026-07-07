@@ -1,0 +1,283 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Workflow Engine' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Workflow Engine' %}
+{% block page_actions %}
+{% if workflow_permissions.create %}
+<a href="{{ url_for('workflow_engine', new=1) }}#workflow-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Workflow</a>
+{% endif %}
+{% if workflow_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="workflow-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if workflow_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/workflow-engine/export?format=xlsx" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/workflow-engine/export?format=csv" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+</div>
+{% endif %}
+<a href="{{ url_for('workflow_settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-table"></i> Legacy Matrix</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Enterprise workflow engine — configurable Maker → Checker → Approver (max 3 stages).
+  Statuses: Pending Checker, Pending Approval, Approved, Rejected by Checker, Rejected by Approver.
+</p>
+
+<div class="erp-dashboard-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1rem;">
+  <div class="erp-stat-card"><span class="erp-stat-label">Active Workflows</span><strong id="wf-stat-active">{{ dashboard.workflow_count }}</strong></div>
+  <div class="erp-stat-card"><span class="erp-stat-label">Pending Checker</span><strong id="wf-stat-checker">{{ dashboard.pending_checker }}</strong></div>
+  <div class="erp-stat-card"><span class="erp-stat-label">Pending Approval</span><strong id="wf-stat-approval">{{ dashboard.pending_approval }}</strong></div>
+  <div class="erp-stat-card"><span class="erp-stat-label">Total Pending</span><strong id="wf-stat-total">{{ dashboard.total_pending }}</strong></div>
+</div>
+
+<ul class="erp-tabs" role="tablist" style="margin-bottom:1rem;">
+  <li><a href="#tab-master" class="erp-tab active" data-tab="master">Master</a></li>
+  <li><a href="#tab-queues" class="erp-tab" data-tab="queues">Queues</a></li>
+  <li><a href="#tab-history" class="erp-tab" data-tab="history">History</a></li>
+  <li><a href="#tab-config" class="erp-tab" data-tab="config">Configuration</a></li>
+  <li><a href="#tab-ai" class="erp-tab" data-tab="ai">Insights</a></li>
+</ul>
+
+<div id="tab-master" class="erp-tab-panel">
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search workflows...',
+    search_name='q',
+    export_name='workflows',
+    print_target='#workflow-records',
+    form_panel_id='workflow-form',
+    table_panel_id='workflow-records',
+    new_url=url_for('workflow_engine', new=1) ~ '#workflow-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  {% if show_workflow_form and workflow_permissions.create or (selected_workflow and workflow_permissions.edit) %}
+  <div class="erp-form-card" id="workflow-form">
+    <h3 class="erp-form-title">{% if selected_workflow %}Edit Workflow{% else %}New Workflow{% endif %}</h3>
+    <form method="post" class="erp-form-grid">
+      <input type="hidden" name="form_action" value="save_workflow">
+      {% if selected_workflow %}<input type="hidden" name="workflow_id" value="{{ selected_workflow.id }}">{% endif %}
+      <div class="erp-field">
+        <input name="workflow_code" value="{{ selected_workflow.workflow_code if selected_workflow else '' }}" placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Workflow Code</label>
+      </div>
+      <div class="erp-field">
+        <input name="workflow_name" value="{{ selected_workflow.workflow_name if selected_workflow else '' }}" required placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Workflow Name</label>
+      </div>
+      <div class="erp-field">
+        <input name="module_id" value="{{ selected_workflow.module_id if selected_workflow else '' }}" required placeholder=" " {% if selected_workflow %}readonly{% endif %}>
+        <label>Module ID</label>
+      </div>
+      <div class="erp-field">
+        <input name="module_name" value="{{ selected_workflow.module_name if selected_workflow else '' }}" required placeholder=" " {% if view_mode %}readonly{% endif %}>
+        <label>Module Name</label>
+      </div>
+      <div class="erp-field span-2">
+        <select name="workflow_mode" {% if view_mode %}disabled{% endif %}>
+          {% for mode in workflow_modes %}
+          <option value="{{ mode }}" {% if selected_workflow and selected_workflow.workflow_mode == mode %}selected{% elif not selected_workflow and mode == default_workflow_mode %}selected{% endif %}>{{ workflow_mode_labels.get(mode, mode) }}</option>
+          {% endfor %}
+        </select>
+        <label>Workflow Mode</label>
+      </div>
+      <div class="erp-field">
+        <select name="status" {% if view_mode %}disabled{% endif %}>
+          {% for s in workflow_statuses %}
+          <option value="{{ s }}" {% if selected_workflow and selected_workflow.status == s %}selected{% elif not selected_workflow and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status</label>
+      </div>
+      <div class="erp-field span-2">
+        <textarea name="description" rows="2" placeholder=" " {% if view_mode %}readonly{% endif %}>{{ selected_workflow.description if selected_workflow else '' }}</textarea>
+        <label>Description</label>
+      </div>
+      {% set stage_map = {} %}
+      {% if selected_workflow %}
+        {% for st in selected_workflow.stages %}{% set _ = stage_map.update({st.stage_type: st}) %}{% endfor %}
+      {% endif %}
+      <div class="erp-field span-2">
+        <select name="maker_designation_id" {% if view_mode %}disabled{% endif %}>
+          <option value="">Select Maker</option>
+          {% for d in designations %}
+          <option value="{{ d.id }}" {% if stage_map.get('Maker') and stage_map.Maker.designation_id == d.id %}selected{% endif %}>{{ d.designation_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Maker Designation</label>
+      </div>
+      <div class="erp-field span-2">
+        <select name="checker_designation_id" {% if view_mode %}disabled{% endif %}>
+          <option value="">Select Checker</option>
+          {% for d in designations %}
+          <option value="{{ d.id }}" {% if stage_map.get('Checker') and stage_map.Checker.designation_id == d.id %}selected{% endif %}>{{ d.designation_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Checker Designation</label>
+      </div>
+      <div class="erp-field span-2">
+        <select name="approver_designation_id" {% if view_mode %}disabled{% endif %}>
+          <option value="">Select Approver</option>
+          {% for d in designations %}
+          <option value="{{ d.id }}" {% if stage_map.get('Approver') and stage_map.Approver.designation_id == d.id %}selected{% endif %}>{{ d.designation_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Approver Designation</label>
+      </div>
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Workflow</button>
+        {% if selected_workflow and workflow_permissions.activate and selected_workflow.status != 'Active' %}
+        <button type="submit" name="form_action" value="activate_workflow" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if selected_workflow and workflow_permissions.deactivate and selected_workflow.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_workflow" class="erp-btn erp-btn-ghost">Deactivate</button>
+        {% endif %}
+        {% if selected_workflow and workflow_permissions.delete and not selected_workflow.has_usage %}
+        <button type="submit" name="form_action" value="delete_workflow" class="erp-btn erp-btn-danger" onclick="return confirm('Soft-delete this workflow?');">Delete</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+    {% if selected_workflow and selected_workflow.has_usage %}
+    <p class="erp-form-section-help" style="margin-top:0.5rem;color:var(--erp-warning,#b45309);">This workflow has approval history and cannot be permanently deleted.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="erp-table-panel" id="workflow-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Workflows ({{ workflow_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <input name="q" value="{{ search }}" placeholder="Search…">
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in workflow_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Module</th>
+            <th>Mode</th>
+            <th>Maker</th>
+            <th>Checker</th>
+            <th>Approver</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for wf in workflows %}
+          {% set sm = {} %}{% for st in wf.stages %}{% set _ = sm.update({st.stage_type: st}) %}{% endfor %}
+          <tr>
+            <td>{{ wf.workflow_code or '—' }}</td>
+            <td><strong>{{ wf.workflow_name }}</strong></td>
+            <td>{{ wf.module_name }}<br><small>{{ wf.module_id }}</small></td>
+            <td>{{ workflow_mode_labels.get(wf.workflow_mode, wf.workflow_mode) }}</td>
+            <td>{{ sm.Maker.designation_name if sm.get('Maker') else '—' }}</td>
+            <td>{{ sm.Checker.designation_name if sm.get('Checker') else '—' }}</td>
+            <td>{{ sm.Approver.designation_name if sm.get('Approver') else '—' }}</td>
+            <td><span class="approval-badge approval-{{ 'active' if wf.status == 'Active' else 'inactive' }}">{{ wf.status }}</span></td>
+            <td>
+              <a href="{{ url_for('workflow_engine', workflow_id=wf.id) }}" class="erp-btn erp-btn-ghost erp-btn-sm">Open</a>
+              <a href="{{ url_for('workflow_engine', workflow_id=wf.id, view=1) }}" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No workflows configured.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="tab-queues" class="erp-tab-panel" hidden>
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Approval Queues</h3>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button type="button" class="erp-btn erp-btn-sm erp-btn-primary js-load-queue" data-queue="checker">Pending Checker</button>
+        <button type="button" class="erp-btn erp-btn-sm erp-btn-ghost js-load-queue" data-queue="approver">Pending Approval</button>
+        <button type="button" class="erp-btn erp-btn-sm erp-btn-ghost js-load-queue" data-queue="rejected">Rejected</button>
+        <button type="button" class="erp-btn erp-btn-sm erp-btn-ghost js-load-queue" data-queue="approved">Approved</button>
+      </div>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table" id="queue-table">
+        <thead><tr><th>Ref</th><th>Module</th><th>Maker</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+        <tbody id="queue-tbody"><tr><td colspan="6">Select a queue above.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="tab-history" class="erp-tab-panel" hidden>
+  <div class="erp-table-panel">
+    <div class="erp-table-toolbar"><h3 class="erp-table-title">Approval History</h3></div>
+    <div class="erp-table-scroll">
+      <table class="erp-table" id="history-table">
+        <thead><tr><th>Ref</th><th>Module</th><th>Status</th><th>Created</th><th>Timeline</th></tr></thead>
+        <tbody id="history-tbody"><tr><td colspan="5">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="tab-config" class="erp-tab-panel" hidden>
+  <div class="erp-form-card">
+    <h3 class="erp-form-title">Escalation &amp; Notifications</h3>
+    <p class="erp-form-section-help">Escalation reminders use stage settings (notification_enabled, escalation_hours). Run escalation scan manually or via scheduler.</p>
+    {% if workflow_permissions.edit %}
+    <button type="button" id="wf-run-escalations" class="erp-btn erp-btn-primary"><i class="fa-solid fa-bell"></i> Run Escalation Scan</button>
+    <span id="wf-escalation-status" style="margin-left:0.5rem;"></span>
+    {% endif %}
+  </div>
+</div>
+
+<div id="tab-ai" class="erp-tab-panel" hidden>
+  <div class="erp-form-card" id="wf-ai-panel">
+    <h3 class="erp-form-title">Workflow Insights</h3>
+    <div id="wf-ai-content"><em>Loading insights…</em></div>
+  </div>
+</div>
+
+{% if workflow_permissions.import %}
+<div id="workflow-import-modal" class="erp-modal" hidden style="display:none;">
+  <div class="erp-modal-content">
+    <h3>Import Workflows</h3>
+    <p><a href="/api/workflow-engine/import/template">Download template</a></p>
+    <input type="file" id="workflow-import-file" accept=".xlsx,.xls,.csv">
+    <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+      <button type="button" id="workflow-import-run" class="erp-btn erp-btn-primary">Import</button>
+      <button type="button" id="workflow-import-close" class="erp-btn erp-btn-ghost">Close</button>
+    </div>
+    <p id="workflow-import-status"></p>
+  </div>
+</div>
+{% endif %}
+
+{% if selected_workflow and audit_trail %}
+<div class="erp-form-card" style="margin-top:1rem;">
+  <h3 class="erp-form-title">Audit Trail</h3>
+  <ul class="erp-audit-list">
+    {% for ev in audit_trail %}
+    <li>{{ ev.changed_at }} — {{ ev.action }} by {{ ev.changed_by }}{% if ev.field_name %}: {{ ev.field_name }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/workflow-engine.js') }}"></script>
+{% endblock %}

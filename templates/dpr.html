@@ -303,7 +303,6 @@
     <form method="post" class="erp-form-grid" data-dpr-form
           data-continue-project="{{ continue_project_id or '' }}"
           data-continue-boq="{{ continue_boq_number or '' }}"
-          data-project-boq-items='{{ (dpr_boq_items or [])|tojson|e }}'
           {% if editing_measurement %}
           data-edit-measurement="{{ editing_measurement.id }}"
           data-edit-project="{{ editing_measurement.project_id }}"
@@ -343,6 +342,7 @@
       </div>
       <input type="hidden" name="project_id" id="dpr_project_id_hidden" value="{{ editing_measurement.project_id if editing_measurement else (continue_project_id or '') }}">
 
+      {% if editing_measurement %}
       <div class="erp-field span-2">
         <select id="dpr_boq_number" data-dpr-boq-number required disabled>
           <option value="">Select BOQ Number</option>
@@ -355,19 +355,42 @@
         </select>
         <label>BOQ Description</label>
       </div>
+      {% else %}
+      <div class="span-2" data-dpr-multi-boq-panel hidden>
+        <h4 class="erp-form-subtitle">Select BOQ Items <span class="erp-form-hint">(choose 2 or more to apply the same measurements)</span></h4>
+        <p class="erp-form-hint" style="margin-bottom: 0.5rem;">Measurements, manpower, materials and equipment are entered <strong>once</strong> and saved to every selected BOQ item.</p>
+        <div class="dpr-boq-filter" style="margin-bottom: 0.5rem;">
+          <input type="text" id="dpr_boq_filter" placeholder="Filter by BOQ number or description..." class="erp-input" data-dpr-boq-filter>
+        </div>
+        <div class="dpr-boq-select-actions" style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-dpr-boq-select-all><i class="fa-solid fa-check-double"></i> Select All</button>
+          <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" data-dpr-boq-clear-all><i class="fa-solid fa-xmark"></i> Clear</button>
+          <span class="erp-form-hint" style="align-self: center;"><strong data-dpr-boq-selected-count>0</strong> selected</span>
+        </div>
+        <div class="dpr-boq-checkbox-list" data-dpr-boq-checkbox-list style="max-height: 220px; overflow-y: auto; border: 1px solid var(--erp-border, #e2e8f0); border-radius: 8px; padding: 0.5rem;"></div>
+      </div>
+      <div class="span-2" data-dpr-selected-chips-panel hidden>
+        <h4 class="erp-form-subtitle">Selected BOQ Items</h4>
+        <p class="erp-form-hint" data-dpr-unit-mismatch-hint hidden style="color: #b45309; margin-bottom: 0.5rem;">
+          <i class="fa-solid fa-triangle-exclamation"></i> Selected items have different units — the same measurement values will be applied; quantities are calculated per BOQ unit.
+        </p>
+        <div class="dpr-selected-chips" data-dpr-selected-chips></div>
+      </div>
+      <input type="hidden" name="boq_item_id" id="dpr_boq_description" value="">
+      {% endif %}
       <input type="hidden" name="boq_number" id="dpr_boq_number_hidden" value="{{ editing_measurement.boq_number if editing_measurement else (continue_boq_number or '') }}">
       <input type="hidden" name="boq_description" id="dpr_boq_description_hidden" value="{{ editing_measurement.boq_description if editing_measurement else '' }}">
 
-      <div class="erp-field erp-field--unit erp-field-readonly">
+      <div class="erp-field erp-field--unit erp-field-readonly"{% if not editing_measurement %} data-dpr-single-unit-wrap hidden{% endif %}>
         <input type="text" id="dpr_unit_display" readonly placeholder="—" data-dpr-unit-display class="erp-input--unit" value="{{ editing_measurement.unit if editing_measurement else '' }}">
         <label>Unit (from BOQ)</label>
       </div>
       <input type="hidden" name="unit" id="dpr_unit_hidden" value="{{ editing_measurement.unit if editing_measurement else '' }}">
-      <div class="erp-field erp-field--qty erp-field-readonly">
+      <div class="erp-field erp-field--qty erp-field-readonly"{% if not editing_measurement %} data-dpr-single-unit-wrap hidden{% endif %}>
         <input type="text" id="dpr_boq_qty_display" readonly placeholder="—" data-dpr-boq-qty-display class="erp-input--qty" data-format-qty>
         <label>BOQ Quantity</label>
       </div>
-      <div class="erp-field erp-field--qty erp-field-readonly">
+      <div class="erp-field erp-field--qty erp-field-readonly"{% if not editing_measurement %} data-dpr-single-unit-wrap hidden{% endif %}>
         <input type="text" id="dpr_balance_qty_display" readonly placeholder="—" data-dpr-balance-qty-display class="erp-input--qty" data-format-qty>
         <label>Balance Quantity</label>
       </div>
@@ -440,7 +463,7 @@
       </div>
 
       <div class="span-2" data-dpr-measurement-panel hidden>
-        <h4 class="erp-form-subtitle">Measurements</h4>
+        <h4 class="erp-form-subtitle">Measurements <span data-dpr-measurement-scope-hint class="erp-form-hint"></span></h4>
         <div data-dpr-volume-panel hidden>
           <p class="erp-form-hint">Cubic meter (m³) — enter multiple length, width &amp; depth readings; averages are used.</p>
           <div class="dpr-dimension-group" data-dpr-dimension="length">
@@ -542,56 +565,47 @@
           </template>
         </div>
         <p class="erp-form-hint" style="margin-top: 0.75rem;"><strong>Calculated Qty:</strong> <span data-dpr-calculated-qty>0.0000</span> <span data-dpr-calculated-unit></span></p>
-        <div class="erp-form-actions" style="margin-top: 0.75rem;">
-          <button type="submit" class="erp-btn erp-btn-primary" data-dpr-save-measurement-inline data-dpr-set-status="submitted">
-            <i class="fa-solid fa-floppy-disk"></i> Save Measurements
-          </button>
-        </div>
       </div>
 
       <div class="span-2" data-dpr-resource-panel hidden>
-        <h4 class="erp-form-subtitle">Costing Resources</h4>
-        <p class="erp-form-hint">Record manpower, materials, equipment and any extra details for project costing.</p>
+        <h4 class="erp-form-subtitle">Costing Resources <span class="erp-form-hint">(shared across all selected BOQ items)</span></h4>
+        <p class="erp-form-hint">Record manpower, materials, equipment and any extra details once — applied to every selected BOQ item on save.</p>
 
       <div data-dpr-manpower-panel>
         <h5 class="erp-form-subtitle" style="margin-top: 0.5rem;">Manpower</h5>
         <div data-dpr-manpower-rows></div>
-        <button type="button" class="erp-btn erp-btn-ghost" data-dpr-add-manpower><i class="fa-solid fa-plus"></i> Insert Manpower Entry</button>
-        <button type="button" class="erp-btn erp-btn-ghost" data-dpr-save-manpower><i class="fa-solid fa-floppy-disk"></i> Save Manpower</button>
+        <button type="button" class="erp-btn erp-btn-ghost" data-dpr-add-manpower><i class="fa-solid fa-plus"></i> Add Worker</button>
         <template data-dpr-manpower-template>
           <div class="erp-form-grid dpr-manpower-row" data-dpr-manpower-row style="margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--erp-border, #e2e8f0);">
             <div class="erp-field">
-              <select data-mp-staff-type>
-                <option value="Company Staff">Company Staff</option>
-                <option value="Subcontractor Staff">Subcontractor Staff</option>
-              </select>
-              <label>Staff Type</label>
-            </div>
-            <div class="erp-field" data-mp-subcontractor-field hidden>
               <select data-mp-subcontractor>
-                <option value="">Select Subcontractor</option>
+                <option value="">Company Staff</option>
                 {% for sc in subcontractors %}
                 <option value="{{ sc.id }}">{{ sc.subcontractor_name }}</option>
                 {% endfor %}
               </select>
-              <label>Subcontractor Name</label>
+              <label>Subcontractor</label>
+            </div>
+            <div class="erp-field">
+              <select data-mp-worker-id disabled><option value="">Select Worker ID</option></select>
+              <label>Worker ID</label>
+            </div>
+            <div class="erp-field">
+              <select data-mp-worker-name disabled><option value="">Select Worker Name</option></select>
+              <label>Worker Name</label>
             </div>
             <div class="erp-field">
               <select data-mp-trade>
-                <option value="">Trade / Designation</option>
-                {% for trade in ['Steel Fixer', 'Mason', 'Helper', 'Carpenter', 'Electrician', 'Plumber', 'Painter', 'Bar Bender', 'Welder', 'Supervisor', 'Engineer', 'Other'] %}
+                <option value="">Trade</option>
+                {% for trade in ['Carpenter', 'Steel Fixer', 'Helper', 'Mason', 'Electrician', 'Plumber', 'Painter'] %}
                 <option value="{{ trade }}">{{ trade }}</option>
                 {% endfor %}
               </select>
-              <label>Trade / Designation</label>
-            </div>
-            <div class="erp-field">
-              <input type="number" min="0" step="1" data-mp-total-workers placeholder="0">
-              <label>Total Nos</label>
+              <label>Trade</label>
             </div>
             <div class="erp-field">
               <input type="number" min="0" step="0.5" data-mp-hours placeholder="0">
-              <label>Total Hours Worked</label>
+              <label>Hours Worked</label>
             </div>
             <div class="erp-field">
               <input type="text" data-mp-remarks placeholder="Remarks">
@@ -637,7 +651,6 @@
         <h5 class="erp-form-subtitle">Equipment Details</h5>
         <div data-dpr-equipment-rows></div>
         <button type="button" class="erp-btn erp-btn-ghost" data-dpr-add-equipment><i class="fa-solid fa-plus"></i> Add Equipment</button>
-        <button type="button" class="erp-btn erp-btn-ghost" data-dpr-save-equipment><i class="fa-solid fa-floppy-disk"></i> Save Equipment</button>
         <template data-dpr-equipment-template>
           <div class="erp-form-grid dpr-resource-row" data-dpr-equipment-row style="margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--erp-border, #e2e8f0);">
             <div class="erp-field">
@@ -713,6 +726,7 @@
       </div>
       </div>
 
+      <input type="hidden" name="batch_payload" data-dpr-batch-payload value="">
       <input type="hidden" name="measurement_payload" data-dpr-measurement-payload value="{}">
       <input type="hidden" name="manpower_payload" data-dpr-manpower-payload value="[]">
       <input type="hidden" name="materials_payload" data-dpr-materials-payload value="[]">
@@ -721,11 +735,12 @@
       <input type="hidden" name="dpr_status" id="dpr_status" value="submitted">
 
       <div class="erp-form-actions span-2">
+        <span class="erp-form-hint dpr-unsaved-hint" data-dpr-unsaved-hint hidden><i class="fa-solid fa-circle-exclamation"></i> Unsaved changes — click Save to persist</span>
         <button type="submit" class="erp-btn erp-btn-ghost" data-dpr-save-draft data-dpr-set-status="draft">
           <i class="fa-solid fa-file-pen"></i> Save Draft
         </button>
         <button type="submit" class="erp-btn erp-btn-primary" data-dpr-save-measurement data-dpr-set-status="submitted">
-          <i class="fa-solid fa-paper-plane"></i> Submit DPR
+          <i class="fa-solid fa-floppy-disk"></i> Save DPR
         </button>
       </div>
     </form>
@@ -971,10 +986,19 @@
   .dpr-progress-card span { display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem; }
   .dpr-progress-card strong { font-size: 1rem; }
   .dpr-inline-check { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem; font-size: 0.9rem; }
+  .dpr-boq-checkbox-list label { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.4rem 0.5rem; border-radius: 6px; cursor: pointer; }
+  .dpr-boq-checkbox-list label:hover { background: #f1f5f9; }
+  .dpr-boq-checkbox-list input { margin-top: 0.2rem; }
+  .dpr-boq-checkbox-meta { font-size: 0.8rem; color: #64748b; }
+  .dpr-selected-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+  .dpr-selected-chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.6rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 999px; font-size: 0.85rem; }
+  .dpr-selected-chip strong { color: #1e40af; }
+  .dpr-selected-chip-meta { color: #64748b; font-size: 0.75rem; }
+  .dpr-unsaved-hint { color: #b45309; margin-right: auto; }
 </style>
 {% endblock %}
 {% block scripts %}
 {{ workflow_modals() }}
 <script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
-<script src="{{ url_for('static', filename='js/dpr-forms.js') }}?v=20260706-boq-select-2"></script>
+<script src="{{ url_for('static', filename='js/dpr-forms.js') }}"></script>
 {% endblock %}

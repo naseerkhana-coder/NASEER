@@ -14,9 +14,9 @@ VALID_UI_THEMES = frozenset({"command-dark", "pro-light", "ultra-color"})
 DEFAULT_UI_THEME = "command-dark"
 
 VALID_DASHBOARD_THEMES = frozenset(
-    {"executive", "command-centre", "compact", "kpi", "custom"}
+    {"executive", "command-centre", "compact", "enterprise", "kpi", "custom"}
 )
-ACTIVE_DASHBOARD_THEMES = frozenset({"executive", "command-centre", "compact"})
+ACTIVE_DASHBOARD_THEMES = frozenset({"executive", "command-centre", "compact", "enterprise"})
 PLACEHOLDER_DASHBOARD_THEMES = frozenset({"kpi", "custom"})
 DEFAULT_DASHBOARD_THEME = "command-centre"
 
@@ -24,20 +24,23 @@ DASHBOARD_THEME_LABELS: dict[str, str] = {
     "executive": "Theme A — Executive Dashboard",
     "command-centre": "Theme B — Construction Command Centre",
     "compact": "Theme C — Compact Dashboard",
-    "kpi": "Theme D — KPI Dashboard",
-    "custom": "Theme E — Custom Dashboard",
+    "enterprise": "Theme D — Enterprise Widget Dashboard",
+    "kpi": "Theme E — KPI Dashboard",
+    "custom": "Theme F — Custom Dashboard",
 }
 
 DASHBOARD_THEME_TEMPLATES: dict[str, str] = {
     "command-centre": "dashboard.html",
     "executive": "dashboard_theme_executive.html",
     "compact": "dashboard_theme_compact.html",
+    "enterprise": "enterprise_dashboard.html",
 }
 
 DASHBOARD_THEME_SELECT_OPTIONS: list[tuple[str, str, bool]] = [
     ("executive", DASHBOARD_THEME_LABELS["executive"], False),
     ("command-centre", DASHBOARD_THEME_LABELS["command-centre"], False),
     ("compact", DASHBOARD_THEME_LABELS["compact"], False),
+    ("enterprise", DASHBOARD_THEME_LABELS["enterprise"], False),
     ("kpi", f'{DASHBOARD_THEME_LABELS["kpi"]} (coming soon)', True),
     ("custom", f'{DASHBOARD_THEME_LABELS["custom"]} (coming soon)', True),
 ]

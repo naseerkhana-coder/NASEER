@@ -1,0 +1,286 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Document Management' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Document Management' %}
+{% block page_actions %}
+{% if dms_permissions.upload %}
+<button type="button" class="erp-btn erp-btn-primary" id="dms-upload-trigger"><i class="fa-solid fa-file-arrow-up"></i> Upload</button>
+{% endif %}
+{% if dms_permissions.export %}
+<a href="/api/document-management/export?format=xlsx" class="erp-btn erp-btn-ghost erp-btn-sm">Export Excel</a>
+{% endif %}
+<a href="{{ url_for('corporate_dms') }}" class="erp-btn erp-btn-ghost erp-btn-sm">Legacy Corporate DMS</a>
+<a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
+{% endblock %}
+{% block content %}
+<div class="erp-module-layout" id="document-management-app"
+     data-can-upload="{{ '1' if dms_permissions.upload else '0' }}"
+     data-can-edit="{{ '1' if dms_permissions.edit else '0' }}"
+     data-can-approve="{{ '1' if dms_permissions.approve else '0' }}">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search documents...',
+    search_name='q',
+    export_name='document_management',
+    print_target='#dms-records',
+    table_panel_id='dms-records',
+    add_trigger_selector='#dms-upload-trigger',
+  ) }}
+<style>
+  .dms-layout { display: grid; grid-template-columns: 240px 1fr; gap: 1rem; align-items: start; }
+  @media (max-width: 900px) { .dms-layout { grid-template-columns: 1fr; } }
+  .dms-folder-tree { border: 1px solid var(--erp-border, #e5e7eb); border-radius: 8px; padding: 0.75rem; background: #fafafa; max-height: 70vh; overflow: auto; }
+  .dms-folder-tree ul { list-style: none; margin: 0; padding-left: 0.75rem; }
+  .dms-folder-tree > ul { padding-left: 0; }
+  .dms-folder-link { display: block; padding: 0.35rem 0.5rem; border-radius: 6px; text-decoration: none; color: #374151; font-size: 0.9rem; }
+  .dms-folder-link.is-active, .dms-folder-link:hover { background: #e0e7ff; color: #1e40af; }
+  .dms-dropzone { border: 2px dashed #94a3b8; border-radius: 8px; padding: 1.5rem; text-align: center; color: #64748b; margin-bottom: 0.75rem; transition: background 0.15s; }
+  .dms-dropzone.is-dragover { background: #eff6ff; border-color: #3b82f6; }
+  .dms-upload-panel { display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--erp-border, #e5e7eb); border-radius: 8px; background: #fafafa; }
+  .dms-upload-panel.is-open { display: block; }
+  .dms-advanced { display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc; }
+  .dms-advanced.is-open { display: block; }
+  .dms-preview-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1200; align-items: center; justify-content: center; padding: 1rem; }
+  .dms-preview-modal.is-open { display: flex; }
+  .dms-preview-body { background: #fff; border-radius: 8px; max-width: 90vw; max-height: 90vh; width: 800px; display: flex; flex-direction: column; }
+  .dms-preview-body iframe, .dms-preview-body img { max-width: 100%; max-height: 75vh; margin: auto; }
+  .expiry-badge { font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 999px; }
+  .expiry-overdue { background: #fee2e2; color: #991b1b; }
+  .expiry-soon { background: #fef3c7; color: #92400e; }
+  .expiry-valid { background: #dcfce7; color: #166534; }
+  .badge-archived { background: #e5e7eb; color: #374151; font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px; }
+</style>
+
+<div class="dms-advanced {% if show_advanced %}is-open{% endif %}" id="dms-advanced-search">
+  <h3 style="margin:0 0 0.75rem;font-size:1rem;">Advanced Search</h3>
+  <form method="get" class="erp-form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.5rem;">
+    <input type="hidden" name="advanced" value="1">
+    <label>Search <input name="q" value="{{ search }}"></label>
+    <label>Module <input name="module_name" value="{{ module_filter }}"></label>
+    <label>Category
+      <select name="category">
+        <option value="">All</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if category_filter == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Status
+      <select name="status">
+        <option value="">All</option>
+        {% for s in document_statuses %}
+        <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Approval
+      <select name="approval_status">
+        <option value="">All</option>
+        {% for a in approval_statuses %}
+        <option value="{{ a }}" {% if approval_filter == a %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Tag <input name="tag" value="{{ tag_filter }}"></label>
+    <label>From <input type="date" name="date_from" value="{{ date_from }}"></label>
+    <label>To <input type="date" name="date_to" value="{{ date_to }}"></label>
+    <label>Company
+      <select name="company_id">
+        <option value="">All</option>
+        {% for co in companies %}
+        <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label style="align-self:end;"><input type="checkbox" name="include_archived" value="1" {% if include_archived %}checked{% endif %}> Archived</label>
+    <div style="align-self:end;"><button type="submit" class="erp-btn erp-btn-primary erp-btn-sm">Search</button></div>
+  </form>
+</div>
+<p><button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="dms-toggle-advanced">Advanced Search</button></p>
+
+{% if dms_permissions.upload %}
+<div id="dms-upload-panel" class="dms-upload-panel {% if show_upload or edit_document %}is-open{% endif %}">
+  <h3 style="margin:0 0 0.75rem;font-size:1rem;">{% if edit_document %}New version — {{ edit_document.document_name }}{% else %}Upload document{% endif %}</h3>
+  <div class="dms-dropzone" id="dms-dropzone">Drag &amp; drop files here or click to browse</div>
+  <form method="post" enctype="multipart/form-data" id="dms-upload-form" action="/api/document-management/upload" class="erp-form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;">
+    {% if edit_document %}<input type="hidden" name="document_id" value="{{ edit_document.id }}">{% endif %}
+    <label>Folder
+      <select name="folder_id">
+        <option value="">— None —</option>
+        {% for f in folders_flat %}
+        <option value="{{ f.id }}" {% if (edit_document and edit_document.folder_id == f.id) or folder_filter == f.id %}selected{% endif %}>{{ f.folder_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Document Name *<input type="text" name="document_name" required value="{{ edit_document.document_name if edit_document else '' }}"></label>
+    <label>Category
+      <select name="category">
+        {% for c in categories %}
+        <option value="{{ c }}" {% if edit_document and edit_document.category == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Module<input type="text" name="module_name" value="{{ edit_document.module_name if edit_document else 'enterprise_dms' }}"></label>
+    <label>Reference ID<input type="text" name="reference_id" value="{{ edit_document.reference_id if edit_document else '' }}"></label>
+    <label>Expiry<input type="date" name="expiry_date" value="{{ edit_document.expiry_date if edit_document else '' }}"></label>
+    <label>Tags<input type="text" name="tags" placeholder="comma separated" value="{{ edit_document.tags if edit_document else '' }}"></label>
+    <label>Description<textarea name="description" rows="2">{{ edit_document.description if edit_document else '' }}</textarea></label>
+    <label>File *<input type="file" name="file" id="dms-file-input" {% if not edit_document %}required{% endif %}></label>
+    <label><input type="checkbox" name="confidential_flag" value="1" {% if edit_document and edit_document.confidential_flag %}checked{% endif %}> Confidential</label>
+    {% if edit_document %}<label>Change notes<input type="text" name="change_notes"></label>{% endif %}
+    <div style="grid-column:1/-1;display:flex;gap:0.5rem;">
+      <button type="submit" class="erp-btn erp-btn-primary">{% if edit_document %}Upload new version{% else %}Upload{% endif %}</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="dms-upload-cancel">Cancel</button>
+    </div>
+  </form>
+  <p id="dms-upload-status" class="erp-form-hint"></p>
+</div>
+{% endif %}
+
+<div class="dms-layout">
+  <aside class="dms-folder-tree">
+    <h4 style="margin:0 0 0.5rem;font-size:0.9rem;">Folders</h4>
+    <ul>
+      <li><a href="{{ url_for('document_management', q=search) }}" class="dms-folder-link {% if not folder_filter %}is-active{% endif %}">All documents</a></li>
+      {% for node in folder_tree %}
+      <li>
+        <a href="{{ url_for('document_management', folder_id=node.id, q=search) }}" class="dms-folder-link {% if folder_filter == node.id %}is-active{% endif %}">{{ node.folder_name }}</a>
+        {% if node.children %}
+        <ul>
+          {% for child in node.children %}
+          <li><a href="{{ url_for('document_management', folder_id=child.id, q=search) }}" class="dms-folder-link {% if folder_filter == child.id %}is-active{% endif %}">{{ child.folder_name }}</a></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if dms_permissions.edit %}
+    <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="dms-new-folder-btn" style="margin-top:0.75rem;">+ New folder</button>
+    {% endif %}
+  </aside>
+
+  <div>
+    <div class="erp-table-panel" id="dms-records" data-erp-table>
+      <div class="erp-table-toolbar">
+        <h3 class="erp-table-title">Documents ({{ pagination.total }})</h3>
+        <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <input name="q" value="{{ search }}" placeholder="Quick search…">
+          {% if folder_filter %}<input type="hidden" name="folder_id" value="{{ folder_filter }}">{% endif %}
+          <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+        </form>
+      </div>
+      <div class="erp-table-scroll">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>Number</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Module</th>
+              <th>Folder</th>
+              <th>Version</th>
+              <th>Status</th>
+              <th>Approval</th>
+              <th>Expiry</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for doc in documents %}
+            <tr>
+              <td>{{ doc.document_number or '—' }}</td>
+              <td>{{ doc.document_name }}{% if doc.archive_flag %} <span class="badge-archived">Archived</span>{% endif %}{% if doc.confidential_flag %} <i class="fa-solid fa-lock" title="Confidential"></i>{% endif %}</td>
+              <td>{{ doc.category or doc.document_type or '—' }}</td>
+              <td>{{ doc.module_name or '—' }}</td>
+              <td>{{ doc.folder_name or '—' }}</td>
+              <td>v{{ doc.version_number or 1 }}</td>
+              <td>{{ doc.status or '—' }}</td>
+              <td>{{ doc.approval_status or 'Draft' }}</td>
+              <td>
+                {% if doc.expiry_status and doc.expiry_status != '—' %}
+                <span class="expiry-badge {% if doc.days_until_expiry is not none and doc.days_until_expiry < 0 %}expiry-overdue{% elif doc.days_until_expiry is not none and doc.days_until_expiry <= 30 %}expiry-soon{% else %}expiry-valid{% endif %}">{{ doc.expiry_status }}</span>
+                {% else %}—{% endif %}
+              </td>
+              <td style="white-space:nowrap;">
+                <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm dms-preview-btn" data-id="{{ doc.id }}">Preview</button>
+                {% if dms_permissions.download %}
+                <a href="/api/document-management/{{ doc.id }}/download" class="erp-btn erp-btn-ghost erp-btn-sm">Download</a>
+                {% endif %}
+                <a href="{{ url_for('document_management', view_document=doc.id, folder_id=folder_filter or none) }}" class="erp-btn erp-btn-ghost erp-btn-sm">History</a>
+                {% if dms_permissions.edit %}
+                <a href="{{ url_for('document_management', edit_document=doc.id, folder_id=folder_filter or none) }}#dms-upload-panel" class="erp-btn erp-btn-ghost erp-btn-sm">Version</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="10">No documents found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if pagination.pages > 1 %}
+      <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+        {% for p in range(1, pagination.pages + 1) %}
+        <a href="{{ url_for('document_management', q=search, folder_id=folder_filter, page=p) }}" class="erp-btn erp-btn-ghost erp-btn-sm {% if p == pagination.page %}is-active{% endif %}">{{ p }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if view_document %}
+    <div class="erp-form-card" style="margin-top:1rem;" id="dms-version-panel">
+      <h3>Version history — {{ view_document.document_name }}</h3>
+      <table class="erp-table">
+        <thead><tr><th>Ver</th><th>File</th><th>Size</th><th>By</th><th>At</th><th></th></tr></thead>
+        <tbody>
+          {% for v in view_document.versions %}
+          <tr>
+            <td>v{{ v.version_number }}</td>
+            <td>{{ v.original_filename or '—' }}</td>
+            <td>{{ v.file_size or 0 }} B</td>
+            <td>{{ v.uploaded_by or '—' }}</td>
+            <td>{{ v.uploaded_at or '—' }}</td>
+            <td>
+              <a href="/api/document-management/{{ view_document.id }}/download?version={{ v.version_number }}" class="erp-btn erp-btn-ghost erp-btn-sm">Download</a>
+              {% if dms_permissions.edit and v.version_number != view_document.version_number %}
+              <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm dms-rollback-btn" data-id="{{ view_document.id }}" data-version="{{ v.version_number }}">Rollback</button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if dms_permissions.approve and view_document.approval_status != 'Approved' %}
+      <div class="erp-form-actions" style="margin-top:0.75rem;">
+        <button type="button" class="erp-btn erp-btn-primary erp-btn-sm dms-approve-btn" data-id="{{ view_document.id }}">Approve</button>
+        <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm dms-reject-btn" data-id="{{ view_document.id }}">Reject</button>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="erp-form-card" style="margin-top:1rem;">
+      <h3>Reports</h3>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <a href="/api/document-management/reports/register" target="_blank" class="erp-btn erp-btn-ghost erp-btn-sm">Register</a>
+        <a href="/api/document-management/reports/expiry" target="_blank" class="erp-btn erp-btn-ghost erp-btn-sm">Expiring</a>
+        <a href="/api/document-management/reports/archived" target="_blank" class="erp-btn erp-btn-ghost erp-btn-sm">Archived</a>
+        <a href="/api/document-management/reports/storage" target="_blank" class="erp-btn erp-btn-ghost erp-btn-sm">Storage usage</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="dms-preview-modal" id="dms-preview-modal" hidden>
+  <div class="dms-preview-body">
+    <div style="padding:0.75rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e5e7eb;">
+      <strong id="dms-preview-title">Preview</strong>
+      <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="dms-preview-close">Close</button>
+    </div>
+    <div id="dms-preview-content" style="padding:1rem;overflow:auto;flex:1;"></div>
+  </div>
+</div>
+</div>
+<script src="{{ url_for('static', filename='js/document-management.js') }}"></script>
+{% endblock %}

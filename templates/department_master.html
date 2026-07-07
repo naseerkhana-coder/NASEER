@@ -1,0 +1,242 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Department Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Department Master' %}
+{% block page_actions %}
+{% if department_permissions.create %}
+<a href="{{ url_for('department_master', new=1) }}#department-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Department</a>
+{% endif %}
+{% if department_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="department-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if department_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/department-master/export?format=xlsx{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if branch_filter %}&branch_id={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/department-master/export?format=csv{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if branch_filter %}&branch_id={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/department-master/export?format=pdf{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if branch_filter %}&branch_id={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Organizational departments for HR, payroll, projects, workflow, and accounts.
+  Each department belongs to a <a href="{{ url_for('company_master') }}">Company</a> and may optionally link to a <a href="{{ url_for('branch_master') }}">Branch</a>.
+</p>
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search departments...',
+    search_name='q',
+    export_name='departments',
+    print_target='#department-records',
+    form_panel_id='department-form',
+    table_panel_id='department-records',
+    new_url=url_for('department_master', new=1) ~ '#department-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="department-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Departments ({{ department_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="company_id" id="filter-company-id" onchange="this.form.submit()">
+          <option value="">All companies</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="branch_id" onchange="this.form.submit()">
+          <option value="">All branches</option>
+          {% for br in branches %}
+          <option value="{{ br.id }}" {% if branch_filter == br.id %}selected{% endif %}>{{ br.branch_code }} — {{ br.branch_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in department_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th><a href="{{ url_for('department_master', q=search, company_id=company_filter, branch_id=branch_filter, status=status_filter, sort_by='department_code', sort_dir='desc' if sort_by == 'department_code' and sort_dir == 'asc' else 'asc') }}">Code</a></th>
+            <th><a href="{{ url_for('department_master', q=search, company_id=company_filter, branch_id=branch_filter, status=status_filter, sort_by='department_name', sort_dir='desc' if sort_by == 'department_name' and sort_dir == 'asc' else 'asc') }}">Department Name</a></th>
+            <th>Short Name</th>
+            <th>Company</th>
+            <th>Branch</th>
+            <th>Head</th>
+            <th>Status</th>
+            <th>Approval</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in departments %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
+            <td>{{ row.department_code or '—' }}</td>
+            <td>{{ row.department_name }}</td>
+            <td>{{ row.department_short_name or '—' }}</td>
+            <td>{{ row.company_code or '—' }}</td>
+            <td>{{ row.branch_name or '—' }}</td>
+            <td>{{ row.department_head or '—' }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>{{ row.approval_status or 'Draft' }}</td>
+            <td>
+              <a href="{{ url_for('department_master', department_id=row.id, view=1) }}#department-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if department_permissions.edit %}
+              <a href="{{ url_for('department_master', department_id=row.id) }}#department-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No departments registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if department_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, department_pagination.pages + 1) %}
+      <a href="{{ url_for('department_master', q=search, company_id=company_filter, branch_id=branch_filter, status=status_filter, sort_by=sort_by, sort_dir=sort_dir, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == department_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_department_form %}
+  <div class="erp-form-card" id="department-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and selected_department %}View {{ selected_department.department_code }}
+      {% elif selected_department %}Edit {{ selected_department.department_code }}
+      {% else %}New Department{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_department">
+      {% if selected_department %}<input type="hidden" name="department_id" value="{{ selected_department.id }}">{% endif %}
+      <div class="erp-field">
+        <select name="company_id" id="dept-company-id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select Company —</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if selected_department and selected_department.company_id == co.id %}selected{% elif not selected_department and company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Company *</label>
+      </div>
+      <div class="erp-field">
+        <select name="branch_id" id="dept-branch-id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— No Branch (Company-wide) —</option>
+          {% for br in branches %}
+          <option value="{{ br.id }}" data-company="{{ br.company_id }}" {% if selected_department and selected_department.branch_id == br.id %}selected{% endif %}>{{ br.branch_code }} — {{ br.branch_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Branch (optional)</label>
+      </div>
+      <div class="erp-field"><input name="department_code" required placeholder=" " value="{{ selected_department.department_code if selected_department else '' }}" {% if view_mode %}readonly{% endif %}><label>Department Code *</label></div>
+      <div class="erp-field"><input name="department_name" required placeholder=" " value="{{ selected_department.department_name if selected_department else '' }}" {% if view_mode %}readonly{% endif %}><label>Department Name *</label></div>
+      <div class="erp-field"><input name="department_short_name" placeholder=" " value="{{ selected_department.department_short_name if selected_department else '' }}" {% if view_mode %}readonly{% endif %}><label>Short Name</label></div>
+      <div class="erp-field"><input name="department_head" placeholder=" " value="{{ selected_department.department_head if selected_department else '' }}" {% if view_mode %}readonly{% endif %}><label>Department Head</label></div>
+      <div class="erp-field span-2"><textarea name="description" placeholder=" " rows="3" {% if view_mode %}readonly{% endif %}>{{ selected_department.description if selected_department else '' }}</textarea><label>Description</label></div>
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in department_statuses %}
+          <option value="{{ s }}" {% if selected_department and selected_department.status == s %}selected{% elif not selected_department and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status</label>
+      </div>
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        {% if department_permissions.edit or department_permissions.create %}
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Department</button>
+        {% endif %}
+        {% if selected_department %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="department-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        <span id="department-ai-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+        {% endif %}
+        {% if selected_department and department_permissions.approve and selected_department.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_department" class="erp-btn erp-btn-ghost">Approve</button>
+        <button type="submit" name="form_action" value="reject_department" class="erp-btn erp-btn-ghost" onclick="return confirm('Reject this department?');">Reject</button>
+        {% endif %}
+        {% if selected_department and department_permissions.activate and selected_department.status == 'Inactive' %}
+        <button type="submit" name="form_action" value="activate_department" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if selected_department and department_permissions.deactivate and selected_department.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_department" class="erp-btn erp-btn-ghost" onclick="return confirm('Deactivate this department?');">Deactivate</button>
+        {% endif %}
+        {% if selected_department and department_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_department" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this department?');">Delete</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+    {% if selected_department and audit_trail %}
+    <div style="margin-top:1rem;">
+      <h4>Audit Trail</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>When</th><th>By</th><th>Action</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+        <tbody>
+          {% for entry in audit_trail %}
+          <tr>
+            <td>{{ entry.changed_at }}</td>
+            <td>{{ entry.changed_by }}</td>
+            <td>{{ entry.action }}</td>
+            <td>{{ entry.field_name or '—' }}</td>
+            <td>{{ entry.old_value or '—' }}</td>
+            <td>{{ entry.new_value or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if department_permissions.view %}
+  <div class="erp-form-card" style="margin-top:1rem;">
+    <h3 class="erp-form-title">Reports</h3>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <a href="/api/department-master/reports/list" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Department List</a>
+      <a href="/api/department-master/reports/directory" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Department Directory</a>
+      <a href="/api/department-master/reports/active" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Active Departments</a>
+      <a href="/api/department-master/reports/inactive" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Inactive Departments</a>
+      <a href="/api/department-master/export?format=pdf&report=active" class="erp-btn erp-btn-ghost erp-btn-sm">Active Departments PDF</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if department_permissions.import %}
+<div id="department-import-modal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <div class="erp-form-card" style="max-width:480px;width:90%;">
+    <h3 class="erp-form-title">Import Departments</h3>
+    <p class="erp-form-section-help"><a href="/api/department-master/import/template">Download Excel template</a></p>
+    <input type="file" id="department-import-file" accept=".xlsx,.xls,.csv">
+    <div id="department-import-status" style="margin-top:0.75rem;font-size:0.9rem;"></div>
+    <div class="erp-form-actions" style="margin-top:1rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="department-import-run">Validate &amp; Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="department-import-close">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+window.DEPARTMENT_MASTER_BOOT = {
+  departmentId: {{ selected_department.id if selected_department else 'null' }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/department-master.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Designation Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Designation Master' %}
+{% block page_actions %}
+{% if designation_permissions.create %}
+<a href="{{ url_for('designation_master', new=1) }}#designation-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Designation</a>
+{% endif %}
+{% if designation_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="designation-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if designation_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/designation-master/export?format=xlsx{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if department_filter %}&department_id={{ department_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/designation-master/export?format=csv{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if department_filter %}&department_id={{ department_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/designation-master/export?format=pdf{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if department_filter %}&department_id={{ department_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('workflow_settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-diagram-project"></i> Workflow Settings</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Job titles and workflow routing roles for HR, payroll, staff, users, and approval workflows.
+  Each designation belongs to a <a href="{{ url_for('company_master') }}">Company</a> and may optionally link to a <a href="{{ url_for('department_master') }}">Department</a>.
+</p>
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search designations...',
+    search_name='q',
+    export_name='designations',
+    print_target='#designation-records',
+    form_panel_id='designation-form',
+    table_panel_id='designation-records',
+    new_url=url_for('designation_master', new=1) ~ '#designation-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="designation-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Designations ({{ designation_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="company_id" id="filter-company-id" onchange="this.form.submit()">
+          <option value="">All companies</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="department_id" onchange="this.form.submit()">
+          <option value="">All departments</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}" {% if department_filter == d.id %}selected{% endif %}>{{ d.department_code }} — {{ d.department_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in designation_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th><a href="{{ url_for('designation_master', q=search, company_id=company_filter, department_id=department_filter, status=status_filter, sort_by='designation_code', sort_dir='desc' if sort_by == 'designation_code' and sort_dir == 'asc' else 'asc') }}">Code</a></th>
+            <th><a href="{{ url_for('designation_master', q=search, company_id=company_filter, department_id=department_filter, status=status_filter, sort_by='designation_name', sort_dir='desc' if sort_by == 'designation_name' and sort_dir == 'asc' else 'asc') }}">Designation Name</a></th>
+            <th>Short Name</th>
+            <th>Company</th>
+            <th>Department</th>
+            <th>Grade</th>
+            <th>Workflow Role</th>
+            <th>Status</th>
+            <th>Approval</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in designations %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
+            <td>{{ row.designation_code or '—' }}</td>
+            <td>{{ row.designation_name }}</td>
+            <td>{{ row.designation_short_name or '—' }}</td>
+            <td>{{ row.company_code or '—' }}</td>
+            <td>{{ row.department_name or '—' }}</td>
+            <td>{{ row.grade_level or '—' }}</td>
+            <td>{{ row.workflow_role_default or '—' }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>{{ row.approval_status or 'Draft' }}</td>
+            <td>
+              <a href="{{ url_for('designation_master', designation_id=row.id, view=1) }}#designation-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if designation_permissions.edit %}
+              <a href="{{ url_for('designation_master', designation_id=row.id) }}#designation-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10">No designations registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if designation_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, designation_pagination.pages + 1) %}
+      <a href="{{ url_for('designation_master', q=search, company_id=company_filter, department_id=department_filter, status=status_filter, sort_by=sort_by, sort_dir=sort_dir, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == designation_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_designation_form %}
+  <div class="erp-form-card" id="designation-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and selected_designation %}View {{ selected_designation.designation_code }}
+      {% elif selected_designation %}Edit {{ selected_designation.designation_code }}
+      {% else %}New Designation{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_designation">
+      {% if selected_designation %}<input type="hidden" name="designation_id" value="{{ selected_designation.id }}">{% endif %}
+      <div class="erp-field">
+        <select name="company_id" id="desig-company-id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select Company —</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if selected_designation and selected_designation.company_id == co.id %}selected{% elif not selected_designation and company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Company *</label>
+      </div>
+      <div class="erp-field">
+        <select name="department_id" id="desig-department-id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— No Department —</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}" data-company="{{ d.company_id }}" {% if selected_designation and selected_designation.department_id == d.id %}selected{% endif %}>{{ d.department_code }} — {{ d.department_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Department (optional)</label>
+      </div>
+      <div class="erp-field"><input name="designation_code" placeholder=" " value="{{ selected_designation.designation_code if selected_designation else '' }}" {% if view_mode %}readonly{% endif %}><label>Designation Code (auto if blank)</label></div>
+      <div class="erp-field"><input name="designation_name" required placeholder=" " value="{{ selected_designation.designation_name if selected_designation else '' }}" {% if view_mode %}readonly{% endif %}><label>Designation Name *</label></div>
+      <div class="erp-field"><input name="designation_short_name" placeholder=" " value="{{ selected_designation.designation_short_name if selected_designation else '' }}" {% if view_mode %}readonly{% endif %}><label>Short Name</label></div>
+      <div class="erp-field"><input name="grade_level" placeholder=" " value="{{ selected_designation.grade_level if selected_designation else '' }}" {% if view_mode %}readonly{% endif %}><label>Grade Level</label></div>
+      <div class="erp-field">
+        <select name="workflow_role_default" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for wr in workflow_role_defaults %}
+          <option value="{{ wr }}" {% if selected_designation and selected_designation.workflow_role_default == wr %}selected{% elif not selected_designation and wr == 'None' %}selected{% endif %}>{{ wr }}</option>
+          {% endfor %}
+        </select>
+        <label>Default Workflow Role</label>
+      </div>
+      <div class="erp-field span-2"><textarea name="description" placeholder=" " rows="3" {% if view_mode %}readonly{% endif %}>{{ selected_designation.description if selected_designation else '' }}</textarea><label>Description</label></div>
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in designation_statuses %}
+          <option value="{{ s }}" {% if selected_designation and selected_designation.status == s %}selected{% elif not selected_designation and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status</label>
+      </div>
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        {% if designation_permissions.edit or designation_permissions.create %}
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Designation</button>
+        {% endif %}
+        {% if selected_designation %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="designation-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        <span id="designation-ai-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+        {% endif %}
+        {% if selected_designation and designation_permissions.approve and selected_designation.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_designation" class="erp-btn erp-btn-ghost">Approve</button>
+        <button type="submit" name="form_action" value="reject_designation" class="erp-btn erp-btn-ghost" onclick="return confirm('Reject this designation?');">Reject</button>
+        {% endif %}
+        {% if selected_designation and designation_permissions.activate and selected_designation.status == 'Inactive' %}
+        <button type="submit" name="form_action" value="activate_designation" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if selected_designation and designation_permissions.deactivate and selected_designation.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_designation" class="erp-btn erp-btn-ghost" onclick="return confirm('Deactivate this designation?');">Deactivate</button>
+        {% endif %}
+        {% if selected_designation and designation_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_designation" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this designation?');">Delete</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+    {% if selected_designation and audit_trail %}
+    <div style="margin-top:1rem;">
+      <h4>Audit Trail</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>When</th><th>By</th><th>Action</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+        <tbody>
+          {% for entry in audit_trail %}
+          <tr>
+            <td>{{ entry.changed_at }}</td>
+            <td>{{ entry.changed_by }}</td>
+            <td>{{ entry.action }}</td>
+            <td>{{ entry.field_name or '—' }}</td>
+            <td>{{ entry.old_value or '—' }}</td>
+            <td>{{ entry.new_value or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if designation_permissions.view %}
+  <div class="erp-form-card" style="margin-top:1rem;">
+    <h3 class="erp-form-title">Reports</h3>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <a href="/api/designation-master/reports/list" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Designation List</a>
+      <a href="/api/designation-master/reports/active" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Active Designations</a>
+      <a href="/api/designation-master/reports/inactive" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Inactive Designations</a>
+      <a href="/api/designation-master/reports/workflow" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Workflow Roles</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if designation_permissions.import %}
+<div id="designation-import-modal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <div class="erp-form-card" style="max-width:480px;width:90%;">
+    <h3 class="erp-form-title">Import Designations</h3>
+    <p class="erp-form-section-help"><a href="/api/designation-master/import/template">Download Excel template</a></p>
+    <input type="file" id="designation-import-file" accept=".xlsx,.xls,.csv">
+    <div id="designation-import-status" style="margin-top:0.75rem;font-size:0.9rem;"></div>
+    <div class="erp-form-actions" style="margin-top:1rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="designation-import-run">Validate &amp; Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="designation-import-close">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+window.DESIGNATION_MASTER_BOOT = {
+  designationId: {{ selected_designation.id if selected_designation else 'null' }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/designation-master.js') }}"></script>
+{% endblock %}

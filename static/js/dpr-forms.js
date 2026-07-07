@@ -5,10 +5,13 @@
 
   var state = {
     boqItems: [],
-    allProjectBoqItems: [],
     steelShapes: [],
     equipmentMaster: [],
     pendingShapeSelect: null,
+    selectedBoqIds: [],
+    measurementUnit: "",
+    dirty: false,
+    isEditMode: false,
   };
 
   function parseNum(v) {
@@ -36,6 +39,339 @@
 
   function getForm() {
     return document.querySelector("[data-dpr-form]");
+  }
+
+  function isEditMode(form) {
+    return !!(form && form.getAttribute("data-edit-measurement"));
+  }
+
+  function markDirty(form) {
+    state.dirty = true;
+    var hint = form && form.querySelector("[data-dpr-unsaved-hint]");
+    if (hint) hint.hidden = false;
+  }
+
+  function clearDirty(form) {
+    state.dirty = false;
+    var hint = form && form.querySelector("[data-dpr-unsaved-hint]");
+    if (hint) hint.hidden = true;
+  }
+
+  function boqItemById(itemId) {
+    return state.boqItems.find(function (i) { return String(i.id) === String(itemId); });
+  }
+
+  function getSelectedBoqItems() {
+    return state.selectedBoqIds.map(function (id) { return boqItemById(id); }).filter(Boolean);
+  }
+
+  function updateResourcePanelVisibility(form) {
+    var resourcePanel = form.querySelector("[data-dpr-resource-panel]");
+    if (resourcePanel && !isBillClient(form)) {
+      resourcePanel.hidden = !state.selectedBoqIds.length;
+    }
+  }
+
+  function selectedUnitsDiffer() {
+    var units = {};
+    getSelectedBoqItems().forEach(function (item) {
+      if (item.unit) units[item.unit] = true;
+    });
+    return Object.keys(units).length > 1;
+  }
+
+  function primarySelectedItem() {
+    if (!state.selectedBoqIds.length) return null;
+    return boqItemById(state.selectedBoqIds[0]);
+  }
+
+  function selectedUnitTypesDiffer() {
+    var types = {};
+    getSelectedBoqItems().forEach(function (item) {
+      types[unitType(item.unit || "")] = true;
+    });
+    return Object.keys(types).length > 1;
+  }
+
+  function syncMeasurementPanelForSelection(form) {
+    var item = primarySelectedItem();
+    var unit = item ? (item.unit || "") : "";
+    state.measurementUnit = unit;
+
+    var boqItemHidden = form.querySelector("#dpr_boq_description");
+    var numHidden = form.querySelector("#dpr_boq_number_hidden");
+    var descHidden = form.querySelector("#dpr_boq_description_hidden");
+    var unitDisplay = form.querySelector("[data-dpr-unit-display]");
+    var unitHidden = form.querySelector("#dpr_unit_hidden");
+    var boqQtyDisplay = form.querySelector("[data-dpr-boq-qty-display]");
+
+    if (item) {
+      if (boqItemHidden) boqItemHidden.value = String(item.id);
+      if (numHidden) numHidden.value = item.boq_number || "";
+      if (descHidden) descHidden.value = item.item_description || "";
+      if (unitDisplay) {
+        unitDisplay.value = selectedUnitsDiffer()
+          ? "Multiple (" + getSelectedBoqItems().map(function (i) { return i.unit; }).filter(Boolean).join(", ") + ")"
+          : (item.unit || "");
+      }
+      if (unitHidden) unitHidden.value = unit;
+      if (boqQtyDisplay) {
+        boqQtyDisplay.value = item.quantity != null ? String(item.quantity) : "";
+      }
+    } else {
+      state._lastMeasurementUnitType = "";
+      if (boqItemHidden) boqItemHidden.value = "";
+      if (numHidden) numHidden.value = "";
+      if (descHidden) descHidden.value = "";
+      if (unitDisplay) unitDisplay.value = "";
+      if (unitHidden) unitHidden.value = "";
+      if (boqQtyDisplay) boqQtyDisplay.value = "";
+    }
+
+    var scopeHint = form.querySelector("[data-dpr-measurement-scope-hint]");
+    if (scopeHint) {
+      scopeHint.textContent = state.selectedBoqIds.length > 1
+        ? "(same values applied to all " + state.selectedBoqIds.length + " selected items)"
+        : "";
+    }
+
+    var mismatchHint = form.querySelector("[data-dpr-unit-mismatch-hint]");
+    if (mismatchHint) {
+      mismatchHint.hidden = !selectedUnitsDiffer() && !selectedUnitTypesDiffer();
+      if (!mismatchHint.hidden) {
+        mismatchHint.innerHTML = selectedUnitTypesDiffer()
+          ? '<i class="fa-solid fa-triangle-exclamation"></i> Selected items need different measurement forms (e.g. m³ vs m²) — select items with the same unit type.'
+          : '<i class="fa-solid fa-triangle-exclamation"></i> Selected items have different units — the same measurement values will be applied; quantities are calculated per BOQ unit.';
+      }
+    }
+
+    showMeasurementPanel(form, unit);
+    showActivitiesPanel(form, !!item);
+    updateResourcePanelVisibility(form);
+    refreshBoqProgress(form);
+  }
+
+  function renderBoqCheckboxList(form) {
+    var panel = form.querySelector("[data-dpr-multi-boq-panel]");
+    var list = form.querySelector("[data-dpr-boq-checkbox-list]");
+    if (!panel || !list) return;
+    var filter = ((form.querySelector("[data-dpr-boq-filter]") || {}).value || "").toLowerCase();
+    list.innerHTML = "";
+    state.boqItems.forEach(function (item) {
+      var text = ((item.boq_number || "") + " " + (item.item_description || "")).toLowerCase();
+      if (filter && text.indexOf(filter) === -1) return;
+      var label = document.createElement("label");
+      label.dataset.boqItemId = String(item.id);
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = String(item.id);
+      cb.checked = state.selectedBoqIds.indexOf(String(item.id)) !== -1;
+      cb.addEventListener("change", function () {
+        var id = String(item.id);
+        if (cb.checked) {
+          if (state.selectedBoqIds.indexOf(id) === -1) state.selectedBoqIds.push(id);
+        } else {
+          state.selectedBoqIds = state.selectedBoqIds.filter(function (x) { return x !== id; });
+        }
+        updateSelectedBoqCount(form);
+        renderSelectedBoqSummary(form);
+        markDirty(form);
+      });
+      var span = document.createElement("span");
+      span.innerHTML = "<strong>" + (item.boq_number || "—") + "</strong> — "
+        + (item.line_no ? item.line_no + ". " : "") + (item.item_description || "—")
+        + ' <span class="dpr-boq-checkbox-meta">' + (item.unit || "") + "</span>";
+      label.appendChild(cb);
+      label.appendChild(span);
+      list.appendChild(label);
+    });
+    panel.hidden = !state.boqItems.length;
+    updateSelectedBoqCount(form);
+  }
+
+  function updateSelectedBoqCount(form) {
+    var el = form.querySelector("[data-dpr-boq-selected-count]");
+    if (el) el.textContent = String(state.selectedBoqIds.length);
+  }
+
+  function renderSelectedBoqSummary(form) {
+    if (isEditMode(form)) return;
+
+    var chipsPanel = form.querySelector("[data-dpr-selected-chips-panel]");
+    var chipsContainer = form.querySelector("[data-dpr-selected-chips]");
+    var mismatchHint = form.querySelector("[data-dpr-unit-mismatch-hint]");
+    var singleUnitWraps = form.querySelectorAll("[data-dpr-single-unit-wrap]");
+
+    if (!state.selectedBoqIds.length) {
+      if (chipsPanel) chipsPanel.hidden = true;
+      if (chipsContainer) chipsContainer.innerHTML = "";
+      singleUnitWraps.forEach(function (el) { el.hidden = true; });
+      syncMeasurementPanelForSelection(form);
+      return;
+    }
+
+    if (chipsPanel) chipsPanel.hidden = false;
+    singleUnitWraps.forEach(function (el) { el.hidden = false; });
+
+    if (mismatchHint) mismatchHint.hidden = !selectedUnitsDiffer() && !selectedUnitTypesDiffer();
+
+    if (chipsContainer) {
+      chipsContainer.innerHTML = "";
+      getSelectedBoqItems().forEach(function (item) {
+        var chip = document.createElement("span");
+        chip.className = "dpr-selected-chip";
+        chip.innerHTML = "<strong>" + (item.boq_number || "—") + "</strong> "
+          + ((item.item_description || "").slice(0, 50))
+          + (item.item_description && item.item_description.length > 50 ? "…" : "")
+          + ' <span class="dpr-selected-chip-meta">' + (item.unit || "") + "</span>";
+        chipsContainer.appendChild(chip);
+      });
+    }
+
+    syncMeasurementPanelForSelection(form);
+  }
+
+  function buildBatchPayload(form) {
+    var sharedMeasurement = buildMeasurementPayload(form);
+    var sharedWorkDesc = (form.querySelector("[name=work_description]") || {}).value || "";
+    var sharedActivities = buildActivitiesPayload(form);
+    var items = [];
+
+    state.selectedBoqIds.forEach(function (id) {
+      var item = boqItemById(id);
+      if (!item) return;
+      items.push({
+        boq_item_id: parseInt(id, 10),
+        boq_number: item.boq_number || "",
+        boq_description: item.item_description || "",
+        unit: item.unit || "",
+        work_description: sharedWorkDesc,
+        measurement_payload: sharedMeasurement,
+        activities_payload: sharedActivities,
+      });
+    });
+
+    return {
+      entry_mode: "shared",
+      shared_resources: {
+        manpower: buildManpowerPayload(form),
+        materials: buildMaterialsPayload(form),
+        equipment: buildEquipmentPayload(form),
+        additional_details: (form.querySelector("[data-dpr-additional-details]") || {}).value || "",
+      },
+      items: items,
+    };
+  }
+
+  function collectManpowerFromContainer(container) {
+    var rows = [];
+    container.querySelectorAll("[data-dpr-manpower-row]").forEach(function (row) {
+      var idSel = row.querySelector("[data-mp-worker-id]");
+      var nameSel = row.querySelector("[data-mp-worker-name]");
+      var key = (idSel && idSel.value) || (nameSel && nameSel.value) || "";
+      var parsed = parseWorkerOptionKey(key);
+      var opt = idSel && idSel.selectedOptions[0];
+      rows.push({
+        subcontractor_id: (row.querySelector("[data-mp-subcontractor]") || {}).value || null,
+        worker_id: parsed.id,
+        worker_source: parsed.source,
+        worker_name: opt && opt.dataset.workerName ? opt.dataset.workerName : "",
+        trade_name: (row.querySelector("[data-mp-trade]") || {}).value || "",
+        hours_worked: (row.querySelector("[data-mp-hours]") || {}).value || 0,
+        remarks: (row.querySelector("[data-mp-remarks]") || {}).value || "",
+      });
+    });
+    return rows;
+  }
+
+  function collectMaterialsFromContainer(container) {
+    var rows = [];
+    container.querySelectorAll("[data-dpr-material-row]").forEach(function (row) {
+      var name = ((row.querySelector("[data-mat-name]") || {}).value || "").trim();
+      if (!name) return;
+      rows.push({
+        material_name: name,
+        quantity: (row.querySelector("[data-mat-qty]") || {}).value || 0,
+        unit: (row.querySelector("[data-mat-unit]") || {}).value || "",
+        remarks: (row.querySelector("[data-mat-remarks]") || {}).value || "",
+      });
+    });
+    return rows;
+  }
+
+  function collectEquipmentFromContainer(container) {
+    var rows = [];
+    container.querySelectorAll("[data-dpr-equipment-row]").forEach(function (row) {
+      var name = ((row.querySelector("[data-eq-name]") || {}).value || "").trim();
+      if (!name) return;
+      rows.push({
+        equipment_name: name,
+        reg_no: (row.querySelector("[data-eq-reg-no]") || {}).value || "",
+        equipment_type: (row.querySelector("[data-eq-type]") || {}).value || "",
+        hours_used: parseNum((row.querySelector("[data-eq-worked]") || {}).textContent),
+        remarks: (row.querySelector("[data-eq-remarks]") || {}).value || "",
+      });
+    });
+    return rows;
+  }
+
+  function initUnsavedWarning(form) {
+    form.addEventListener("input", function () { markDirty(form); });
+    form.addEventListener("change", function () { markDirty(form); });
+    window.addEventListener("beforeunload", function (e) {
+      if (!state.dirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    });
+    form.addEventListener("submit", function () { clearDirty(form); });
+  }
+
+  function initMultiBoqHandlers(form) {
+    if (isEditMode(form)) return;
+    state.isEditMode = false;
+
+    var filterInp = form.querySelector("[data-dpr-boq-filter]");
+    if (filterInp) {
+      filterInp.addEventListener("input", function () { renderBoqCheckboxList(form); });
+    }
+    var selectAll = form.querySelector("[data-dpr-boq-select-all]");
+    if (selectAll) {
+      selectAll.addEventListener("click", function () {
+        state.selectedBoqIds = state.boqItems.map(function (i) { return String(i.id); });
+        renderBoqCheckboxList(form);
+        renderSelectedBoqSummary(form);
+        markDirty(form);
+      });
+    }
+    var clearAll = form.querySelector("[data-dpr-boq-clear-all]");
+    if (clearAll) {
+      clearAll.addEventListener("click", function () {
+        state.selectedBoqIds = [];
+        renderBoqCheckboxList(form);
+        renderSelectedBoqSummary(form);
+        markDirty(form);
+      });
+    }
+  }
+
+  function prepareFormPayload(form) {
+    syncProjectHidden(form);
+    updateBillingMode(form);
+    if (!isEditMode(form) && state.selectedBoqIds.length) {
+      var batchEl = form.querySelector("[data-dpr-batch-payload]");
+      if (batchEl) batchEl.value = JSON.stringify(buildBatchPayload(form));
+      return;
+    }
+    var mpPayload = form.querySelector("[data-dpr-manpower-payload]");
+    var mPayload = form.querySelector("[data-dpr-measurement-payload]");
+    var matPayload = form.querySelector("[data-dpr-materials-payload]");
+    var eqPayload = form.querySelector("[data-dpr-equipment-payload]");
+    var actPayload = form.querySelector("[data-dpr-activities-payload]");
+    if (mPayload) mPayload.value = JSON.stringify(buildMeasurementPayload(form));
+    if (mpPayload) mpPayload.value = JSON.stringify(buildManpowerPayload(form));
+    if (matPayload) matPayload.value = JSON.stringify(buildMaterialsPayload(form));
+    if (eqPayload) eqPayload.value = JSON.stringify(buildEquipmentPayload(form));
+    if (actPayload) actPayload.value = JSON.stringify(buildActivitiesPayload(form));
   }
 
   function syncProjectHidden(form) {
@@ -92,6 +428,7 @@
     if (!billYes && resourcePanel && !form.querySelector("[data-dpr-manpower-row]")) {
       addManpowerRow(form);
     }
+    updateResourcePanelVisibility(form);
   }
 
   function fillBoqDropdowns(form) {
@@ -103,10 +440,6 @@
     var continueBoq = form.getAttribute("data-continue-boq") || "";
 
     numSel.innerHTML = '<option value="">Select BOQ Number</option>';
-    if (!state.boqItems.length) {
-      numSel.innerHTML = '<option value="">No BOQ found for this project</option>';
-      descSel.innerHTML = '<option value="">Create BOQ first</option>';
-    }
     numbers.forEach(function (num) {
       var opt = document.createElement("option");
       opt.value = num;
@@ -127,8 +460,8 @@
   }
 
   function fillDescriptionDropdown(form, boqNumber) {
-    var descSel = form.querySelector("[data-dpr-boq-description]");
-    if (!descSel) return;
+    var descSel = form.querySelector("select[data-dpr-boq-description]");
+    if (!descSel || descSel.tagName !== "SELECT") return;
     descSel.innerHTML = '<option value="">Select BOQ Description</option>';
     state.boqItems.forEach(function (item) {
       if (boqNumber && item.boq_number !== boqNumber) return;
@@ -146,15 +479,17 @@
     var item = state.boqItems.find(function (i) { return String(i.id) === String(itemId); });
     if (!item) return;
     var numSel = form.querySelector("[data-dpr-boq-number]");
-    var descSel = form.querySelector("[data-dpr-boq-description]");
-    var numHidden = form.querySelector("#dpr_boq_number_hidden");
+    var descSel = form.querySelector("select[data-dpr-boq-description]");
     var descHidden = form.querySelector("#dpr_boq_description_hidden");
+    var boqItemHidden = form.querySelector("#dpr_boq_description");
+    var numHidden = form.querySelector("#dpr_boq_number_hidden");
     var unitDisplay = form.querySelector("[data-dpr-unit-display]");
     var unitHidden = form.querySelector("#dpr_unit_hidden");
     var boqQtyDisplay = form.querySelector("[data-dpr-boq-qty-display]");
 
     if (numSel) numSel.value = item.boq_number || "";
     if (descSel) descSel.value = String(item.id);
+    if (boqItemHidden) boqItemHidden.value = String(item.id);
     if (numHidden) numHidden.value = item.boq_number || "";
     if (descHidden) descHidden.value = item.item_description || "";
     if (unitDisplay) unitDisplay.value = item.unit || "";
@@ -175,17 +510,21 @@
   }
 
   function refreshBoqProgress(form) {
-    var descSel = form.querySelector("[data-dpr-boq-description]");
+    var boqItemId = state.selectedBoqIds.length ? state.selectedBoqIds[0] : "";
+    if (!boqItemId) {
+      var descSel = form.querySelector("select[data-dpr-boq-description], [data-dpr-boq-description]");
+      boqItemId = descSel ? descSel.value : "";
+    }
     var panel = form.querySelector("[data-dpr-boq-progress-panel]");
     var balanceDisplay = form.querySelector("[data-dpr-balance-qty-display]");
-    if (!descSel || !descSel.value || !panel) {
+    if (!boqItemId || !panel) {
       if (panel) panel.hidden = true;
       if (balanceDisplay) balanceDisplay.value = "";
       return;
     }
     var reportDateInp = form.querySelector("#dpr_report_date");
     var todayQty = parseNum((form.querySelector("[data-dpr-calculated-qty]") || {}).textContent);
-    var url = "/api/dpr/boq-progress?boq_item_id=" + encodeURIComponent(descSel.value)
+    var url = "/api/dpr/boq-progress?boq_item_id=" + encodeURIComponent(boqItemId)
       + "&today_qty=" + encodeURIComponent(String(todayQty));
     if (reportDateInp && reportDateInp.value) {
       url += "&report_date=" + encodeURIComponent(reportDateInp.value);
@@ -217,23 +556,27 @@
     var steel = form.querySelector("[data-dpr-steel-panel]");
     var simple = form.querySelector("[data-dpr-simple-panel]");
     var ut = unitType(unit);
+    var prevUt = state._lastMeasurementUnitType || "";
+    var typeChanged = ut !== prevUt;
+    state._lastMeasurementUnitType = ut;
+
     if (!panel) return;
     panel.hidden = !unit;
     if (vol) {
       vol.hidden = ut !== "volume";
-      if (ut === "volume") resetDimensionPanel(vol, ut);
+      if (ut === "volume" && typeChanged) resetDimensionPanel(vol, ut);
     }
     if (area) {
       area.hidden = ut !== "area";
-      if (ut === "area") resetDimensionPanel(area, ut);
+      if (ut === "area" && typeChanged) resetDimensionPanel(area, ut);
     }
     if (steel) {
       steel.hidden = ut !== "steel";
-      if (ut === "steel" && !steel.querySelector("[data-dpr-steel-line]")) addSteelLine(form);
+      if (ut === "steel" && typeChanged && !steel.querySelector("[data-dpr-steel-line]")) addSteelLine(form);
     }
     if (simple) {
       simple.hidden = ut !== "simple";
-      if (ut === "simple" && !simple.querySelector("[data-dpr-simple-row]")) {
+      if (ut === "simple" && typeChanged && !simple.querySelector("[data-dpr-simple-row]")) {
         addSimpleMeasurementRow(form);
         addSimpleMeasurementRow(form);
       }
@@ -547,20 +890,9 @@
     var container = form.querySelector("[data-dpr-manpower-rows]");
     if (!template || !container) return;
     var row = template.content.cloneNode(true).querySelector("[data-dpr-manpower-row]");
-    var staffSel = row.querySelector("[data-mp-staff-type]");
     var subSel = row.querySelector("[data-mp-subcontractor]");
     var idSel = row.querySelector("[data-mp-worker-id]");
     var nameSel = row.querySelector("[data-mp-worker-name]");
-    function updateStaffType() {
-      var subField = row.querySelector("[data-mp-subcontractor-field]");
-      var isSub = staffSel && staffSel.value === "Subcontractor Staff";
-      if (subField) subField.hidden = !isSub;
-      if (subSel && !isSub) subSel.value = "";
-    }
-    if (staffSel) {
-      staffSel.addEventListener("change", updateStaffType);
-      updateStaffType();
-    }
     if (subSel) {
       subSel.addEventListener("change", function () {
         loadWorkersForRow(row);
@@ -707,28 +1039,15 @@
       var workerName = "";
       if (opt && opt.dataset.workerName) workerName = opt.dataset.workerName;
       else if (nameSel && nameSel.selectedOptions[0]) workerName = nameSel.selectedOptions[0].textContent.trim();
-      var staffType = (row.querySelector("[data-mp-staff-type]") || {}).value || "Company Staff";
-      var subSel = row.querySelector("[data-mp-subcontractor]");
-      var subcontractorId = staffType === "Subcontractor Staff" && subSel ? subSel.value || null : null;
-      var subcontractorName = subSel && subSel.selectedOptions[0] ? subSel.selectedOptions[0].textContent.trim() : "";
-      var totalWorkers = (row.querySelector("[data-mp-total-workers]") || {}).value || "";
-      var manualRemarks = (row.querySelector("[data-mp-remarks]") || {}).value || "";
-      var remarks = [
-        "Staff Type: " + staffType,
-        subcontractorId ? "Subcontractor: " + subcontractorName : "",
-        totalWorkers ? "Total Nos: " + totalWorkers : "",
-        manualRemarks ? "Remarks: " + manualRemarks : "",
-      ].filter(Boolean).join(" | ");
-      if (!workerName && totalWorkers) workerName = totalWorkers + " Nos";
 
       rows.push({
-        subcontractor_id: subcontractorId,
+        subcontractor_id: (row.querySelector("[data-mp-subcontractor]") || {}).value || null,
         worker_id: parsed.id,
         worker_source: parsed.source,
         worker_name: workerName,
         trade_name: (row.querySelector("[data-mp-trade]") || {}).value || "",
         hours_worked: (row.querySelector("[data-mp-hours]") || {}).value || 0,
-        remarks: remarks,
+        remarks: (row.querySelector("[data-mp-remarks]") || {}).value || "",
       });
     });
     return rows;
@@ -938,24 +1257,17 @@
     if (!projectId) {
       fillBoqDropdowns(form);
       showMeasurementPanel(form, "");
+      if (!isEditMode(form)) {
+        renderBoqCheckboxList(form);
+        renderSelectedBoqSummary(form);
+      }
       if (typeof done === "function") done();
       return;
-    }
-    function fallbackItems() {
-      return state.allProjectBoqItems.filter(function (item) {
-        return String(item.project_id || "") === String(projectId);
-      });
-    }
-    function normalizeItems(items) {
-      return (items || []).map(function (item) {
-        if (!item.boq_number) item.boq_number = item.boq_id ? ("BOQ-" + item.boq_id) : ("BOQ-" + item.id);
-        return item;
-      });
     }
     fetch("/api/projects/" + projectId + "/boq-items")
       .then(function (r) { return r.json(); })
       .then(function (items) {
-        state.boqItems = normalizeItems(items && items.length ? items : fallbackItems());
+        state.boqItems = items || [];
         fillBoqDropdowns(form);
         var continueBoq = form.getAttribute("data-continue-boq");
         var editBoqNumber = form.getAttribute("data-edit-boq-number");
@@ -976,11 +1288,10 @@
           }
         }
         if (typeof done === "function") done();
-      })
-      .catch(function () {
-        state.boqItems = normalizeItems(fallbackItems());
-        fillBoqDropdowns(form);
-        if (typeof done === "function") done();
+        if (!isEditMode(form)) {
+          renderBoqCheckboxList(form);
+          renderSelectedBoqSummary(form);
+        }
       });
   }
 
@@ -1228,18 +1539,9 @@
       var row = container.lastElementChild;
       if (!row) return;
       var subSel = row.querySelector("[data-mp-subcontractor]");
-      var staffSel = row.querySelector("[data-mp-staff-type]");
-      if (staffSel) staffSel.value = mp.subcontractor_id != null ? "Subcontractor Staff" : "Company Staff";
       if (subSel && mp.subcontractor_id != null) subSel.value = String(mp.subcontractor_id);
-      var subField = row.querySelector("[data-mp-subcontractor-field]");
-      if (subField) subField.hidden = !(staffSel && staffSel.value === "Subcontractor Staff");
       var tradeSel = row.querySelector("[data-mp-trade]");
       if (tradeSel && mp.trade_name) matchTradeOption(tradeSel, mp.trade_name);
-      var totalInp = row.querySelector("[data-mp-total-workers]");
-      if (totalInp && mp.worker_name) {
-        var totalMatch = String(mp.worker_name).match(/(\d+(?:\.\d+)?)/);
-        if (totalMatch) totalInp.value = totalMatch[1];
-      }
       var hoursInp = row.querySelector("[data-mp-hours]");
       if (hoursInp) hoursInp.value = mp.hours_worked != null ? mp.hours_worked : "";
       var remInp = row.querySelector("[data-mp-remarks]");
@@ -1348,20 +1650,6 @@
     }
     recalcQuantity(form);
   }
-  function prepareFormPayload(form) {
-    syncProjectHidden(form);
-    updateBillingMode(form);
-    var mpPayload = form.querySelector("[data-dpr-manpower-payload]");
-    var mPayload = form.querySelector("[data-dpr-measurement-payload]");
-    var matPayload = form.querySelector("[data-dpr-materials-payload]");
-    var eqPayload = form.querySelector("[data-dpr-equipment-payload]");
-    var actPayload = form.querySelector("[data-dpr-activities-payload]");
-    if (mPayload) mPayload.value = JSON.stringify(buildMeasurementPayload(form));
-    if (mpPayload) mpPayload.value = JSON.stringify(buildManpowerPayload(form));
-    if (matPayload) matPayload.value = JSON.stringify(buildMaterialsPayload(form));
-    if (eqPayload) eqPayload.value = JSON.stringify(buildEquipmentPayload(form));
-    if (actPayload) actPayload.value = JSON.stringify(buildActivitiesPayload(form));
-  }
 
   function setDprStatus(form, status) {
     var hidden = form.querySelector("#dpr_status");
@@ -1421,11 +1709,10 @@
   function initDprForm() {
     var form = getForm();
     if (!form) return;
-    try {
-      state.allProjectBoqItems = JSON.parse(form.getAttribute("data-project-boq-items") || "[]") || [];
-    } catch (e) {
-      state.allProjectBoqItems = [];
-    }
+
+    state.isEditMode = isEditMode(form);
+    initUnsavedWarning(form);
+    initMultiBoqHandlers(form);
 
     var dateInp = form.querySelector("#dpr_report_date");
     if (dateInp && !dateInp.value) {
@@ -1434,32 +1721,40 @@
 
     form.querySelector("[data-dpr-project-id]").addEventListener("change", function () {
       syncProjectDropdowns(form, "id");
+      state.selectedBoqIds = [];
     });
     form.querySelector("[data-dpr-project-name]").addEventListener("change", function () {
       syncProjectDropdowns(form, "name");
+      state.selectedBoqIds = [];
     });
 
-    form.querySelector("[data-dpr-boq-number]").addEventListener("change", function () {
-      var num = form.querySelector("[data-dpr-boq-number]").value;
-      form.querySelector("#dpr_boq_number_hidden").value = num;
-      fillDescriptionDropdown(form, num);
-      var matches = boqItemsForNumber(num);
-      if (matches.length === 1) {
-        selectBoqItem(form, matches[0].id);
-      } else {
-        form.querySelector("[data-dpr-boq-description]").value = "";
-        form.querySelector("#dpr_boq_description_hidden").value = "";
-        form.querySelector("[data-dpr-unit-display]").value = "";
-        form.querySelector("#dpr_unit_hidden").value = "";
-        showMeasurementPanel(form, "");
-        showActivitiesPanel(form, false);
-      }
-    });
+    var boqNumSel = form.querySelector("[data-dpr-boq-number]");
+    if (boqNumSel) {
+      boqNumSel.addEventListener("change", function () {
+        var num = boqNumSel.value;
+        form.querySelector("#dpr_boq_number_hidden").value = num;
+        fillDescriptionDropdown(form, num);
+        var matches = boqItemsForNumber(num);
+        if (matches.length === 1) {
+          selectBoqItem(form, matches[0].id);
+        } else {
+          var descSel = form.querySelector("[data-dpr-boq-description]");
+          if (descSel) descSel.value = "";
+          form.querySelector("#dpr_boq_description_hidden").value = "";
+          form.querySelector("[data-dpr-unit-display]").value = "";
+          form.querySelector("#dpr_unit_hidden").value = "";
+          showMeasurementPanel(form, "");
+          showActivitiesPanel(form, false);
+        }
+      });
+    }
 
-    form.querySelector("[data-dpr-boq-description]").addEventListener("change", function () {
-      var id = form.querySelector("[data-dpr-boq-description]").value;
-      selectBoqItem(form, id);
-    });
+    var boqDescSel = form.querySelector("select[data-dpr-boq-description]");
+    if (boqDescSel) {
+      boqDescSel.addEventListener("change", function () {
+        selectBoqItem(form, boqDescSel.value);
+      });
+    }
 
     form.querySelectorAll("[data-dpr-add-reading]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -1508,29 +1803,21 @@
       });
     });
 
-    var saveMpBtn = form.querySelector("[data-dpr-save-manpower]");
-    if (saveMpBtn) {
-      saveMpBtn.addEventListener("click", function () {
-        prepareFormPayload(form);
-        var count = form.querySelectorAll("[data-dpr-manpower-row]").length;
-        window.alert(count ? (count + " manpower row(s) ready — submit DPR to save.") : "Insert at least one manpower entry.");
-      });
-    }
-
-    var saveEqBtn = form.querySelector("[data-dpr-save-equipment]");
-    if (saveEqBtn) {
-      saveEqBtn.addEventListener("click", function () {
-        prepareFormPayload(form);
-        var count = form.querySelectorAll("[data-dpr-equipment-row]").length;
-        window.alert(count ? (count + " equipment row(s) ready — submit DPR to save.") : "Add at least one equipment row.");
-      });
-    }
-
-    form.addEventListener("submit", function () {
+    form.addEventListener("submit", function (e) {
+      if (!isEditMode(form) && !state.selectedBoqIds.length) {
+        e.preventDefault();
+        window.alert("Select at least one BOQ item before saving.");
+        return;
+      }
+      if (!isEditMode(form) && selectedUnitTypesDiffer()) {
+        e.preventDefault();
+        window.alert("Selected BOQ items have incompatible unit types (e.g. m³ and m²). Select items with the same measurement form.");
+        return;
+      }
       prepareFormPayload(form);
     });
 
-    form.querySelectorAll("[data-dpr-save-measurement], [data-dpr-save-measurement-inline], [data-dpr-save-draft]").forEach(function (btn) {
+    form.querySelectorAll("[data-dpr-save-measurement], [data-dpr-save-draft]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var status = btn.getAttribute("data-dpr-set-status") || "submitted";
         setDprStatus(form, status);
@@ -1541,13 +1828,8 @@
     loadEquipmentMaster(function () {
       var continueProject = form.getAttribute("data-continue-project");
       var editProject = form.getAttribute("data-edit-project");
-      var selectedProject = (form.querySelector("[data-dpr-project-id]") || {}).value || "";
-      var projectToLoad = continueProject || editProject || selectedProject;
+      var projectToLoad = continueProject || editProject;
       if (projectToLoad) {
-        var idSel = form.querySelector("[data-dpr-project-id]");
-        var nameSel = form.querySelector("[data-dpr-project-name]");
-        if (idSel) idSel.value = projectToLoad;
-        if (nameSel) nameSel.value = projectToLoad;
         syncProjectHidden(form);
         loadBoqItems(form, projectToLoad, function () {
           applyEditPrefill(form);

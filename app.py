@@ -389,9 +389,99 @@ from super_admin_service import (
 from erp_admin_routes import register_erp_admin_routes
 
 try:
+    from company_master_routes import register_company_master_routes
+except ImportError:
+    register_company_master_routes = None
+
+try:
+    from branch_master_routes import register_branch_master_routes
+except ImportError:
+    register_branch_master_routes = None
+
+try:
+    from department_master_routes import register_department_master_routes
+except ImportError:
+    register_department_master_routes = None
+
+try:
+    from user_management_routes import register_user_management_routes
+except ImportError:
+    register_user_management_routes = None
+
+try:
+    from designation_master_routes import register_designation_master_routes
+except ImportError:
+    register_designation_master_routes = None
+
+try:
+    from vendor_master_routes import register_vendor_master_routes
+except ImportError:
+    register_vendor_master_routes = None
+
+try:
+    from client_master_routes import register_client_master_routes
+except ImportError:
+    register_client_master_routes = None
+
+try:
+    from employee_master_routes import register_employee_master_routes
+except ImportError:
+    register_employee_master_routes = None
+
+try:
+    from project_master_routes import register_project_master_routes
+except ImportError:
+    register_project_master_routes = None
+
+try:
+    from subcontractor_master_routes import register_subcontractor_master_routes
+except ImportError:
+    register_subcontractor_master_routes = None
+
+try:
+    from worker_master_routes import register_worker_master_routes
+except ImportError:
+    register_worker_master_routes = None
+
+try:
+    from workflow_engine_routes import register_workflow_engine_routes
+except ImportError:
+    register_workflow_engine_routes = None
+
+try:
+    from roles_permissions_routes import register_roles_permissions_routes
+except ImportError:
+    register_roles_permissions_routes = None
+
+try:
+    from enterprise_dashboard_routes import register_enterprise_dashboard_routes
+except ImportError:
+    register_enterprise_dashboard_routes = None
+
+try:
+    from ai_core_routes import register_ai_core_routes
+except ImportError:
+    register_ai_core_routes = None
+
+try:
+    from document_management_routes import register_document_management_routes
+except ImportError:
+    register_document_management_routes = None
+
+try:
+    from notification_routes import register_notification_routes
+except ImportError:
+    register_notification_routes = None
+
+try:
     from bulk_import_routes import register_bulk_import_routes
 except ImportError:
     register_bulk_import_routes = None
+
+try:
+    from boq_management_routes import register_boq_management_routes
+except ImportError:
+    register_boq_management_routes = None
 
 try:
     from data_import_routes import register_data_import_routes
@@ -459,6 +549,11 @@ from dashboard_prefs_service import (
 from company_master_service import (
     COMPANY_COUNTRIES,
     COMPANY_STATUSES,
+    COMPANY_TYPES,
+    COMPANY_CURRENCIES,
+    FINANCIAL_YEARS,
+    COMPANY_LANGUAGES,
+    COMPANY_TIMEZONES,
     DIRECTOR_TYPES,
     COMPANY_DOC_TYPES,
     ensure_company_master_schema,
@@ -466,6 +561,12 @@ from company_master_service import (
     get_company,
     save_company,
     delete_company,
+    hard_delete_company,
+    soft_delete_company,
+    approve_company,
+    reject_company,
+    list_company_audit_trail,
+    user_can_company_master,
     list_branches,
     get_branch,
     save_branch,
@@ -485,6 +586,296 @@ from company_master_service import (
     sync_company_expiry_notifications,
     list_country_field_config,
     GCC_CONFIGURABLE_COUNTRIES,
+)
+
+from branch_master_service import (
+    BRANCH_STATUSES,
+    BRANCH_TYPES,
+    activate_branch_master,
+    approve_branch_master,
+    deactivate_branch_master,
+    ensure_branch_master_schema,
+    get_branch_master,
+    list_branch_audit_trail,
+    list_branches_master,
+    list_companies_for_branch_form,
+    reject_branch_master,
+    save_branch_master,
+    soft_delete_branch_master,
+    user_can_branch_master,
+)
+
+from department_master_service import (
+    DEPARTMENT_STATUSES,
+    activate_department_master,
+    approve_department_master,
+    deactivate_department_master,
+    ensure_department_master_schema,
+    get_department_master,
+    list_active_department_names,
+    list_branches_for_department_form,
+    list_department_audit_trail,
+    list_companies_for_department_form,
+    list_departments_master,
+    reject_department_master,
+    save_department_master,
+    soft_delete_department_master,
+    user_can_department_master,
+)
+
+from user_management_service import (
+    COMPANY_CURRENCIES as USER_CURRENCIES,
+    COMPANY_TIMEZONES as USER_TIMEZONES,
+    DATE_FORMATS as USER_DATE_FORMATS,
+    LANGUAGES as USER_LANGUAGES,
+    USER_STATUSES,
+    USER_SYSTEM_ROLES,
+    USER_WORKFLOW_ROLES,
+    activate_user_master,
+    deactivate_user_master,
+    ensure_user_master_schema,
+    get_user_master,
+    list_branches_for_user_form,
+    list_companies_for_user_form,
+    list_departments_for_user_form,
+    list_user_audit_trail,
+    list_users_master,
+    lock_user_master,
+    record_failed_login,
+    record_successful_login,
+    record_user_logout,
+    reset_user_password,
+    save_user_master,
+    soft_delete_user_master,
+    unlock_user_master,
+    user_can_user_management,
+)
+
+from designation_master_service import (
+    DESIGNATION_STATUSES,
+    WORKFLOW_ROLE_DEFAULTS,
+    activate_designation_master,
+    approve_designation_master,
+    deactivate_designation_master,
+    ensure_designation_master_schema,
+    get_designation_master,
+    list_companies_for_designation_form,
+    list_departments_for_designation_form,
+    list_designation_audit_trail,
+    list_designations_master,
+    reject_designation_master,
+    save_designation_master,
+    soft_delete_designation_master,
+    user_can_designation_master,
+)
+
+from client_master_service import (
+    ADDRESS_TYPES as CLIENT_ADDRESS_TYPES,
+    CLIENT_INDUSTRIES,
+    CLIENT_STATUSES,
+    CLIENT_TYPES,
+    activate_client_master,
+    approve_client_master,
+    deactivate_client_master,
+    ensure_client_master_schema,
+    get_client_master,
+    list_client_audit_trail,
+    list_clients_master,
+    list_companies_for_client_form,
+    reject_client_master,
+    save_client_master,
+    soft_delete_client_master,
+    user_can_client_master,
+)
+
+from vendor_master_service import (
+    PAYMENT_TERMS_OPTIONS,
+    VENDOR_STATUSES,
+    activate_vendor_master,
+    approve_vendor_master,
+    deactivate_vendor_master,
+    ensure_vendor_master_schema,
+    get_vendor_master,
+    list_vendor_audit_trail,
+    list_vendors_master,
+    reject_vendor_master,
+    save_vendor_master,
+    soft_delete_vendor_master,
+    user_can_vendor_master,
+)
+
+from employee_master_service import (
+    BLOOD_GROUPS,
+    EMPLOYEE_STATUSES,
+    EMPLOYEE_TYPES as EMPLOYEE_MASTER_TYPES,
+    EMPLOYMENT_STATUSES,
+    GENDER_OPTIONS,
+    MARITAL_STATUSES,
+    SALARY_TYPES,
+    activate_employee_master,
+    approve_employee_master,
+    deactivate_employee_master,
+    employee_upload_dir,
+    ensure_employee_master_schema,
+    generate_employee_code as generate_employee_master_code,
+    get_employee_master,
+    list_active_employees_for_dropdown,
+    list_employee_audit_trail,
+    list_employees_master,
+    reject_employee_master,
+    save_employee_master,
+    soft_delete_employee_master,
+    user_can_employee_master,
+)
+
+from project_master_service import (
+    CURRENCIES as PROJECT_CURRENCIES,
+    PRIORITY_LEVELS,
+    PROJECT_LIFECYCLE_STATUSES,
+    PROJECT_STATUSES as PROJECT_RECORD_STATUSES,
+    PROJECT_TYPES,
+    activate_project_master,
+    approve_project_master,
+    deactivate_project_master,
+    ensure_project_master_schema,
+    generate_project_code as generate_project_master_code,
+    get_project_master,
+    list_branches_for_project_form,
+    list_clients_for_project_form,
+    list_project_audit_trail,
+    list_projects_master,
+    list_staff_for_project_form,
+    reject_project_master,
+    save_project_master,
+    soft_delete_project_master,
+    user_can_project_master,
+)
+
+from boq_management_service import (
+    BOQ_MAX_ITEMS,
+    BOQ_STATUSES,
+    approve_boq_master,
+    copy_boq_master,
+    ensure_boq_management_schema,
+    get_boq_master,
+    list_boq_audit_trail,
+    list_boqs_master,
+    list_projects_for_boq_form,
+    peek_boq_number as peek_boq_management_number,
+    reject_boq_master,
+    save_boq_master,
+    soft_delete_boq_master,
+    submit_boq_for_approval,
+    user_can_boq_management,
+)
+
+from subcontractor_master_service import (
+    SUBCONTRACTOR_CLASSIFICATIONS,
+    SUBCONTRACTOR_RATE_TYPES,
+    SUBCONTRACTOR_STATUSES,
+    activate_subcontractor_master,
+    approve_subcontractor_master,
+    deactivate_subcontractor_master,
+    ensure_subcontractor_master_schema,
+    generate_subcontractor_master_code,
+    get_subcontractor_master,
+    list_subcontractor_audit_trail,
+    list_subcontractors_master,
+    list_vendors_for_subcontractor_form,
+    reject_subcontractor_master,
+    save_subcontractor_master,
+    soft_delete_subcontractor_master,
+    user_can_subcontractor_master,
+)
+
+from worker_master_service import (
+    ATTENDANCE_MODES,
+    MEDICAL_FITNESS_OPTIONS,
+    SALARY_TYPES as WORKER_SALARY_TYPES,
+    WORKER_STATUSES,
+    WORKER_TYPES,
+    activate_worker_master,
+    approve_worker_master,
+    deactivate_worker_master,
+    ensure_worker_master_schema,
+    ensure_demo_company_workers,
+    generate_worker_master_code,
+    get_worker_master,
+    list_companies_for_worker_form,
+    list_projects_for_worker_form,
+    list_subcontractors_for_worker_form,
+    list_worker_audit_trail,
+    list_workers_master,
+    reject_worker_master,
+    save_worker_master,
+    soft_delete_worker_master,
+    user_can_worker_master,
+    worker_upload_dir,
+)
+
+from workflow_engine_service import (
+    WORKFLOW_STATUSES as WORKFLOW_ENGINE_STATUSES,
+    activate_workflow_engine,
+    deactivate_workflow_engine,
+    ensure_workflow_engine_schema,
+    get_workflow_engine,
+    list_workflow_engine_audit,
+    list_workflows_engine,
+    save_workflow_engine,
+    seed_workflow_engine,
+    soft_delete_workflow_engine,
+    user_can_workflow_engine,
+    workflow_engine_dashboard,
+)
+
+from roles_permissions_service import (
+    ROLE_STATUSES,
+    STANDARD_ACTIONS,
+    STANDARD_ACTION_LABELS,
+    activate_role_master,
+    deactivate_role_master,
+    ensure_roles_permissions_schema,
+    get_role_master,
+    get_role_permission_matrix,
+    is_roles_super_administrator,
+    list_permissions_master,
+    list_role_audit_trail,
+    list_roles_master,
+    list_users_for_role,
+    save_role_master,
+    soft_delete_role_master,
+    user_can_roles_permissions,
+)
+
+from enterprise_dashboard_service import ensure_enterprise_dashboard_schema
+
+try:
+    from app.ai import ensure_ai_core_schema
+except ImportError:
+    ensure_ai_core_schema = None
+
+from document_management_service import (
+    APPROVAL_STATUSES as DMS_APPROVAL_STATUSES,
+    DOCUMENT_CATEGORIES,
+    DOCUMENT_STATUSES as DMS_DOCUMENT_STATUSES,
+    archive_document,
+    approve_document,
+    ensure_document_management_schema,
+    folder_tree as dms_folder_tree,
+    get_document as get_dms_document,
+    list_document_audit_trail,
+    list_documents as list_dms_documents,
+    list_folders as list_dms_folders,
+    reject_document,
+    restore_document,
+    soft_delete_document,
+    submit_document_for_approval,
+    user_can_document_management,
+)
+
+from notification_service import (
+    ensure_notification_schema,
+    user_can_notification_center,
 )
 
 from client_billing_service import (
@@ -793,6 +1184,8 @@ def user_is_active(user_row):
     if user_row is None:
         return False
     keys = user_row.keys()
+    if "is_deleted" in keys and _is_truthy(user_row["is_deleted"]):
+        return False
     if "is_disabled" in keys or "account_locked" in keys:
         disabled = _is_truthy(user_row["is_disabled"]) if "is_disabled" in keys else False
         locked = _is_truthy(user_row["account_locked"]) if "account_locked" in keys else False
@@ -846,9 +1239,25 @@ def authenticate_user(db, username, password, company_code=None):
         (username.strip(),),
     ).fetchone()
     if not user or not user_is_active(user):
+        if username.strip():
+            try:
+                record_failed_login(db, username.strip())
+                db.commit()
+            except Exception:
+                pass
         return None
     if not verify_password(user["password"], password):
+        try:
+            record_failed_login(db, username.strip())
+            db.commit()
+        except Exception:
+            pass
         return None
+    try:
+        record_successful_login(db, int(user["id"]))
+        db.commit()
+    except Exception:
+        pass
     return user
 
 
@@ -858,6 +1267,7 @@ REPORTS_DIR = os.path.join(BASE_DIR, "reports")
 PHOTOS_DIR = os.path.join(BASE_DIR, "static", "photos")
 UPLOADS_DIR = os.path.join(BASE_DIR, "static", "uploads")
 STAFF_DOCS_DIR = os.path.join(UPLOADS_DIR, "staff")
+EMPLOYEE_DOCS_DIR = os.path.join(UPLOADS_DIR, "employees")
 WORKER_DOCS_DIR = os.path.join(UPLOADS_DIR, "workers")
 SUBCONTRACTOR_DOCS_DIR = os.path.join(UPLOADS_DIR, "subcontractors")
 CLIENT_DOCS_DIR = os.path.join(UPLOADS_DIR, "clients")
@@ -872,11 +1282,12 @@ TREASURY_DOCS_DIR = os.path.join(UPLOADS_DIR, "treasury")
 OFFICE_DOCS_DIR = os.path.join(UPLOADS_DIR, "office")
 FLEET_DOCS_DIR = os.path.join(UPLOADS_DIR, "fleet")
 COMPANY_DOCS_DIR = os.path.join(UPLOADS_DIR, "company")
+COMPANY_LOGOS_DIR = os.path.join(COMPANY_DOCS_DIR, "logos")
 BILLING_DOCS_DIR = os.path.join(UPLOADS_DIR, "client_billing")
 PROJECT_PHOTOS_DIR = os.path.join(UPLOADS_DIR, "project_photos")
 CORPORATE_DMS_DIR = os.path.join(UPLOADS_DIR, "corporate_dms")
+DOCUMENT_DMS_DIR = os.path.join(UPLOADS_DIR, "enterprise_dms")
 CORPORATE_TEMPLATE_DIR = os.path.join(UPLOADS_DIR, "corporate_templates")
-DEFAULT_REPORT_LOGO_PATH = os.path.join(BASE_DIR, "photos", "LOGO", "MAXEK Logo jpeg.jpg")
 SUPPORT_TICKETS_DIR = os.path.join(UPLOADS_DIR, "support")
 DPR_ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
 PETTY_CASH_ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx", ".xls", ".xlsx"}
@@ -929,6 +1340,7 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(STAFF_DOCS_DIR, exist_ok=True)
+os.makedirs(EMPLOYEE_DOCS_DIR, exist_ok=True)
 os.makedirs(WORKER_DOCS_DIR, exist_ok=True)
 os.makedirs(SUBCONTRACTOR_DOCS_DIR, exist_ok=True)
 os.makedirs(CLIENT_DOCS_DIR, exist_ok=True)
@@ -940,9 +1352,11 @@ os.makedirs(STORE_DOCS_DIR, exist_ok=True)
 os.makedirs(OFFICE_DOCS_DIR, exist_ok=True)
 os.makedirs(FLEET_DOCS_DIR, exist_ok=True)
 os.makedirs(COMPANY_DOCS_DIR, exist_ok=True)
+os.makedirs(COMPANY_LOGOS_DIR, exist_ok=True)
 os.makedirs(BILLING_DOCS_DIR, exist_ok=True)
 os.makedirs(PROJECT_PHOTOS_DIR, exist_ok=True)
 os.makedirs(CORPORATE_DMS_DIR, exist_ok=True)
+os.makedirs(DOCUMENT_DMS_DIR, exist_ok=True)
 os.makedirs(CORPORATE_TEMPLATE_DIR, exist_ok=True)
 os.makedirs(SECURITIES_DOCS_DIR, exist_ok=True)
 os.makedirs(TREASURY_DOCS_DIR, exist_ok=True)
@@ -953,6 +1367,7 @@ PROJECT_GUARANTEE_TYPES = (
     "Bank Guarantee",
     "Performance Guarantee",
     "Treasury Deposit",
+    "Pending Bill",
 )
 MAX_MAKER_ASSIGNMENTS = 15
 BOQ_UNITS = ["Nos", "Sqm", "Sqft", "Rmt", "Kg", "MT", "Ltr", "Cum", "Hour", "Day", "LS", "Set", "Bag"]
@@ -1118,24 +1533,8 @@ def _validate_dpr_upload(file_storage):
     return ext, size, None
 
 
-def generate_employee_code(db, customer_id=None):
-    if customer_id:
-        rows = db.execute(
-            "SELECT employee_code FROM staff WHERE employee_code LIKE 'EMP%' AND customer_id=?",
-            (customer_id,),
-        ).fetchall()
-    else:
-        rows = db.execute(
-            "SELECT employee_code FROM staff WHERE employee_code LIKE 'EMP%' "
-            "AND (customer_id IS NULL OR customer_id=0)"
-        ).fetchall()
-    max_code = 100
-    for row in rows:
-        code = str(row["employee_code"] or "").strip().upper()
-        number = code[3:]
-        if number.isdigit():
-            max_code = max(max_code, int(number))
-    return f"EMP{max_code + 1}"
+def generate_employee_code(db):
+    return generate_employee_master_code(db)
 
 
 def _clean_name_letters(name):
@@ -1655,42 +2054,16 @@ def peek_next_prefixed_number(db, prefix):
     return f"{prefix}{max(counter_next, existing_max + 1)}"
 
 
-def _max_project_number_for_prefix(db, prefix, customer_id=None):
-    max_num = 99
-    prefix = str(prefix or "").upper()
-    like_pattern = f"{prefix}%"
-    if customer_id:
-        rows = db.execute(
-            "SELECT project_code AS code FROM projects WHERE project_code LIKE ? AND customer_id=?",
-            (like_pattern, customer_id),
-        ).fetchall()
-    else:
-        rows = db.execute(
-            "SELECT project_code AS code FROM projects WHERE project_code LIKE ? "
-            "AND (customer_id IS NULL OR customer_id=0)",
-            (like_pattern,),
-        ).fetchall()
-    for row in rows:
-        row_prefix, number = parse_prefixed_number(row["code"])
-        if row_prefix == prefix and number is not None:
-            max_num = max(max_num, number)
-    return max_num
-
-
-def generate_project_code(db, project_name, customer_id=None):
+def generate_project_code(db, project_name):
     """Return next project number: 2-letter prefix from name + running sequence from 100."""
     prefix = extract_name_prefix(project_name)
-    if customer_id:
-        return f"{prefix}{_max_project_number_for_prefix(db, prefix, customer_id) + 1}"
     return allocate_next_prefixed_number(db, prefix)
 
 
-def peek_project_code(db, project_name, customer_id=None):
+def peek_project_code(db, project_name):
     if not str(project_name or "").strip():
-        return "-"
+        return "—"
     prefix = extract_name_prefix(project_name)
-    if customer_id:
-        return f"{prefix}{_max_project_number_for_prefix(db, prefix, customer_id) + 1}"
     return peek_next_prefixed_number(db, prefix)
 
 
@@ -3430,6 +3803,14 @@ def prepare_dpr_page_db(db):
 
 def prepare_workers_page_db(db):
     """Ensure worker and subcontractor rate schema before worker pages."""
+    try:
+        ensure_worker_master_schema(db)
+    except Exception:
+        app.logger.exception("Worker master schema ensure failed")
+    try:
+        ensure_demo_company_workers(db)
+    except Exception:
+        app.logger.exception("Demo company workers ensure failed")
     ensure_subcontractor_rate_tables(db)
     worker_columns = (
         ("worker_code", "TEXT"),
@@ -4277,6 +4658,98 @@ def _prepare_company_master_db(db):
         app.logger.exception("Company master schema ensure failed")
 
 
+def _prepare_branch_master_db(db):
+    try:
+        ensure_branch_master_schema(db)
+    except Exception:
+        app.logger.exception("Branch master schema ensure failed")
+
+
+def _prepare_department_master_db(db):
+    try:
+        ensure_department_master_schema(db)
+    except Exception:
+        app.logger.exception("Department master schema ensure failed")
+
+
+def _prepare_vendor_master_db(db):
+    try:
+        ensure_vendor_master_schema(db)
+    except Exception:
+        app.logger.exception("Vendor master schema ensure failed")
+
+
+def _prepare_user_master_db(db):
+    try:
+        ensure_user_master_schema(db)
+    except Exception:
+        app.logger.exception("User master schema ensure failed")
+
+
+def _prepare_roles_permissions_db(db):
+    try:
+        ensure_roles_permissions_schema(db)
+    except Exception:
+        app.logger.exception("Roles & permissions schema bootstrap failed")
+
+
+def _prepare_designation_master_db(db):
+    try:
+        ensure_designation_master_schema(db)
+    except Exception:
+        app.logger.exception("Designation master schema ensure failed")
+
+
+def _prepare_client_master_db(db):
+    try:
+        ensure_client_master_schema(db)
+    except Exception:
+        app.logger.exception("Client master schema ensure failed")
+
+
+def _prepare_employee_master_db(db):
+    try:
+        ensure_employee_master_schema(db)
+    except Exception:
+        app.logger.exception("Employee master schema ensure failed")
+
+
+def _prepare_project_master_db(db):
+    try:
+        ensure_project_master_schema(db)
+    except Exception:
+        app.logger.exception("Project master schema ensure failed")
+
+
+def _prepare_subcontractor_master_db(db):
+    try:
+        ensure_subcontractor_master_schema(db)
+    except Exception:
+        app.logger.exception("Subcontractor master schema ensure failed")
+
+
+def _prepare_worker_master_db(db):
+    try:
+        ensure_worker_master_schema(db)
+    except Exception:
+        app.logger.exception("Worker master schema ensure failed")
+
+
+def _prepare_boq_management_db(db):
+    try:
+        ensure_boq_management_schema(db)
+        ensure_boq_master_table(db)
+    except Exception:
+        app.logger.exception("BOQ management schema ensure failed")
+
+
+def _prepare_workflow_engine_db(db):
+    try:
+        ensure_workflow_engine_schema(db)
+    except Exception:
+        app.logger.exception("Workflow engine schema ensure failed")
+
+
 def _prepare_client_billing_db(db):
     try:
         ensure_client_billing_schema(db)
@@ -4324,6 +4797,20 @@ def _prepare_corporate_dms_db(db):
         ensure_corporate_dms_schema(db)
     except Exception:
         app.logger.exception("Corporate DMS schema ensure failed")
+
+
+def _prepare_document_management_db(db):
+    try:
+        ensure_document_management_schema(db)
+    except Exception:
+        app.logger.exception("Document management schema ensure failed")
+
+
+def _prepare_notification_db(db):
+    try:
+        ensure_notification_schema(db)
+    except Exception:
+        app.logger.exception("Notification schema ensure failed")
 
 
 def _prepare_corporate_template_db(db):
@@ -4774,23 +5261,6 @@ def _fetch_client_bill_rows(measurement_ids=None, pending_only=True):
     )
 
 
-def _fetch_dpr_print_attachments(measurement_ids):
-    if not measurement_ids:
-        return []
-    placeholders = ",".join("?" * len(measurement_ids))
-    return [
-        dict(row) for row in query_db(
-            "SELECT a.*, m.boq_number, m.boq_description, p.project_code, p.project_name "
-            "FROM dpr_attachments a "
-            "LEFT JOIN dpr_measurements m ON a.measurement_id = m.id "
-            "LEFT JOIN projects p ON a.project_id = p.id "
-            f"WHERE a.measurement_id IN ({placeholders}) "
-            "ORDER BY a.report_date DESC, a.id DESC",
-            measurement_ids,
-        )
-    ]
-
-
 def _manpower_line_cost(mp_row):
     hours = float(mp_row.get("hours_worked") or 0)
     if hours <= 0:
@@ -5134,20 +5604,11 @@ def ensure_trades_table(db):
 
 
 def ensure_designations_table(db):
-    db.execute("""
-        CREATE TABLE IF NOT EXISTS designations(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            designation_name TEXT UNIQUE,
-            description TEXT,
-            status TEXT DEFAULT 'Active'
-        )
-    """)
-    _ensure_column(db, "designations", "description", "TEXT")
-    _ensure_column(db, "designations", "status", "TEXT DEFAULT 'Active'")
-    db.execute(
-        "UPDATE designations SET status='Active' "
-        "WHERE status IS NULL OR TRIM(status)=''"
-    )
+    ensure_designation_master_schema(db)
+
+
+def ensure_designation_master(db):
+    ensure_designation_master_schema(db)
 
 
 def ensure_attendance_master_schema(db):
@@ -5295,34 +5756,14 @@ DEFAULT_DEPARTMENTS = [
 
 
 def ensure_department_master(db):
-    db.execute("""
-        CREATE TABLE IF NOT EXISTS departments(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            department_name TEXT UNIQUE,
-            description TEXT,
-            status TEXT DEFAULT 'Active'
-        )
-    """)
-    cols = [row[1] for row in db.execute("PRAGMA table_info(departments)").fetchall()]
-    if "department_name" not in cols:
-        db.execute("ALTER TABLE departments ADD COLUMN department_name TEXT")
-    if "description" not in cols:
-        db.execute("ALTER TABLE departments ADD COLUMN description TEXT")
-    if "status" not in cols:
-        db.execute("ALTER TABLE departments ADD COLUMN status TEXT DEFAULT 'Active'")
-    row = db.execute("SELECT COUNT(*) AS count FROM departments").fetchone()
-    if int(row["count"]) == 0:
-        db.executemany(
-            "INSERT INTO departments(department_name, status) VALUES(?, 'Active')",
-            [(dept,) for dept in DEFAULT_DEPARTMENTS],
-        )
-        db.commit()
+    ensure_department_master_schema(db)
 
 
 def get_departments():
-    ensure_department_master(get_db())
-    rows = query_db("SELECT department_name FROM departments WHERE status='Active' ORDER BY department_name")
-    return [row["department_name"] for row in rows] or DEFAULT_DEPARTMENTS
+    db = get_db()
+    ensure_department_master_schema(db)
+    names = list_active_department_names(db)
+    return names or list(DEFAULT_DEPARTMENTS)
 
 
 def _table_exists(db, table):
@@ -5536,6 +5977,63 @@ def ensure_runtime_schema(db=None, force=False):
     except Exception:
         app.logger.exception("Company master schema bootstrap failed")
     try:
+        ensure_branch_master_schema(db)
+    except Exception:
+        app.logger.exception("Branch master schema bootstrap failed")
+    try:
+        ensure_department_master_schema(db)
+    except Exception:
+        app.logger.exception("Department master schema bootstrap failed")
+    try:
+        ensure_designation_master_schema(db)
+    except Exception:
+        app.logger.exception("Designation master schema bootstrap failed")
+    try:
+        ensure_vendor_master_schema(db)
+    except Exception:
+        app.logger.exception("Vendor master schema bootstrap failed")
+    try:
+        ensure_client_master_schema(db)
+    except Exception:
+        app.logger.exception("Client master schema bootstrap failed")
+    try:
+        ensure_employee_master_schema(db)
+    except Exception:
+        app.logger.exception("Employee master schema bootstrap failed")
+    try:
+        ensure_project_master_schema(db)
+    except Exception:
+        app.logger.exception("Project master schema bootstrap failed")
+    try:
+        ensure_subcontractor_master_schema(db)
+    except Exception:
+        app.logger.exception("Subcontractor master schema bootstrap failed")
+    try:
+        ensure_worker_master_schema(db)
+    except Exception:
+        app.logger.exception("Worker master schema bootstrap failed")
+    try:
+        ensure_workflow_engine_schema(db)
+    except Exception:
+        app.logger.exception("Workflow engine schema bootstrap failed")
+    try:
+        ensure_roles_permissions_schema(db)
+    except Exception:
+        app.logger.exception("Roles & permissions schema bootstrap failed")
+    try:
+        ensure_enterprise_dashboard_schema(db)
+    except Exception:
+        app.logger.exception("Enterprise dashboard schema bootstrap failed")
+    if ensure_ai_core_schema is not None:
+        try:
+            ensure_ai_core_schema(db)
+        except Exception:
+            app.logger.exception("AI Core schema bootstrap failed")
+    try:
+        ensure_user_master_schema(db)
+    except Exception:
+        app.logger.exception("User master schema bootstrap failed")
+    try:
         ensure_client_billing_schema(db)
     except Exception:
         app.logger.exception("Client billing schema bootstrap failed")
@@ -5563,6 +6061,14 @@ def ensure_runtime_schema(db=None, force=False):
         ensure_corporate_dms_schema(db)
     except Exception:
         app.logger.exception("Corporate DMS schema bootstrap failed")
+    try:
+        ensure_document_management_schema(db)
+    except Exception:
+        app.logger.exception("Document management schema bootstrap failed")
+    try:
+        ensure_notification_schema(db)
+    except Exception:
+        app.logger.exception("Notification schema bootstrap failed")
     try:
         ensure_corporate_template_schema(db)
     except Exception:
@@ -5614,6 +6120,10 @@ def ensure_runtime_schema(db=None, force=False):
     except Exception:
         app.logger.exception("Staff monthly attendance schema bootstrap failed")
     ensure_boq_master_table(db)
+    try:
+        ensure_boq_management_schema(db)
+    except Exception:
+        app.logger.exception("BOQ management schema bootstrap failed")
     ensure_dpr_measurement_tables(db)
     _ensure_column(db, "users", "designation_id", "INTEGER")
     _ensure_column(db, "users", "workflow_role", "TEXT")
@@ -6049,15 +6559,8 @@ def init_db():
     _ensure_column(db, "projects", "project_code", "TEXT")
     _ensure_column(db, "projects", "project_type", "TEXT")
     _ensure_column(db, "projects", "gov_department", "TEXT")
-    _ensure_column(db, "projects", "notice_issued_date", "TEXT")
-    _ensure_column(db, "projects", "agreement_last_date", "TEXT")
-    _ensure_column(db, "projects", "letter_number", "TEXT")
     _ensure_column(db, "projects", "agreement_number", "TEXT")
     _ensure_column(db, "projects", "agreement_date", "TEXT")
-    _ensure_column(db, "projects", "completion_date", "TEXT")
-    _ensure_column(db, "projects", "warranty_completion_period", "TEXT")
-    _ensure_column(db, "projects", "agreement_amount", "REAL")
-    _ensure_column(db, "projects", "treasury_details", "TEXT")
     _ensure_column(db, "projects", "completion_time", "TEXT")
     _ensure_column(db, "projects", "completion_months", "REAL")
     _ensure_column(db, "projects", "completion_mode", "TEXT")
@@ -6164,6 +6667,10 @@ def init_db():
     seed_workflow_master(db)
     migrate_workflow_statuses(db)
     sync_workflow_designations(db)
+    try:
+        seed_workflow_engine(db)
+    except Exception:
+        app.logger.exception("Workflow engine seed failed")
     db.commit()
     cursor.execute("SELECT * FROM users LIMIT 1")
     if cursor.fetchone() is None:
@@ -6443,6 +6950,7 @@ PLANT_NAV_ACTIVE = [
 
 PROJECTS_NAV_ACTIVE = [
     "projects_dashboard",
+    "project_master",
     "projects",
     "clients",
     "boq_management",
@@ -6473,6 +6981,7 @@ PROJECTS_NAV_ACTIVE = [
 ]
 
 HR_NAV_ACTIVE = [
+    "employee_master",
     "staff",
     "employee_profile",
     "staff_bonus",
@@ -6769,10 +7278,28 @@ NAV_GROUPS = [
         "slug": "project-management",
         "items": [
             {
-                "endpoint": "clients",
+                "endpoint": "client_master",
                 "label": "Client Master",
                 "icon": "fa-building-user",
-                "active_endpoints": ["clients"],
+                "active_endpoints": ["client_master", "clients"],
+            },
+            {
+                "endpoint": "project_master",
+                "label": "Project Master",
+                "icon": "fa-diagram-project",
+                "active_endpoints": ["project_master", "projects"],
+            },
+            {
+                "endpoint": "subcontractor_master",
+                "label": "Subcontractor Master",
+                "icon": "fa-helmet-safety",
+                "active_endpoints": ["subcontractor_master", "subcontractors"],
+            },
+            {
+                "endpoint": "worker_master",
+                "label": "Worker Master",
+                "icon": "fa-hard-hat",
+                "active_endpoints": ["worker_master", "workers"],
             },
             {
                 "endpoint": "projects",
@@ -6922,10 +7449,16 @@ NAV_GROUPS = [
         "active_endpoints": WORKFORCE_NAV_ACTIVE,
         "items": [
             {
-                "endpoint": "staff",
+                "endpoint": "employee_master",
                 "label": "Employee Master",
                 "icon": "fa-user-tie",
-                "active_endpoints": ["staff", "employee_profile", "staff_bonus"],
+                "active_endpoints": ["employee_master", "staff", "employee_profile", "staff_bonus"],
+            },
+            {
+                "endpoint": "worker_master",
+                "label": "Worker Master",
+                "icon": "fa-hard-hat",
+                "active_endpoints": ["worker_master", "workers"],
             },
             {
                 "endpoint": "attendance",
@@ -7501,6 +8034,7 @@ NAV_GROUPS = [
             "corporate_dms",
             "corporate_dms_file",
             "corporate_dms_download",
+            "document_management",
         ],
         "items": [
             {
@@ -7560,6 +8094,12 @@ NAV_GROUPS = [
                     "corporate_dms_file",
                     "corporate_dms_download",
                 ],
+            },
+            {
+                "endpoint": "document_management",
+                "label": "Document Management",
+                "icon": "fa-folder-open",
+                "active_endpoints": ["document_management"],
             },
             {
                 "endpoint": "corporate_dms",
@@ -7694,8 +8234,8 @@ NAV_GROUPS = [
             },
             {
                 "endpoint": "user_management",
-                "label": "Roles & Permissions",
-                "icon": "fa-user-shield",
+                "label": "User Management",
+                "icon": "fa-users",
                 "active_endpoints": ["user_management"],
             },
             {
@@ -7703,6 +8243,12 @@ NAV_GROUPS = [
                 "label": "Workflow Settings",
                 "icon": "fa-diagram-project",
                 "active_endpoints": ["workflow_settings", "workflow_matrix"],
+            },
+            {
+                "endpoint": "workflow_engine",
+                "label": "Workflow Engine",
+                "icon": "fa-gears",
+                "active_endpoints": ["workflow_engine"],
             },
             {
                 "endpoint": "settings",
@@ -7715,6 +8261,72 @@ NAV_GROUPS = [
                 "label": "Company Master",
                 "icon": "fa-building-columns",
                 "active_endpoints": ["company_master", "company_document_download"],
+            },
+            {
+                "endpoint": "branch_master",
+                "label": "Branch Master",
+                "icon": "fa-code-branch",
+                "active_endpoints": ["branch_master"],
+            },
+            {
+                "endpoint": "department_master",
+                "label": "Department Master",
+                "icon": "fa-sitemap",
+                "active_endpoints": ["department_master"],
+            },
+            {
+                "endpoint": "vendor_master",
+                "label": "Vendor Master",
+                "icon": "fa-truck-field",
+                "active_endpoints": ["vendor_master"],
+            },
+            {
+                "endpoint": "designation_master",
+                "label": "Designation Master",
+                "icon": "fa-id-badge",
+                "active_endpoints": ["designation_master"],
+            },
+            {
+                "endpoint": "employee_master",
+                "label": "Employee Master",
+                "icon": "fa-user-tie",
+                "active_endpoints": ["employee_master"],
+            },
+            {
+                "endpoint": "client_master",
+                "label": "Client Master",
+                "icon": "fa-building-user",
+                "active_endpoints": ["client_master", "clients"],
+            },
+            {
+                "endpoint": "project_master",
+                "label": "Project Master",
+                "icon": "fa-diagram-project",
+                "active_endpoints": ["project_master", "projects"],
+            },
+            {
+                "endpoint": "subcontractor_master",
+                "label": "Subcontractor Master",
+                "icon": "fa-helmet-safety",
+                "active_endpoints": ["subcontractor_master", "subcontractors"],
+            },
+            {
+                "endpoint": "worker_master",
+                "label": "Worker Master",
+                "icon": "fa-hard-hat",
+                "active_endpoints": ["worker_master", "workers"],
+            },
+            {
+                "endpoint": "roles_permissions",
+                "label": "Roles & Permissions",
+                "icon": "fa-user-shield",
+                "active_endpoints": ["roles_permissions"],
+            },
+            {
+                "endpoint": "notification_center",
+                "label": "Notification Center",
+                "icon": "fa-bell",
+                "active_endpoints": ["notification_center", "notifications"],
             },
             {
                 "endpoint": "corporate_template_master",
@@ -8081,9 +8693,6 @@ def inject_maxek_layout():
     in_dept_portal_shell = bool(resolved_dept_portal_slug and use_pro_shell)
     current_nav_group = active_nav_group(request.endpoint, nav_slug)
     dept_portal_accent = None
-    primary_dashboard_name = "super_admin_platform_dashboard" if platform_super_admin else "dashboard"
-    pro_shell_home_url = url_for(primary_dashboard_name)
-    pro_shell_back_url = pro_shell_home_url
     if in_dept_portal_shell:
         dept_portal = get_department_portal(resolved_dept_portal_slug)
         if dept_portal:
@@ -8098,15 +8707,12 @@ def inject_maxek_layout():
                 portal_menu,
                 full_access=is_admin_user() or platform_super_admin or guest_user,
             )
-            portal_menu = _department_dashboard_display_menu(dept_portal["slug"], portal_menu)
             dept_portal_view = dict(dept_portal)
             dept_portal_view["menu"] = portal_menu
             current_nav_group = portal_menu_as_nav_group(dept_portal_view)
             dept_portal_accent = dept_portal.get("accent") or get_department_accent(
                 dept_portal["slug"]
             )
-            if not on_department_portal:
-                pro_shell_back_url = url_for("department_portal", slug=dept_portal["slug"])
     if not in_dept_portal_shell and active_toolbar_slug in VIRTUAL_TOOLBAR_ENTRIES:
         virtual = VIRTUAL_TOOLBAR_ENTRIES[active_toolbar_slug]
         current_nav_group = {
@@ -8269,8 +8875,6 @@ def inject_maxek_layout():
         "pro_shell_department_portal": in_dept_portal_shell,
         "department_portal_slug": resolved_dept_portal_slug,
         "dept_portal_accent": dept_portal_accent,
-        "pro_shell_back_url": pro_shell_back_url,
-        "pro_shell_home_url": pro_shell_home_url,
         "welcome_name": username_display,
         "command_centre_branch": session.get("branch", branch_options[0] if branch_options else "Head Office"),
         "command_user_role": role_label,
@@ -8280,7 +8884,9 @@ def inject_maxek_layout():
         ),
         "dashboard_shell_command_centre_items": DASHBOARD_SHELL_COMMAND_CENTRE_ITEMS,
         "dashboard_shell_settings": DASHBOARD_SHELL_SETTINGS,
-        "primary_dashboard_endpoint": primary_dashboard_name,
+        "primary_dashboard_endpoint": (
+            "super_admin_platform_dashboard" if platform_super_admin else "dashboard"
+        ),
     }
 
 
@@ -8357,10 +8963,6 @@ def login():
         remember = request.form.get("remember") == "on"
         user = authenticate_user(get_db(), username, password, company_code=company_code)
         if user:
-            try:
-                get_db().commit()
-            except Exception:
-                app.logger.exception("Failed to commit authenticated user tenant repair")
             session.clear()
             user_id = get_user_id(user)
             session["user_id"] = user_id
@@ -8470,6 +9072,13 @@ def forgot_password():
 
 @app.route("/logout")
 def logout():
+    try:
+        uid = session.get("user_id")
+        if uid:
+            record_user_logout(get_db(), int(uid), str(session.get("username") or "system"))
+            get_db().commit()
+    except Exception:
+        app.logger.exception("Failed to record user logout audit")
     try:
         log_logout(get_db(), session.get("login_session_id"))
     except Exception:
@@ -8981,6 +9590,7 @@ def get_department_portals():
                 {"endpoint": "office_agreements", "label": "Agreements", "icon": "fa-handshake", "active_endpoints": ["office_agreements"]},
                 {"endpoint": "office_legal", "label": "Legal Documents", "icon": "fa-scale-balanced", "active_endpoints": ["office_legal"]},
                 {"endpoint": "corporate_dms", "label": "Corporate DMS", "icon": "fa-folder-tree", "active_endpoints": ["corporate_dms", "corporate_dms_file", "corporate_dms_download"]},
+                {"endpoint": "document_management", "label": "Document Management", "icon": "fa-folder-open", "active_endpoints": ["document_management"]},
                 {"endpoint": "fleet_dashboard", "label": "Fleet Dashboard", "icon": "fa-truck", "active_endpoints": ["fleet_dashboard"]},
             ],
         },
@@ -9026,68 +9636,6 @@ def _user_can_view_accounts_department_stats(db, user_id, *, full_access: bool) 
     if not has_dept_rows:
         return True
     return bool(get_granted_tab_keys_for_department(db, user_id, "accounts"))
-
-
-def _project_dashboard_menu(menu):
-    """Keep project-related work grouped on the Project Department dashboard."""
-    project_menu = []
-    seen_labels = set()
-    for item in menu:
-        item = dict(item)
-        if item.get("endpoint") == "cost_planning":
-            item["label"] = "Cost Planning"
-            item["active_endpoints"] = ["cost_planning", "cost_planning_reports"]
-        project_menu.append(item)
-        seen_labels.add(item.get("label"))
-
-    project_tools = [
-        {
-            "endpoint": "dpr_client_bill_pending",
-            "label": "Measurement Book",
-            "icon": "fa-book",
-            "active_endpoints": ["dpr_client_bill_pending", "dpr_client_bill_print", "dpr_client_bill_export"],
-        },
-        {
-            "endpoint": "project_expenses",
-            "label": "Project Expenses",
-            "icon": "fa-receipt",
-            "active_endpoints": ["project_expenses"],
-        },
-        {
-            "endpoint": "cost_planning_reports",
-            "label": "Planning Reports",
-            "icon": "fa-chart-pie",
-            "active_endpoints": ["cost_planning_reports"],
-        },
-        {
-            "endpoint": "treasury_project_profitability",
-            "label": "Project Profitability",
-            "icon": "fa-chart-line",
-            "active_endpoints": ["treasury_project_profitability", "treasury_project_profitability_detail"],
-        },
-        {
-            "endpoint": "cost_planning_reports",
-            "label": "Cost vs Budget Report",
-            "icon": "fa-scale-balanced",
-            "active_endpoints": ["cost_planning_reports"],
-        },
-    ]
-    for item in project_tools:
-        if item["label"] not in seen_labels:
-            project_menu.append(dict(item))
-            seen_labels.add(item["label"])
-    return project_menu
-
-
-def _department_dashboard_display_menu(slug, menu):
-    if slug == "projects":
-        return _project_dashboard_menu(menu)
-    if slug == "boq":
-        allowed_boq_endpoints = {"boq_management", "boq_multiple_entry"}
-        return [item for item in menu if item.get("endpoint") in allowed_boq_endpoints]
-    if slug in {"dpr", "planning-wbs"}:
-        return []
-    return menu
 
 
 def _accounts_petty_cash_balance(db) -> float:
@@ -9434,20 +9982,16 @@ def department_portal(slug):
         menu,
         full_access=is_admin_user() or is_super_admin_user() or is_guest_user(),
     )
-    menu = _department_dashboard_display_menu(portal["slug"], menu)
     portal_view = dict(portal)
     portal_view["menu"] = menu
-    lean_project_pages = {"boq", "dpr", "planning-wbs"}
-    report_modules = [] if portal["slug"] in lean_project_pages else build_workspace_report_modules(portal["slug"])
-    ticket_types = [] if portal["slug"] in lean_project_pages else get_workspace_ticket_types(db, portal["slug"])
     session["active_dept_portal_slug"] = portal["slug"]
     return render_template(
         "department_workspace.html",
         portal=portal_view,
         stat_cards=stat_cards,
         page_title=portal_view.get("title") or portal_view.get("card_label"),
-        report_modules=report_modules,
-        ticket_types=ticket_types,
+        report_modules=build_workspace_report_modules(portal["slug"]),
+        ticket_types=get_workspace_ticket_types(db, portal["slug"]),
         **_command_centre_sidebar_context(db, active_slug=portal["slug"]),
     )
 
@@ -11091,6 +11635,29 @@ def render_choice_b_dashboard():
             context["super_admin_company_erp"] = True
     except Exception:
         pass
+    if theme_ctx.get("template") == "enterprise_dashboard.html":
+        from enterprise_dashboard_service import DASHBOARD_PERMISSION_ENDPOINT, user_can_enterprise_dashboard
+
+        uid = session.get("user_id")
+        context["dashboard_permissions"] = {
+            "view": user_can_enterprise_dashboard(
+                db, uid, "view", is_admin=is_admin_user(), is_platform_super_admin=is_super_admin_user()
+            ),
+            "configure": user_can_enterprise_dashboard(
+                db, uid, "configure", is_admin=is_admin_user(), is_platform_super_admin=is_super_admin_user()
+            ),
+            "reset": user_can_enterprise_dashboard(
+                db, uid, "reset", is_admin=is_admin_user(), is_platform_super_admin=is_super_admin_user()
+            ),
+            "manage_widgets": user_can_enterprise_dashboard(
+                db,
+                uid,
+                "manage_widgets",
+                is_admin=is_admin_user(),
+                is_platform_super_admin=is_super_admin_user(),
+            ),
+        }
+        context["dashboard_endpoint"] = DASHBOARD_PERMISSION_ENDPOINT
     return render_template(theme_ctx["template"], **context)
 
 
@@ -11162,20 +11729,13 @@ def workforce_dashboard():
 def staff():
     db = get_db()
     prepare_staff_page_db(db)
-    tenant_customer_id = _dashboard_customer_id()
     edit_id = request.args.get("edit", type=int)
     editing_staff = None
     editing_components = []
     editing_travel_tiers = []
     editing_salary_increments = []
     if edit_id:
-        if tenant_customer_id:
-            editing_staff = db.execute(
-                "SELECT * FROM staff WHERE id=? AND customer_id=?",
-                (edit_id, tenant_customer_id),
-            ).fetchone()
-        else:
-            editing_staff = db.execute("SELECT * FROM staff WHERE id=?", (edit_id,)).fetchone()
+        editing_staff = db.execute("SELECT * FROM staff WHERE id=?", (edit_id,)).fetchone()
         if not editing_staff:
             flash("Employee record not found.")
             return redirect(url_for("staff"))
@@ -11200,13 +11760,7 @@ def staff():
             if not inc_staff_id:
                 flash("Employee not found for increment.")
                 return redirect(url_for("staff"))
-            if tenant_customer_id:
-                staff_row = db.execute(
-                    "SELECT * FROM staff WHERE id=? AND customer_id=?",
-                    (inc_staff_id, tenant_customer_id),
-                ).fetchone()
-            else:
-                staff_row = db.execute("SELECT * FROM staff WHERE id=?", (inc_staff_id,)).fetchone()
+            staff_row = db.execute("SELECT * FROM staff WHERE id=?", (inc_staff_id,)).fetchone()
             if not staff_row:
                 flash("Employee not found.")
                 return redirect(url_for("staff"))
@@ -11327,13 +11881,7 @@ def staff():
                     pass
         existing_staff = None
         if staff_id:
-            if tenant_customer_id:
-                existing_staff = db.execute(
-                    "SELECT * FROM staff WHERE id=? AND customer_id=?",
-                    (staff_id, tenant_customer_id),
-                ).fetchone()
-            else:
-                existing_staff = db.execute("SELECT * FROM staff WHERE id=?", (staff_id,)).fetchone()
+            existing_staff = db.execute("SELECT * FROM staff WHERE id=?", (staff_id,)).fetchone()
             if not existing_staff:
                 flash("Employee record not found.")
                 return redirect(url_for("staff"))
@@ -11346,11 +11894,7 @@ def staff():
             id_proof = id_proof or existing_staff["id_proof"]
             aadhaar_document = aadhaar_document or existing_staff["aadhaar_document"]
             pan_document = pan_document or existing_staff["pan_document"]
-        employee_code = (
-            existing_staff["employee_code"]
-            if existing_staff
-            else generate_employee_code(db, tenant_customer_id)
-        )
+        employee_code = existing_staff["employee_code"] if existing_staff else generate_employee_master_code(db)
         designation_name = ""
         if designation_id:
             drow = db.execute(
@@ -11461,7 +12005,7 @@ def staff():
         designations=designations,
         departments=departments,
         staff_list=staff_list,
-        next_employee_code=generate_employee_code(db, tenant_customer_id),
+        next_employee_code=generate_employee_master_code(db),
         editing_staff=editing_staff,
         editing_components=editing_components,
         editing_travel_tiers=editing_travel_tiers,
@@ -11670,7 +12214,9 @@ def subcontract_dashboard():
         {"label": "Pending Payments", "value": _safe_scalar_count(db, "SELECT COUNT(*) AS c FROM subcontract_payments WHERE payment_status='Pending'")},
     ]
     modules = [
-        {"endpoint": "workers", "label": "Workers", "icon": "fa-hard-hat", "description": "Labour worker registry & skills"},
+        {"endpoint": "worker_master", "label": "Worker Master", "icon": "fa-hard-hat", "description": "Construction labour registry (company & sub workers)"},
+        {"endpoint": "workers", "label": "Workers (Legacy)", "icon": "fa-users-gear", "description": "Legacy subcontractor worker screen"},
+        {"endpoint": "subcontractor_master", "label": "Subcontractor Master", "icon": "fa-helmet-safety", "description": "Subcontractor registry, compliance & trades"},
         {"endpoint": "subcontractors", "label": "Subcontractor Creation", "icon": "fa-user-plus", "description": "Register new subcontractor firms"},
         {"endpoint": "subcontractors", "label": "Subcontractor List", "icon": "fa-list", "description": "Browse all active subcontractors"},
         {"endpoint": "attendance", "label": "Worker Attendance", "icon": "fa-calendar-day", "description": "Daily worker attendance on site"},
@@ -12000,8 +12546,6 @@ def api_subcontractor_manpower_rates(subcontractor_id):
 @app.route("/api/projects/<int:project_id>/boq-items")
 @login_required
 def api_project_boq_items(project_id):
-    db = get_db()
-    ensure_boq_master_table(db)
     rows = query_db(
         "SELECT bi.id, bi.boq_id, bi.line_no, COALESCE(bi.item_code, '') AS item_code, "
         "COALESCE(bi.item_description, '') AS item_description, "
@@ -12009,88 +12553,65 @@ def api_project_boq_items(project_id):
         "COALESCE(bi.unit, '') AS unit, "
         "COALESCE(bi.rate, 0) AS rate, "
         "COALESCE(bi.amount, 0) AS amount, "
-        "COALESCE(bi.project_id, bm.project_id) AS project_id, "
-        "COALESCE(NULLIF(bm.boq_number, ''), 'BOQ-' || COALESCE(bi.boq_id, bi.id)) AS boq_number "
+        "COALESCE(bm.boq_number, '') AS boq_number "
         "FROM boq_items bi "
         "LEFT JOIN boq_master bm ON bi.boq_id = bm.id "
-        "WHERE (bi.project_id=? OR bm.project_id=?) "
+        "WHERE COALESCE(bi.project_id, bm.project_id)=? "
         "AND COALESCE(bi.is_deleted, 0)=0 AND COALESCE(bm.is_deleted, 0)=0 "
         "ORDER BY bm.id DESC, bi.line_no, bi.id",
-        (project_id, project_id),
+        (project_id,),
     )
     return jsonify([dict(row) for row in rows])
-
-
-def _dpr_boq_items_for_projects(project_ids):
-    clean_ids = [int(pid) for pid in project_ids if pid]
-    if not clean_ids:
-        return []
-    placeholders = ",".join("?" for _ in clean_ids)
-    rows = query_db(
-        "SELECT bi.id, bi.boq_id, bi.line_no, COALESCE(bi.item_code, '') AS item_code, "
-        "COALESCE(bi.item_description, '') AS item_description, "
-        "COALESCE(bi.quantity, 0) AS quantity, "
-        "COALESCE(bi.unit, '') AS unit, "
-        "COALESCE(bi.rate, 0) AS rate, "
-        "COALESCE(bi.amount, 0) AS amount, "
-        "COALESCE(bi.project_id, bm.project_id) AS project_id, "
-        "COALESCE(NULLIF(bm.boq_number, ''), 'BOQ-' || COALESCE(bi.boq_id, bi.id)) AS boq_number "
-        "FROM boq_items bi "
-        "LEFT JOIN boq_master bm ON bi.boq_id = bm.id "
-        f"WHERE (bi.project_id IN ({placeholders}) OR bm.project_id IN ({placeholders})) "
-        "AND COALESCE(bi.is_deleted, 0)=0 AND COALESCE(bm.is_deleted, 0)=0 "
-        "ORDER BY bm.id DESC, bi.line_no, bi.id",
-        tuple(clean_ids + clean_ids),
-    )
-    return [dict(row) for row in rows]
 
 
 @app.route("/clients", methods=["GET", "POST"])
 @login_required
 def clients():
-    db = get_db()
-    if request.method == "POST":
-        if _create_client_from_form():
-            flash("Client saved.")
-        return redirect(url_for("clients"))
-    rows = query_db("SELECT * FROM clients ORDER BY id DESC")
-    next_client_code = generate_client_code(db)
-    return render_template("clients.html", rows=rows, next_client_code=next_client_code)
+    if request.method == "GET":
+        return redirect(url_for("client_master"))
+    if _create_client_from_form():
+        get_db().commit()
+        flash("Client saved.")
+    return redirect(url_for("client_master"))
 
 
 def _create_client_from_form():
     company_name = request.form.get("company_name", "").strip()
     contact_person = request.form.get("contact_person", "").strip()
     client_name = request.form.get("client_name", "").strip() or company_name or contact_person
-    mobile = request.form.get("mobile", "").strip()
-    email = request.form.get("email", "").strip()
-    address = request.form.get("address", "").strip()
-    gst_number = request.form.get("gst_number", "").strip()
-    pan_number = request.form.get("pan_number", "").strip()
-    status = request.form.get("status", "Active").strip()
-    if not company_name:
-        flash("Company name is required.")
+    if not client_name:
+        flash("Client name is required.")
         return None
     db = get_db()
-    client_code = generate_client_code(db)
+    _prepare_client_master_db(db)
+    username = session.get("username", "legacy")
     try:
-        cursor = db.execute(
-            "INSERT INTO clients(client_code, client_name, company_name, contact_person, mobile, email, "
-            "address, gst_number, pan_number, status) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            (
-                client_code, client_name, company_name, contact_person, mobile, email,
-                address, gst_number, pan_number, status,
-            ),
-        )
-        db.commit()
-        return cursor.lastrowid
-    except (sqlite3.Error, KeyError, TypeError):
+        form = {
+            "client_name": client_name,
+            "company_name": company_name or client_name,
+            "legal_name": company_name or client_name,
+            "contact_person": contact_person,
+            "mobile": request.form.get("mobile", "").strip(),
+            "email": request.form.get("email", "").strip(),
+            "billing_address": request.form.get("address", "").strip(),
+            "address": request.form.get("address", "").strip(),
+            "gst_number": request.form.get("gst_number", "").strip(),
+            "pan_number": request.form.get("pan_number", "").strip(),
+            "status": request.form.get("status", "Active").strip(),
+            "contact_name[]": [contact_person or "Primary Contact"],
+            "contact_email[]": [request.form.get("email", "").strip()],
+            "contact_mobile[]": [request.form.get("mobile", "").strip()],
+            "contact_primary_index": "0",
+        }
+        if form["billing_address"]:
+            form["address_line1[]"] = [form["billing_address"]]
+            form["address_type[]"] = ["Billing"]
+            form["address_primary_index"] = "0"
+        return save_client_master(db, form, username, customer_id=session.get("customer_id"))
+    except (ValueError, sqlite3.Error, KeyError, TypeError) as exc:
         db.rollback()
-        app.logger.exception("Client save failed for %s", company_name)
-        flash(
-            "Unable to save client. "
-            "If this persists after deploy, check server logs (journalctl -u maxek-erp)."
-        )
+        app.logger.exception("Client save failed for %s", client_name)
+        flash(str(exc) if str(exc) else "Unable to save client.")
         return None
 
 
@@ -12189,7 +12710,6 @@ def projects():
     module_id, table, endpoint = "project_creation", "projects", "projects"
     user_id = session.get("user_id")
     admin = is_admin_user()
-    tenant_customer_id = _dashboard_customer_id()
     wf_ctx = {}
     clients = _tenant_query_db(
         "SELECT id, client_name, company_name, contact_person FROM clients ORDER BY company_name, client_name",
@@ -12203,13 +12723,9 @@ def projects():
         "SELECT p.*, c.client_name, c.company_name FROM projects p "
         "LEFT JOIN clients c ON p.client_id = c.id WHERE p.id=?"
     )
-    project_params_extra = ()
-    if tenant_customer_id:
-        project_sql += " AND p.customer_id=?"
-        project_params_extra = (tenant_customer_id,)
 
     if edit_id:
-        editing_project = query_db(project_sql, (edit_id, *project_params_extra), one=True)
+        editing_project = query_db(project_sql, (edit_id,), one=True)
         if not editing_project:
             flash("Project record not found.")
             return redirect(url_for("projects"))
@@ -12222,7 +12738,7 @@ def projects():
             return redirect(url_for(endpoint, view=edit_id))
         wf_ctx = {"edit_role": edit_role}
     elif view_project_id:
-        view_project = query_db(project_sql, (view_project_id, *project_params_extra), one=True)
+        view_project = query_db(project_sql, (view_project_id,), one=True)
         if not view_project:
             flash("Project record not found.")
             return redirect(url_for("projects"))
@@ -12247,9 +12763,8 @@ def projects():
                 flash("Select a government project.")
                 return redirect(url_for("projects") + "#client-bill-pending")
             project_row = db.execute(
-                "SELECT id, project_type FROM projects WHERE id=?"
-                + (" AND customer_id=?" if tenant_customer_id else ""),
-                (int(bill_project_id), tenant_customer_id) if tenant_customer_id else (int(bill_project_id),),
+                "SELECT id, project_type FROM projects WHERE id=?",
+                (int(bill_project_id),),
             ).fetchone()
             if not project_row or project_row["project_type"] != "Government":
                 flash("Bill submissions apply to government projects only.")
@@ -12270,15 +12785,9 @@ def projects():
         project_id = request.form.get("project_id", "").strip()
         existing_project = None
         if project_id:
-            if tenant_customer_id:
-                existing_project = db.execute(
-                    "SELECT * FROM projects WHERE id=? AND customer_id=?",
-                    (project_id, tenant_customer_id),
-                ).fetchone()
-            else:
-                existing_project = db.execute(
-                    "SELECT * FROM projects WHERE id=?", (project_id,)
-                ).fetchone()
+            existing_project = db.execute(
+                "SELECT * FROM projects WHERE id=?", (project_id,)
+            ).fetchone()
             if not existing_project:
                 flash("Project record not found.")
                 return redirect(url_for("projects"))
@@ -12293,19 +12802,12 @@ def projects():
         approved_total_amount = request.form.get("approved_total_amount", "0").strip()
         status = request.form.get("status", "Active").strip()
         gov_department = request.form.get("gov_department", "").strip()
-        notice_issued_date = request.form.get("notice_issued_date", "").strip()
-        agreement_last_date = request.form.get("agreement_last_date", "").strip()
-        letter_number = request.form.get("letter_number", "").strip()
         agreement_number = request.form.get("agreement_number", "").strip()
         agreement_date = request.form.get("agreement_date", "").strip()
         completion_time = request.form.get("completion_time", "").strip()
         completion_mode = request.form.get("completion_mode", "months").strip()
         completion_months_raw = request.form.get("completion_months", "").strip()
         gov_completion_date = request.form.get("gov_completion_date", "").strip()
-        completion_date = gov_completion_date
-        warranty_completion_period = request.form.get("warranty_completion_period", "").strip()
-        agreement_amount = request.form.get("agreement_amount", "0").strip()
-        treasury_details = request.form.get("treasury_details", "").strip()
         quoted_amount = request.form.get("quoted_amount", "0").strip()
         security_deposit_pct = request.form.get("security_deposit_pct", "0").strip()
         guarantee_type = request.form.get("guarantee_type", "").strip()
@@ -12340,7 +12842,6 @@ def projects():
 
         try:
             approved_total_val = float(approved_total_amount or 0)
-            agreement_amount_val = float(agreement_amount or 0)
             quoted_val = float(quoted_amount or 0)
             sd_pct_val = float(security_deposit_pct or 0)
             bg_amount_val = float(bank_guarantee_amount or 0)
@@ -12373,7 +12874,7 @@ def projects():
         project_code = (
             existing_project["project_code"]
             if existing_project and existing_project["project_code"]
-            else generate_project_code(db, project_name, tenant_customer_id)
+            else generate_project_code(db, project_name)
         )
         if project_type == "Government":
             private_client_name = ""
@@ -12383,14 +12884,13 @@ def projects():
             wo_amount_val = 0
             work_order_document = ""
             project_contact_person = ""
+            agreement_number = ""
+            agreement_date = ""
+            agreement_document = ""
             completion_months_val = None
             end_date, completion_time, completion_months_val, completion_mode = _apply_gov_completion_fields(
                 start_date, end_date, completion_mode, completion_months_raw, gov_completion_date,
             )
-            if completion_date:
-                end_date = completion_date
-            if approved_total_val <= 0:
-                approved_total_val = agreement_amount_val or quoted_val
             # Legacy columns: mirror first guarantee row of each kind for Project 360 / reports
             guarantee_type = ""
             bank_guarantee_number = ""
@@ -12429,15 +12929,8 @@ def projects():
             guarantee_rows = []
             bill_submission_rows = []
             gov_department = ""
-            notice_issued_date = ""
-            agreement_last_date = ""
-            letter_number = ""
             agreement_number = ""
             agreement_date = ""
-            completion_date = ""
-            warranty_completion_period = ""
-            agreement_amount_val = 0
-            treasury_details = ""
             completion_time = ""
             completion_months_val = None
             completion_mode = ""
@@ -12466,9 +12959,7 @@ def projects():
         project_values = (
             project_name, project_type, client_id, private_client_name, location,
             start_date, end_date, "", approved_total_val, approved_total_val, status, gov_department,
-            notice_issued_date, agreement_last_date, letter_number, agreement_number,
-            agreement_date, completion_date, warranty_completion_period, agreement_amount_val, treasury_details,
-            completion_time, completion_months_val, completion_mode,
+            agreement_number, agreement_date, completion_time, completion_months_val, completion_mode,
             quoted_val, sd_pct_val,
             guarantee_type, bank_guarantee_number, bank_guarantee_issued_date,
             bank_guarantee_expiry_date, bg_amount_val, treasury_deposit_number, sd_amount_val,
@@ -12488,10 +12979,8 @@ def projects():
             db.execute(
                 "UPDATE projects SET project_name=?, project_type=?, client_id=?, private_client_name=?, "
                 "location=?, start_date=?, end_date=?, project_manager=?, budget=?, approved_total_amount=?, "
-                "status=?, gov_department=?, notice_issued_date=?, agreement_last_date=?, letter_number=?, "
-                "agreement_number=?, agreement_date=?, completion_date=?, warranty_completion_period=?, "
-                "agreement_amount=?, treasury_details=?, "
-                "completion_time=?, completion_months=?, completion_mode=?, "
+                "status=?, gov_department=?, agreement_number=?, agreement_date=?, completion_time=?, "
+                "completion_months=?, completion_mode=?, "
                 "quoted_amount=?, security_deposit_pct=?, guarantee_type=?, bank_guarantee_number=?, "
                 "bank_guarantee_issued_date=?, bank_guarantee_expiry_date=?, bank_guarantee_amount=?, "
                 "treasury_deposit_number=?, security_deposit_amount=?, security_deposit_issued_date=?, "
@@ -12513,9 +13002,8 @@ def projects():
             "INSERT INTO projects("
             "project_code, project_name, project_type, client_id, private_client_name, location, "
             "start_date, end_date, project_manager, budget, approved_total_amount, status, "
-            "gov_department, notice_issued_date, agreement_last_date, letter_number, agreement_number, "
-            "agreement_date, completion_date, warranty_completion_period, agreement_amount, treasury_details, completion_time, "
-            "completion_months, completion_mode, "
+            "gov_department, agreement_number, "
+            "agreement_date, completion_time, completion_months, completion_mode, "
             "quoted_amount, security_deposit_pct, guarantee_type, "
             "bank_guarantee_number, bank_guarantee_issued_date, bank_guarantee_expiry_date, "
             "bank_guarantee_amount, treasury_deposit_number, security_deposit_amount, "
@@ -12523,7 +13011,7 @@ def projects():
             "bank_guarantee_document, security_deposit_document, work_order_number, work_order_date, "
             "work_order_amount, project_contact_person, work_order_document, created_by, created_at, "
             "customer_id, company_id, branch_id, approval_status"
-            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (project_code,) + project_values + (
                 username, now_ts,
                 session.get("customer_id"),
@@ -12818,8 +13306,11 @@ def workers():
         return redirect(url_for("workers"))
 
     rows = query_db(
-        "SELECT w.*, s.subcontractor_name, s.subcontractor_code FROM workers w "
+        "SELECT w.*, "
+        "COALESCE(NULLIF(TRIM(s.subcontractor_name), ''), NULLIF(TRIM(v.name), '')) AS subcontractor_name, "
+        "s.subcontractor_code FROM workers w "
         "LEFT JOIN subcontractors s ON w.subcontractor_id = s.id "
+        "LEFT JOIN vendors v ON v.id = s.vendor_id "
         "WHERE COALESCE(w.worker_category, 'Company Staff') = 'Sub Contractor Staff' "
         "ORDER BY w.id DESC"
     )
@@ -14378,28 +14869,67 @@ def settings():
 
 
 @app.route("/settings/company-master", methods=["GET", "POST"])
-@admin_required
+@login_required
 def company_master():
     db = get_db()
     _prepare_company_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_company_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Company Master.")
+        return redirect(url_for("dashboard"))
     company_id = request.args.get("company_id", type=int) or request.form.get("company_id", type=int)
+    view_mode = request.args.get("view") == "1"
 
     if request.method == "POST":
         action = request.form.get("form_action", "save_company").strip()
         redirect_cid = request.form.get("company_id", type=int) or company_id
+        username = session.get("username", "")
         try:
             if action == "save_company":
+                if not user_can_company_master(db, user_id, "edit" if redirect_cid else "create", is_admin=admin):
+                    flash("You do not have permission to save companies.")
+                    return redirect(url_for("company_master", company_id=redirect_cid))
                 rid = request.form.get("company_id", type=int)
-                new_id = save_company(db, request.form, session.get("username", ""), rid)
+                form_data = request.form.to_dict(flat=True)
+                logo_upload = request.files.get("company_logo_file")
+                if logo_upload and logo_upload.filename:
+                    ext = os.path.splitext(logo_upload.filename)[1].lower()
+                    from company_master_service import COMPANY_LOGO_EXTENSIONS
+
+                    if ext not in COMPANY_LOGO_EXTENSIONS:
+                        flash("Logo must be JPG, PNG, WEBP, or SVG.")
+                        return redirect(url_for("company_master", company_id=redirect_cid))
+                    form_data["company_logo"] = save_file(logo_upload, COMPANY_LOGOS_DIR)
+                new_id = save_company(db, form_data, username, rid)
                 db.commit()
                 flash("Company saved.")
                 return redirect(url_for("company_master", company_id=new_id))
-            if action == "delete_company" and redirect_cid:
-                if not is_super_admin_user():
-                    flash("Only Super Admin can delete a company. Contact platform support.")
+            if action == "approve_company" and redirect_cid:
+                if not user_can_company_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve companies.")
                     return redirect(url_for("company_master", company_id=redirect_cid))
-                company_row = get_company(db, redirect_cid)
-                delete_company(db, redirect_cid)
+                approve_company(db, redirect_cid, username)
+                db.commit()
+                flash("Company approved.")
+                return redirect(url_for("company_master", company_id=redirect_cid))
+            if action == "reject_company" and redirect_cid:
+                if not user_can_company_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject companies.")
+                    return redirect(url_for("company_master", company_id=redirect_cid))
+                reject_company(db, redirect_cid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Company rejected.")
+                return redirect(url_for("company_master", company_id=redirect_cid))
+            if action == "delete_company" and redirect_cid:
+                if not user_can_company_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete companies.")
+                    return redirect(url_for("company_master", company_id=redirect_cid))
+                company_row = get_company(db, redirect_cid, include_deleted=True)
+                if is_super_admin_user() and request.form.get("hard_delete") == "1":
+                    hard_delete_company(db, redirect_cid)
+                else:
+                    soft_delete_company(db, redirect_cid, username)
                 try:
                     from super_admin_service import log_audit
 
@@ -14410,7 +14940,7 @@ def company_master():
                         "Delete",
                         "Company Master",
                         f"Deleted company {company_row.get('company_code') if company_row else redirect_cid}",
-                        username=session.get("username"),
+                        username=username,
                     )
                 except Exception:
                     app.logger.exception("Failed to audit company delete")
@@ -14432,7 +14962,7 @@ def company_master():
             if action == "delete_branch":
                 bid = request.form.get("branch_id", type=int)
                 if bid:
-                    delete_branch(db, bid)
+                    delete_branch(db, bid, session.get("username", ""))
                     db.commit()
                     flash("Branch deleted.")
                 return redirect(url_for("company_master", company_id=redirect_cid))
@@ -14514,6 +15044,23 @@ def company_master():
 
     search = request.args.get("q", "")
     country_filter = request.args.get("country", "")
+    status_filter = request.args.get("status", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "legal_name")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    company_list = list_companies(
+        db,
+        search=search,
+        country=country_filter,
+        status=status_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
     selected_company = get_company(db, company_id) if company_id else None
     edit_branch = get_branch(db, request.args.get("edit_branch", type=int)) if company_id else None
     edit_director = get_director(db, request.args.get("edit_director", type=int)) if company_id else None
@@ -14541,15 +15088,36 @@ def company_master():
 
     return render_template(
         "company_master.html",
-        companies=list_companies(db, search, country_filter),
+        companies=company_list["items"],
+        company_pagination=company_list,
         search=search,
         country_filter=country_filter,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
         company_countries=COMPANY_COUNTRIES,
         company_statuses=COMPANY_STATUSES,
+        company_types=COMPANY_TYPES,
+        company_currencies=COMPANY_CURRENCIES,
+        financial_years=FINANCIAL_YEARS,
+        company_timezones=COMPANY_TIMEZONES,
+        company_languages=COMPANY_LANGUAGES,
         director_types=DIRECTOR_TYPES,
         company_doc_types=COMPANY_DOC_TYPES,
         selected_company=selected_company,
         show_company_form=bool(request.args.get("new")) or bool(selected_company),
+        company_permissions={
+            "view": user_can_company_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_company_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_company_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_company_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_company_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_company_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_company_master(db, user_id, "approve", is_admin=admin),
+        },
+        audit_trail=list_company_audit_trail(db, company_id) if company_id else [],
         branches=list_branches(db, company_id) if company_id else [],
         directors=list_directors(db, company_id) if company_id else [],
         documents=list_company_documents(db, company_id) if company_id else [],
@@ -14572,6 +15140,1674 @@ def company_document_download(filename):
         flash("File not found.")
         return redirect(url_for("company_master"))
     return send_from_directory(COMPANY_DOCS_DIR, safe, as_attachment=True)
+
+
+@app.route("/settings/branch-master", methods=["GET", "POST"])
+@login_required
+def branch_master():
+    db = get_db()
+    _prepare_branch_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_branch_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Branch Master.")
+        return redirect(url_for("dashboard"))
+    branch_id = request.args.get("branch_id", type=int) or request.form.get("branch_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_branch").strip()
+        redirect_bid = request.form.get("branch_id", type=int) or branch_id
+        try:
+            if action == "save_branch":
+                perm = "edit" if redirect_bid else "create"
+                if not user_can_branch_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save branches.")
+                    return redirect(url_for("branch_master", branch_id=redirect_bid))
+                form_data = request.form.to_dict(flat=True)
+                rid = request.form.get("branch_id", type=int)
+                new_id = save_branch_master(
+                    db,
+                    form_data,
+                    username,
+                    rid,
+                    customer_id=session.get("customer_id"),
+                )
+                db.commit()
+                flash("Branch saved.")
+                return redirect(url_for("branch_master", branch_id=new_id))
+            if action == "approve_branch" and redirect_bid:
+                if not user_can_branch_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve branches.")
+                    return redirect(url_for("branch_master", branch_id=redirect_bid))
+                approve_branch_master(db, redirect_bid, username)
+                db.commit()
+                flash("Branch approved.")
+                return redirect(url_for("branch_master", branch_id=redirect_bid))
+            if action == "reject_branch" and redirect_bid:
+                if not user_can_branch_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject branches.")
+                    return redirect(url_for("branch_master", branch_id=redirect_bid))
+                reject_branch_master(db, redirect_bid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Branch rejected.")
+                return redirect(url_for("branch_master", branch_id=redirect_bid))
+            if action == "activate_branch" and redirect_bid:
+                if not user_can_branch_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate branches.")
+                    return redirect(url_for("branch_master", branch_id=redirect_bid))
+                activate_branch_master(db, redirect_bid, username)
+                db.commit()
+                flash("Branch activated.")
+                return redirect(url_for("branch_master", branch_id=redirect_bid))
+            if action == "deactivate_branch" and redirect_bid:
+                if not user_can_branch_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate branches.")
+                    return redirect(url_for("branch_master", branch_id=redirect_bid))
+                deactivate_branch_master(db, redirect_bid, username)
+                db.commit()
+                flash("Branch deactivated.")
+                return redirect(url_for("branch_master", branch_id=redirect_bid))
+            if action == "delete_branch" and redirect_bid:
+                if not user_can_branch_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete branches.")
+                    return redirect(url_for("branch_master", branch_id=redirect_bid))
+                soft_delete_branch_master(db, redirect_bid, username)
+                db.commit()
+                flash("Branch deleted.")
+                return redirect(url_for("branch_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_bid:
+                return redirect(url_for("branch_master", branch_id=redirect_bid))
+            return redirect(url_for("branch_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save branch.")
+            return redirect(url_for("branch_master", branch_id=redirect_bid))
+
+    search = request.args.get("q", "")
+    company_filter = request.args.get("company_id", type=int)
+    country_filter = request.args.get("country", "")
+    status_filter = request.args.get("status", "")
+    branch_type_filter = request.args.get("branch_type", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "branch_name")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    branch_list = list_branches_master(
+        db,
+        search=search,
+        company_id=company_filter,
+        country=country_filter,
+        status=status_filter,
+        branch_type=branch_type_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    selected_branch = get_branch_master(db, branch_id) if branch_id else None
+
+    return render_template(
+        "branch_master.html",
+        branches=branch_list["items"],
+        branch_pagination=branch_list,
+        search=search,
+        company_filter=company_filter,
+        country_filter=country_filter,
+        status_filter=status_filter,
+        branch_type_filter=branch_type_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        companies=list_companies_for_branch_form(db),
+        branch_countries=COMPANY_COUNTRIES,
+        branch_statuses=BRANCH_STATUSES,
+        branch_types=BRANCH_TYPES,
+        company_currencies=COMPANY_CURRENCIES,
+        company_timezones=COMPANY_TIMEZONES,
+        selected_branch=selected_branch,
+        show_branch_form=bool(request.args.get("new")) or bool(selected_branch),
+        branch_permissions={
+            "view": user_can_branch_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_branch_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_branch_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_branch_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_branch_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_branch_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_branch_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_branch_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_branch_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_branch_audit_trail(db, branch_id) if branch_id else [],
+    )
+
+
+@app.route("/settings/department-master", methods=["GET", "POST"])
+@login_required
+def department_master():
+    db = get_db()
+    _prepare_department_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_department_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Department Master.")
+        return redirect(url_for("dashboard"))
+    department_id = request.args.get("department_id", type=int) or request.form.get("department_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_department").strip()
+        redirect_did = request.form.get("department_id", type=int) or department_id
+        try:
+            if action == "save_department":
+                perm = "edit" if redirect_did else "create"
+                if not user_can_department_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save departments.")
+                    return redirect(url_for("department_master", department_id=redirect_did))
+                new_id = save_department_master(
+                    db,
+                    request.form.to_dict(flat=True),
+                    username,
+                    redirect_did,
+                    customer_id=session.get("customer_id"),
+                )
+                db.commit()
+                flash("Department saved.")
+                return redirect(url_for("department_master", department_id=new_id))
+            if action == "approve_department" and redirect_did:
+                if not user_can_department_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve departments.")
+                    return redirect(url_for("department_master", department_id=redirect_did))
+                approve_department_master(db, redirect_did, username)
+                db.commit()
+                flash("Department approved.")
+                return redirect(url_for("department_master", department_id=redirect_did))
+            if action == "reject_department" and redirect_did:
+                if not user_can_department_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject departments.")
+                    return redirect(url_for("department_master", department_id=redirect_did))
+                reject_department_master(db, redirect_did, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Department rejected.")
+                return redirect(url_for("department_master", department_id=redirect_did))
+            if action == "activate_department" and redirect_did:
+                if not user_can_department_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate departments.")
+                    return redirect(url_for("department_master", department_id=redirect_did))
+                activate_department_master(db, redirect_did, username)
+                db.commit()
+                flash("Department activated.")
+                return redirect(url_for("department_master", department_id=redirect_did))
+            if action == "deactivate_department" and redirect_did:
+                if not user_can_department_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate departments.")
+                    return redirect(url_for("department_master", department_id=redirect_did))
+                deactivate_department_master(db, redirect_did, username)
+                db.commit()
+                flash("Department deactivated.")
+                return redirect(url_for("department_master", department_id=redirect_did))
+            if action == "delete_department" and redirect_did:
+                if not user_can_department_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete departments.")
+                    return redirect(url_for("department_master", department_id=redirect_did))
+                soft_delete_department_master(db, redirect_did, username)
+                db.commit()
+                flash("Department deleted.")
+                return redirect(url_for("department_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_did:
+                return redirect(url_for("department_master", department_id=redirect_did))
+            return redirect(url_for("department_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save department.")
+            return redirect(url_for("department_master", department_id=redirect_did))
+
+    search = request.args.get("q", "")
+    company_filter = request.args.get("company_id", type=int)
+    branch_filter = request.args.get("branch_id", type=int)
+    status_filter = request.args.get("status", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "department_name")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    department_list = list_departments_master(
+        db,
+        search=search,
+        company_id=company_filter,
+        branch_id=branch_filter,
+        status=status_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    selected_department = get_department_master(db, department_id) if department_id else None
+
+    return render_template(
+        "department_master.html",
+        departments=department_list["items"],
+        department_pagination=department_list,
+        search=search,
+        company_filter=company_filter,
+        branch_filter=branch_filter,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        companies=list_companies_for_department_form(db),
+        branches=list_branches_for_department_form(db, company_filter),
+        department_statuses=DEPARTMENT_STATUSES,
+        selected_department=selected_department,
+        show_department_form=bool(request.args.get("new")) or bool(selected_department),
+        department_permissions={
+            "view": user_can_department_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_department_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_department_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_department_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_department_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_department_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_department_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_department_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_department_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_department_audit_trail(db, department_id) if department_id else [],
+    )
+
+
+@app.route("/settings/vendor-master", methods=["GET", "POST"])
+@login_required
+def vendor_master():
+    db = get_db()
+    _prepare_vendor_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_vendor_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Vendor Master.")
+        return redirect(url_for("dashboard"))
+    vendor_id = request.args.get("vendor_id", type=int) or request.form.get("vendor_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_vendor").strip()
+        redirect_vid = request.form.get("vendor_id", type=int) or vendor_id
+        try:
+            if action == "save_vendor":
+                perm = "edit" if redirect_vid else "create"
+                if not user_can_vendor_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save vendors.")
+                    return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+                new_id = save_vendor_master(
+                    db,
+                    request.form,
+                    username,
+                    redirect_vid,
+                    customer_id=session.get("customer_id"),
+                )
+                db.commit()
+                flash("Vendor saved.")
+                return redirect(url_for("vendor_master", vendor_id=new_id))
+            if action == "approve_vendor" and redirect_vid:
+                if not user_can_vendor_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve vendors.")
+                    return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+                approve_vendor_master(db, redirect_vid, username)
+                db.commit()
+                flash("Vendor approved.")
+                return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+            if action == "reject_vendor" and redirect_vid:
+                if not user_can_vendor_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject vendors.")
+                    return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+                reject_vendor_master(db, redirect_vid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Vendor rejected.")
+                return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+            if action == "activate_vendor" and redirect_vid:
+                if not user_can_vendor_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate vendors.")
+                    return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+                activate_vendor_master(db, redirect_vid, username)
+                db.commit()
+                flash("Vendor activated.")
+                return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+            if action == "deactivate_vendor" and redirect_vid:
+                if not user_can_vendor_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate vendors.")
+                    return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+                deactivate_vendor_master(db, redirect_vid, username)
+                db.commit()
+                flash("Vendor deactivated.")
+                return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+            if action == "delete_vendor" and redirect_vid:
+                if not user_can_vendor_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete vendors.")
+                    return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+                soft_delete_vendor_master(db, redirect_vid, username)
+                db.commit()
+                flash("Vendor deleted.")
+                return redirect(url_for("vendor_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_vid:
+                return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+            return redirect(url_for("vendor_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save vendor.")
+            return redirect(url_for("vendor_master", vendor_id=redirect_vid))
+
+    search = request.args.get("q", "")
+    status_filter = request.args.get("status", "")
+    type_filter = request.args.get("vendor_type", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "name")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    blacklisted_filter = request.args.get("blacklisted") == "1"
+    vendor_list = list_vendors_master(
+        db,
+        search=search,
+        status=status_filter,
+        vendor_type=type_filter,
+        is_blacklisted=True if blacklisted_filter else None,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    selected_vendor = get_vendor_master(db, vendor_id) if vendor_id else None
+
+    return render_template(
+        "vendor_master.html",
+        vendors=vendor_list["items"],
+        vendor_pagination=vendor_list,
+        search=search,
+        status_filter=status_filter,
+        type_filter=type_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        blacklisted_filter=blacklisted_filter,
+        view_mode=view_mode,
+        vendor_statuses=VENDOR_STATUSES,
+        vendor_types=VENDOR_TYPES,
+        payment_terms_options=PAYMENT_TERMS_OPTIONS,
+        selected_vendor=selected_vendor,
+        next_vendor_code=generate_vendor_code(db),
+        show_vendor_form=bool(request.args.get("new")) or bool(selected_vendor),
+        vendor_permissions={
+            "view": user_can_vendor_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_vendor_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_vendor_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_vendor_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_vendor_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_vendor_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_vendor_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_vendor_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_vendor_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_vendor_audit_trail(db, vendor_id) if vendor_id else [],
+    )
+
+
+@app.route("/settings/subcontractor-master", methods=["GET", "POST"])
+@login_required
+def subcontractor_master():
+    from document_management_service import attach_document
+
+    db = get_db()
+    _prepare_subcontractor_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_subcontractor_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Subcontractor Master.")
+        return redirect(url_for("dashboard"))
+    subcontractor_id = request.args.get("subcontractor_id", type=int) or request.form.get("subcontractor_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_subcontractor").strip()
+        redirect_sid = request.form.get("subcontractor_id", type=int) or subcontractor_id
+        try:
+            if action == "save_subcontractor":
+                perm = "edit" if redirect_sid else "create"
+                if not user_can_subcontractor_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save subcontractors.")
+                    return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+                new_id = save_subcontractor_master(
+                    db,
+                    request.form,
+                    username,
+                    redirect_sid,
+                    customer_id=session.get("customer_id"),
+                )
+                upload = request.files.get("document_file")
+                if upload and upload.filename:
+                    attach_document(
+                        db,
+                        "subcontractor_master",
+                        new_id,
+                        upload,
+                        username,
+                        dest_root=DOCUMENT_DMS_DIR,
+                        document_type="Subcontractor Attachment",
+                    )
+                db.commit()
+                flash("Subcontractor saved.")
+                return redirect(url_for("subcontractor_master", subcontractor_id=new_id))
+            if action == "approve_subcontractor" and redirect_sid:
+                if not user_can_subcontractor_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve subcontractors.")
+                    return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+                approve_subcontractor_master(db, redirect_sid, username)
+                db.commit()
+                flash("Subcontractor approved.")
+                return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+            if action == "reject_subcontractor" and redirect_sid:
+                if not user_can_subcontractor_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject subcontractors.")
+                    return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+                reject_subcontractor_master(db, redirect_sid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Subcontractor rejected.")
+                return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+            if action == "activate_subcontractor" and redirect_sid:
+                if not user_can_subcontractor_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate subcontractors.")
+                    return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+                activate_subcontractor_master(db, redirect_sid, username)
+                db.commit()
+                flash("Subcontractor activated.")
+                return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+            if action == "deactivate_subcontractor" and redirect_sid:
+                if not user_can_subcontractor_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate subcontractors.")
+                    return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+                deactivate_subcontractor_master(db, redirect_sid, username)
+                db.commit()
+                flash("Subcontractor deactivated.")
+                return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+            if action == "delete_subcontractor" and redirect_sid:
+                if not user_can_subcontractor_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete subcontractors.")
+                    return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+                soft_delete_subcontractor_master(db, redirect_sid, username)
+                db.commit()
+                flash("Subcontractor deleted.")
+                return redirect(url_for("subcontractor_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_sid:
+                return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+            return redirect(url_for("subcontractor_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save subcontractor.")
+            return redirect(url_for("subcontractor_master", subcontractor_id=redirect_sid))
+
+    search = request.args.get("q", "")
+    status_filter = request.args.get("status", "")
+    classification_filter = request.args.get("classification", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "subcontractor_name")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    blacklisted_filter = request.args.get("blacklisted") == "1"
+    sub_list = list_subcontractors_master(
+        db,
+        search=search,
+        status=status_filter,
+        classification=classification_filter,
+        is_blacklisted=True if blacklisted_filter else None,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    selected_sub = get_subcontractor_master(db, subcontractor_id) if subcontractor_id else None
+    next_name = request.args.get("name", "")
+    return render_template(
+        "subcontractor_master.html",
+        subcontractors=sub_list["items"],
+        sub_pagination=sub_list,
+        search=search,
+        status_filter=status_filter,
+        classification_filter=classification_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        blacklisted_filter=blacklisted_filter,
+        view_mode=view_mode,
+        sub_statuses=SUBCONTRACTOR_STATUSES,
+        classifications=SUBCONTRACTOR_CLASSIFICATIONS,
+        trade_categories=TRADE_CATEGORY_OPTIONS,
+        rate_types=SUBCONTRACTOR_RATE_TYPES,
+        payment_terms_options=PAYMENT_TERMS_OPTIONS,
+        vendor_options=list_vendors_for_subcontractor_form(db),
+        selected_sub=selected_sub,
+        next_sub_code=generate_subcontractor_master_code(db, next_name or "New Subcontractor"),
+        show_sub_form=bool(request.args.get("new")) or bool(selected_sub),
+        sub_permissions={
+            "view": user_can_subcontractor_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_subcontractor_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_subcontractor_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_subcontractor_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_subcontractor_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_subcontractor_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_subcontractor_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_subcontractor_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_subcontractor_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_subcontractor_audit_trail(db, subcontractor_id) if subcontractor_id else [],
+    )
+
+
+@app.route("/settings/worker-master", methods=["GET", "POST"])
+@login_required
+def worker_master():
+    from document_management_service import attach_document
+    from store_service import TRADE_CATEGORY_OPTIONS
+
+    db = get_db()
+    _prepare_worker_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_worker_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Worker Master.")
+        return redirect(url_for("dashboard"))
+    worker_id = request.args.get("worker_id", type=int) or request.form.get("worker_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+    upload_dir = worker_upload_dir(BASE_DIR)
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_worker").strip()
+        redirect_wid = request.form.get("worker_id", type=int) or worker_id
+        try:
+            if action == "save_worker":
+                perm = "edit" if redirect_wid else "create"
+                if not user_can_worker_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save workers.")
+                    return redirect(url_for("worker_master", worker_id=redirect_wid))
+                photo = save_file(request.files.get("photo"), upload_dir)
+                id_proof = save_file(request.files.get("id_proof"), WORKER_DOCS_DIR)
+                if redirect_wid:
+                    existing = get_worker_master(db, redirect_wid, include_deleted=True)
+                    if existing:
+                        photo = photo or existing.get("photo")
+                        id_proof = id_proof or existing.get("id_proof")
+                new_id = save_worker_master(
+                    db,
+                    request.form,
+                    username,
+                    redirect_wid,
+                    customer_id=session.get("customer_id"),
+                )
+                now = get_app_now(db).strftime("%Y-%m-%d %H:%M:%S")
+                if photo or id_proof:
+                    db.execute(
+                        """
+                        UPDATE workers SET photo=COALESCE(?, photo), id_proof=COALESCE(?, id_proof),
+                        modified_by=?, modified_at=? WHERE id=?
+                        """,
+                        (photo, id_proof, username, now, new_id),
+                    )
+                upload = request.files.get("document_file")
+                if upload and upload.filename:
+                    attach_document(
+                        db,
+                        "worker_master",
+                        new_id,
+                        upload,
+                        username,
+                        dest_root=DOCUMENT_DMS_DIR,
+                        document_type="Worker Attachment",
+                    )
+                db.commit()
+                flash("Worker saved.")
+                return redirect(url_for("worker_master", worker_id=new_id))
+            if action == "approve_worker" and redirect_wid:
+                if not user_can_worker_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve workers.")
+                    return redirect(url_for("worker_master", worker_id=redirect_wid))
+                approve_worker_master(db, redirect_wid, username)
+                db.commit()
+                flash("Worker approved.")
+                return redirect(url_for("worker_master", worker_id=redirect_wid))
+            if action == "reject_worker" and redirect_wid:
+                if not user_can_worker_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject workers.")
+                    return redirect(url_for("worker_master", worker_id=redirect_wid))
+                reject_worker_master(db, redirect_wid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Worker rejected.")
+                return redirect(url_for("worker_master", worker_id=redirect_wid))
+            if action == "activate_worker" and redirect_wid:
+                if not user_can_worker_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate workers.")
+                    return redirect(url_for("worker_master", worker_id=redirect_wid))
+                activate_worker_master(db, redirect_wid, username)
+                db.commit()
+                flash("Worker activated.")
+                return redirect(url_for("worker_master", worker_id=redirect_wid))
+            if action == "deactivate_worker" and redirect_wid:
+                if not user_can_worker_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate workers.")
+                    return redirect(url_for("worker_master", worker_id=redirect_wid))
+                deactivate_worker_master(db, redirect_wid, username)
+                db.commit()
+                flash("Worker deactivated.")
+                return redirect(url_for("worker_master", worker_id=redirect_wid))
+            if action == "delete_worker" and redirect_wid:
+                if not user_can_worker_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete workers.")
+                    return redirect(url_for("worker_master", worker_id=redirect_wid))
+                soft_delete_worker_master(db, redirect_wid, username)
+                db.commit()
+                flash("Worker deleted.")
+                return redirect(url_for("worker_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_wid:
+                return redirect(url_for("worker_master", worker_id=redirect_wid))
+            return redirect(url_for("worker_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save worker.")
+            return redirect(url_for("worker_master", worker_id=redirect_wid))
+
+    search = request.args.get("q", "")
+    status_filter = request.args.get("status", "")
+    type_filter = request.args.get("worker_type", "")
+    trade_filter = request.args.get("trade", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    include_deleted = request.args.get("include_deleted") == "1"
+    worker_list = list_workers_master(
+        db,
+        search=search,
+        status=status_filter,
+        worker_type=type_filter,
+        trade=trade_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+    )
+    selected_worker = get_worker_master(db, worker_id) if worker_id else None
+    next_name = request.args.get("name", "")
+    worker_type_hint = request.args.get("worker_type", "Company Worker")
+    sub_hint = request.args.get("subcontractor_id", type=int)
+    return render_template(
+        "worker_master.html",
+        workers=worker_list["items"],
+        worker_pagination=worker_list,
+        search=search,
+        status_filter=status_filter,
+        type_filter=type_filter,
+        trade_filter=trade_filter,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        worker_statuses=WORKER_STATUSES,
+        worker_types=WORKER_TYPES,
+        trade_options=TRADE_CATEGORY_OPTIONS,
+        salary_types=WORKER_SALARY_TYPES,
+        attendance_modes=ATTENDANCE_MODES,
+        medical_fitness_options=MEDICAL_FITNESS_OPTIONS,
+        company_options=list_companies_for_worker_form(db),
+        subcontractor_options=list_subcontractors_for_worker_form(db),
+        project_options=list_projects_for_worker_form(db),
+        selected_worker=selected_worker,
+        next_worker_code=generate_worker_master_code(db, worker_type_hint, sub_hint),
+        show_worker_form=bool(request.args.get("new")) or bool(selected_worker),
+        worker_permissions={
+            "view": user_can_worker_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_worker_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_worker_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_worker_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_worker_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_worker_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_worker_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_worker_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_worker_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_worker_audit_trail(db, worker_id) if worker_id else [],
+    )
+
+
+@app.route("/settings/designation-master", methods=["GET", "POST"])
+@login_required
+def designation_master():
+    db = get_db()
+    _prepare_designation_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_designation_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Designation Master.")
+        return redirect(url_for("dashboard"))
+    designation_id = request.args.get("designation_id", type=int) or request.form.get("designation_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_designation").strip()
+        redirect_did = request.form.get("designation_id", type=int) or designation_id
+        try:
+            if action == "save_designation":
+                perm = "edit" if redirect_did else "create"
+                if not user_can_designation_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save designations.")
+                    return redirect(url_for("designation_master", designation_id=redirect_did))
+                new_id = save_designation_master(
+                    db,
+                    request.form.to_dict(flat=True),
+                    username,
+                    redirect_did,
+                    customer_id=session.get("customer_id"),
+                )
+                db.commit()
+                flash("Designation saved.")
+                return redirect(url_for("designation_master", designation_id=new_id))
+            if action == "approve_designation" and redirect_did:
+                if not user_can_designation_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve designations.")
+                    return redirect(url_for("designation_master", designation_id=redirect_did))
+                approve_designation_master(db, redirect_did, username)
+                db.commit()
+                flash("Designation approved.")
+                return redirect(url_for("designation_master", designation_id=redirect_did))
+            if action == "reject_designation" and redirect_did:
+                if not user_can_designation_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject designations.")
+                    return redirect(url_for("designation_master", designation_id=redirect_did))
+                reject_designation_master(db, redirect_did, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Designation rejected.")
+                return redirect(url_for("designation_master", designation_id=redirect_did))
+            if action == "activate_designation" and redirect_did:
+                if not user_can_designation_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate designations.")
+                    return redirect(url_for("designation_master", designation_id=redirect_did))
+                activate_designation_master(db, redirect_did, username)
+                db.commit()
+                flash("Designation activated.")
+                return redirect(url_for("designation_master", designation_id=redirect_did))
+            if action == "deactivate_designation" and redirect_did:
+                if not user_can_designation_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate designations.")
+                    return redirect(url_for("designation_master", designation_id=redirect_did))
+                deactivate_designation_master(db, redirect_did, username)
+                db.commit()
+                flash("Designation deactivated.")
+                return redirect(url_for("designation_master", designation_id=redirect_did))
+            if action == "delete_designation" and redirect_did:
+                if not user_can_designation_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete designations.")
+                    return redirect(url_for("designation_master", designation_id=redirect_did))
+                soft_delete_designation_master(db, redirect_did, username)
+                db.commit()
+                flash("Designation deleted.")
+                return redirect(url_for("designation_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_did:
+                return redirect(url_for("designation_master", designation_id=redirect_did))
+            return redirect(url_for("designation_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save designation.")
+            return redirect(url_for("designation_master", designation_id=redirect_did))
+
+    search = request.args.get("q", "")
+    company_filter = request.args.get("company_id", type=int)
+    department_filter = request.args.get("department_id", type=int)
+    status_filter = request.args.get("status", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "designation_name")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    designation_list = list_designations_master(
+        db,
+        search=search,
+        company_id=company_filter,
+        department_id=department_filter,
+        status=status_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    selected_designation = get_designation_master(db, designation_id) if designation_id else None
+
+    return render_template(
+        "designation_master.html",
+        designations=designation_list["items"],
+        designation_pagination=designation_list,
+        search=search,
+        company_filter=company_filter,
+        department_filter=department_filter,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        companies=list_companies_for_designation_form(db),
+        departments=list_departments_for_designation_form(db, company_filter),
+        designation_statuses=DESIGNATION_STATUSES,
+        workflow_role_defaults=WORKFLOW_ROLE_DEFAULTS,
+        selected_designation=selected_designation,
+        show_designation_form=bool(request.args.get("new")) or bool(selected_designation),
+        designation_permissions={
+            "view": user_can_designation_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_designation_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_designation_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_designation_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_designation_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_designation_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_designation_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_designation_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_designation_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_designation_audit_trail(db, designation_id) if designation_id else [],
+    )
+
+
+@app.route("/settings/employee-master", methods=["GET", "POST"])
+@login_required
+def employee_master():
+    from document_management_service import attach_document
+
+    db = get_db()
+    _prepare_employee_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_employee_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Employee Master.")
+        return redirect(url_for("dashboard"))
+    staff_id = request.args.get("staff_id", type=int) or request.form.get("staff_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+    upload_dir = employee_upload_dir(BASE_DIR)
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_employee").strip()
+        redirect_sid = request.form.get("staff_id", type=int) or staff_id
+        try:
+            if action == "save_employee":
+                perm = "edit" if redirect_sid else "create"
+                if not user_can_employee_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save employees.")
+                    return redirect(url_for("employee_master", staff_id=redirect_sid))
+                profile_photo = save_file(request.files.get("profile_photo_file"), upload_dir)
+                digital_signature = save_file(request.files.get("digital_signature_file"), upload_dir)
+                aadhaar_document = save_file(request.files.get("aadhaar_document_file"), upload_dir)
+                pan_document = save_file(request.files.get("pan_document_file"), upload_dir)
+                if redirect_sid:
+                    existing = get_employee_master(db, redirect_sid, include_deleted=True)
+                    if existing:
+                        profile_photo = profile_photo or existing.get("profile_photo")
+                        digital_signature = digital_signature or existing.get("digital_signature")
+                        aadhaar_document = aadhaar_document or existing.get("aadhaar_document")
+                        pan_document = pan_document or existing.get("pan_document")
+                new_id = save_employee_master(
+                    db,
+                    request.form,
+                    username,
+                    redirect_sid,
+                    customer_id=session.get("customer_id"),
+                )
+                from employee_master_service import apply_employee_upload_paths
+
+                apply_employee_upload_paths(
+                    db,
+                    new_id,
+                    profile_photo=profile_photo or "",
+                    digital_signature=digital_signature or "",
+                    username=username,
+                )
+                if aadhaar_document or pan_document:
+                    now = get_app_now(db).strftime("%Y-%m-%d %H:%M:%S")
+                    db.execute(
+                        """
+                        UPDATE staff SET aadhaar_document=COALESCE(?, aadhaar_document),
+                        pan_document=COALESCE(?, pan_document), modified_by=?, modified_at=? WHERE id=?
+                        """,
+                        (aadhaar_document, pan_document, username, now, new_id),
+                    )
+                upload = request.files.get("employee_document")
+                if upload and upload.filename:
+                    attach_document(
+                        db,
+                        "employee_master",
+                        new_id,
+                        upload,
+                        username,
+                        dest_root=DOCUMENT_DMS_DIR,
+                        document_type="Employee Attachment",
+                    )
+                db.commit()
+                flash("Employee saved.")
+                return redirect(url_for("employee_master", staff_id=new_id))
+            if action == "approve_employee" and redirect_sid:
+                if not user_can_employee_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve employees.")
+                    return redirect(url_for("employee_master", staff_id=redirect_sid))
+                approve_employee_master(db, redirect_sid, username)
+                db.commit()
+                flash("Employee approved.")
+                return redirect(url_for("employee_master", staff_id=redirect_sid))
+            if action == "reject_employee" and redirect_sid:
+                if not user_can_employee_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject employees.")
+                    return redirect(url_for("employee_master", staff_id=redirect_sid))
+                reject_employee_master(db, redirect_sid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Employee rejected.")
+                return redirect(url_for("employee_master", staff_id=redirect_sid))
+            if action == "activate_employee" and redirect_sid:
+                if not user_can_employee_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate employees.")
+                    return redirect(url_for("employee_master", staff_id=redirect_sid))
+                activate_employee_master(db, redirect_sid, username)
+                db.commit()
+                flash("Employee activated.")
+                return redirect(url_for("employee_master", staff_id=redirect_sid))
+            if action == "deactivate_employee" and redirect_sid:
+                if not user_can_employee_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate employees.")
+                    return redirect(url_for("employee_master", staff_id=redirect_sid))
+                deactivate_employee_master(db, redirect_sid, username)
+                db.commit()
+                flash("Employee deactivated.")
+                return redirect(url_for("employee_master", staff_id=redirect_sid))
+            if action == "delete_employee" and redirect_sid:
+                if not user_can_employee_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete employees.")
+                    return redirect(url_for("employee_master", staff_id=redirect_sid))
+                soft_delete_employee_master(db, redirect_sid, username)
+                db.commit()
+                flash("Employee deleted.")
+                return redirect(url_for("employee_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_sid:
+                return redirect(url_for("employee_master", staff_id=redirect_sid))
+            return redirect(url_for("employee_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save employee.")
+            return redirect(url_for("employee_master", staff_id=redirect_sid))
+
+    search = request.args.get("q", "")
+    company_filter = request.args.get("company_id", type=int)
+    department_filter = request.args.get("department_id", type=int)
+    status_filter = request.args.get("status", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    include_deleted = request.args.get("include_deleted") == "1"
+    employee_list = list_employees_master(
+        db,
+        search=search,
+        company_id=company_filter,
+        department_id=department_filter,
+        status=status_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+    )
+    companies = list_companies(db, status="Active", per_page=500).get("items", [])
+    branches = list_branches_master(db, company_id=company_filter, per_page=500).get("items", [])
+    departments = list_departments_master(db, company_id=company_filter, per_page=500).get("items", [])
+    designations = list_designations_master(db, company_id=company_filter, per_page=500).get("items", [])
+    managers = list_active_employees_for_dropdown(db, company_id=company_filter)
+    selected_employee = get_employee_master(db, staff_id) if staff_id else None
+
+    return render_template(
+        "employee_master.html",
+        employees=employee_list["items"],
+        employee_pagination=employee_list,
+        search=search,
+        company_filter=company_filter,
+        department_filter=department_filter,
+        status_filter=status_filter,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        employee_statuses=EMPLOYEE_STATUSES,
+        employee_types=EMPLOYEE_MASTER_TYPES,
+        employment_statuses=EMPLOYMENT_STATUSES,
+        gender_options=GENDER_OPTIONS,
+        blood_groups=BLOOD_GROUPS,
+        marital_statuses=MARITAL_STATUSES,
+        salary_types=SALARY_TYPES,
+        companies=companies,
+        branches=branches,
+        departments=departments,
+        designations=designations,
+        managers=managers,
+        selected_employee=selected_employee,
+        next_employee_code=generate_employee_master_code(db),
+        show_employee_form=bool(request.args.get("new")) or bool(selected_employee),
+        employee_permissions={
+            "view": user_can_employee_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_employee_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_employee_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_employee_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_employee_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_employee_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_employee_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_employee_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_employee_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_employee_audit_trail(db, staff_id) if staff_id else [],
+    )
+
+
+@app.route("/settings/client-master", methods=["GET", "POST"])
+@login_required
+def client_master():
+    from document_management_service import attach_document, list_module_documents
+
+    db = get_db()
+    _prepare_client_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_client_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Client Master.")
+        return redirect(url_for("dashboard"))
+    client_id = request.args.get("client_id", type=int) or request.form.get("client_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_client").strip()
+        redirect_cid = request.form.get("client_id", type=int) or client_id
+        try:
+            if action == "save_client":
+                perm = "edit" if redirect_cid else "create"
+                if not user_can_client_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save clients.")
+                    return redirect(url_for("client_master", client_id=redirect_cid))
+                new_id = save_client_master(
+                    db,
+                    request.form,
+                    username,
+                    redirect_cid,
+                    customer_id=session.get("customer_id"),
+                )
+                upload = request.files.get("client_document")
+                if upload and upload.filename:
+                    attach_document(
+                        db,
+                        "client_master",
+                        new_id,
+                        upload,
+                        username,
+                        dest_root=DOCUMENT_DMS_DIR,
+                        document_type="Client Attachment",
+                    )
+                db.commit()
+                flash("Client saved.")
+                return redirect(url_for("client_master", client_id=new_id))
+            if action == "approve_client" and redirect_cid:
+                if not user_can_client_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve clients.")
+                    return redirect(url_for("client_master", client_id=redirect_cid))
+                approve_client_master(db, redirect_cid, username)
+                db.commit()
+                flash("Client approved.")
+                return redirect(url_for("client_master", client_id=redirect_cid))
+            if action == "reject_client" and redirect_cid:
+                if not user_can_client_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject clients.")
+                    return redirect(url_for("client_master", client_id=redirect_cid))
+                reject_client_master(db, redirect_cid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Client rejected.")
+                return redirect(url_for("client_master", client_id=redirect_cid))
+            if action == "activate_client" and redirect_cid:
+                if not user_can_client_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate clients.")
+                    return redirect(url_for("client_master", client_id=redirect_cid))
+                activate_client_master(db, redirect_cid, username)
+                db.commit()
+                flash("Client activated.")
+                return redirect(url_for("client_master", client_id=redirect_cid))
+            if action == "deactivate_client" and redirect_cid:
+                if not user_can_client_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate clients.")
+                    return redirect(url_for("client_master", client_id=redirect_cid))
+                deactivate_client_master(db, redirect_cid, username)
+                db.commit()
+                flash("Client deactivated.")
+                return redirect(url_for("client_master", client_id=redirect_cid))
+            if action == "delete_client" and redirect_cid:
+                if not user_can_client_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete clients.")
+                    return redirect(url_for("client_master", client_id=redirect_cid))
+                soft_delete_client_master(db, redirect_cid, username)
+                db.commit()
+                flash("Client deleted.")
+                return redirect(url_for("client_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_cid:
+                return redirect(url_for("client_master", client_id=redirect_cid))
+            return redirect(url_for("client_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save client.")
+            return redirect(url_for("client_master", client_id=redirect_cid))
+
+    search = request.args.get("q", "")
+    company_filter = request.args.get("company_id", type=int)
+    client_type_filter = request.args.get("client_type", "")
+    status_filter = request.args.get("status", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "client_name")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    client_list = list_clients_master(
+        db,
+        search=search,
+        company_id=company_filter,
+        client_type=client_type_filter,
+        status=status_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    selected_client = get_client_master(db, client_id) if client_id else None
+    client_documents = (
+        list_module_documents(db, "client_master", client_id) if client_id else []
+    )
+
+    return render_template(
+        "client_master.html",
+        clients=client_list["items"],
+        client_pagination=client_list,
+        search=search,
+        company_filter=company_filter,
+        client_type_filter=client_type_filter,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        companies=list_companies_for_client_form(db),
+        client_statuses=CLIENT_STATUSES,
+        client_types=CLIENT_TYPES,
+        client_industries=CLIENT_INDUSTRIES,
+        client_countries=COMPANY_COUNTRIES,
+        address_types=CLIENT_ADDRESS_TYPES,
+        selected_client=selected_client,
+        client_documents=client_documents,
+        next_client_code=generate_client_code(db),
+        show_client_form=bool(request.args.get("new")) or bool(selected_client),
+        client_permissions={
+            "view": user_can_client_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_client_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_client_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_client_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_client_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_client_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_client_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_client_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_client_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_client_audit_trail(db, client_id) if client_id else [],
+    )
+
+
+@app.route("/settings/project-master", methods=["GET", "POST"])
+@login_required
+def project_master():
+    from document_management_service import attach_document, list_module_documents
+
+    db = get_db()
+    _prepare_project_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_project_master(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Project Master.")
+        return redirect(url_for("dashboard"))
+    project_id = request.args.get("project_id", type=int) or request.form.get("project_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_project").strip()
+        redirect_pid = request.form.get("project_id", type=int) or project_id
+        try:
+            if action == "save_project":
+                perm = "edit" if redirect_pid else "create"
+                if not user_can_project_master(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save projects.")
+                    return redirect(url_for("project_master", project_id=redirect_pid))
+                new_id = save_project_master(
+                    db,
+                    request.form,
+                    username,
+                    redirect_pid,
+                    customer_id=session.get("customer_id"),
+                )
+                upload = request.files.get("project_document")
+                if upload and upload.filename:
+                    attach_document(
+                        db,
+                        "project_master",
+                        new_id,
+                        upload,
+                        username,
+                        dest_root=DOCUMENT_DMS_DIR,
+                        document_type="Project Attachment",
+                        project_id=new_id,
+                    )
+                db.commit()
+                flash("Project saved.")
+                return redirect(url_for("project_master", project_id=new_id))
+            if action == "approve_project" and redirect_pid:
+                if not user_can_project_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve projects.")
+                    return redirect(url_for("project_master", project_id=redirect_pid))
+                approve_project_master(db, redirect_pid, username)
+                db.commit()
+                flash("Project approved.")
+                return redirect(url_for("project_master", project_id=redirect_pid))
+            if action == "reject_project" and redirect_pid:
+                if not user_can_project_master(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject projects.")
+                    return redirect(url_for("project_master", project_id=redirect_pid))
+                reject_project_master(db, redirect_pid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Project rejected.")
+                return redirect(url_for("project_master", project_id=redirect_pid))
+            if action == "activate_project" and redirect_pid:
+                if not user_can_project_master(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate projects.")
+                    return redirect(url_for("project_master", project_id=redirect_pid))
+                activate_project_master(db, redirect_pid, username)
+                db.commit()
+                flash("Project activated.")
+                return redirect(url_for("project_master", project_id=redirect_pid))
+            if action == "deactivate_project" and redirect_pid:
+                if not user_can_project_master(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate projects.")
+                    return redirect(url_for("project_master", project_id=redirect_pid))
+                deactivate_project_master(db, redirect_pid, username)
+                db.commit()
+                flash("Project deactivated.")
+                return redirect(url_for("project_master", project_id=redirect_pid))
+            if action == "delete_project" and redirect_pid:
+                if not user_can_project_master(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete projects.")
+                    return redirect(url_for("project_master", project_id=redirect_pid))
+                soft_delete_project_master(db, redirect_pid, username)
+                db.commit()
+                flash("Project deleted.")
+                return redirect(url_for("project_master"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_pid:
+                return redirect(url_for("project_master", project_id=redirect_pid))
+            return redirect(url_for("project_master"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save project.")
+            return redirect(url_for("project_master", project_id=redirect_pid))
+
+    search = request.args.get("q", "")
+    company_filter = request.args.get("company_id", type=int)
+    branch_filter = request.args.get("branch_id", type=int)
+    client_filter = request.args.get("client_id", type=int)
+    project_status_filter = request.args.get("project_status", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    include_deleted = request.args.get("include_deleted") == "1"
+    project_list = list_projects_master(
+        db,
+        search=search,
+        company_id=company_filter,
+        branch_id=branch_filter,
+        client_id=client_filter,
+        project_status=project_status_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+    )
+    selected_project = get_project_master(db, project_id) if project_id else None
+    project_documents = (
+        list_module_documents(db, "project_master", project_id) if project_id else []
+    )
+    branch_company_id = (
+        selected_project.get("company_id") if selected_project else company_filter
+    )
+    branches = list_branches_for_project_form(db, branch_company_id)
+
+    return render_template(
+        "project_master.html",
+        projects=project_list["items"],
+        project_pagination=project_list,
+        search=search,
+        company_filter=company_filter,
+        branch_filter=branch_filter,
+        client_filter=client_filter,
+        project_status_filter=project_status_filter,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        companies=list_companies_for_client_form(db),
+        clients=list_clients_for_project_form(db),
+        branches=branches,
+        staff_list=list_staff_for_project_form(db),
+        project_lifecycle_statuses=PROJECT_LIFECYCLE_STATUSES,
+        project_record_statuses=PROJECT_RECORD_STATUSES,
+        project_types=PROJECT_TYPES,
+        priority_levels=PRIORITY_LEVELS,
+        currencies=PROJECT_CURRENCIES,
+        selected_project=selected_project,
+        project_documents=project_documents,
+        next_project_code=generate_project_master_code(db),
+        show_project_form=bool(request.args.get("new")) or bool(selected_project),
+        project_permissions={
+            "view": user_can_project_master(db, user_id, "view", is_admin=admin),
+            "create": user_can_project_master(db, user_id, "create", is_admin=admin),
+            "edit": user_can_project_master(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_project_master(db, user_id, "delete", is_admin=admin),
+            "import": user_can_project_master(db, user_id, "import", is_admin=admin),
+            "export": user_can_project_master(db, user_id, "export", is_admin=admin),
+            "approve": user_can_project_master(db, user_id, "approve", is_admin=admin),
+            "activate": user_can_project_master(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_project_master(db, user_id, "deactivate", is_admin=admin),
+        },
+        audit_trail=list_project_audit_trail(db, project_id) if project_id else [],
+    )
+
+
+@app.route("/settings/workflow-engine", methods=["GET", "POST"])
+@login_required
+def workflow_engine():
+    db = get_db()
+    _prepare_workflow_engine_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_workflow_engine(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Workflow Engine.")
+        return redirect(url_for("dashboard"))
+    workflow_id = request.args.get("workflow_id", type=int) or request.form.get("workflow_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_workflow").strip()
+        redirect_wid = request.form.get("workflow_id", type=int) or workflow_id
+        try:
+            if action == "save_workflow":
+                perm = "edit" if redirect_wid else "create"
+                if not user_can_workflow_engine(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save workflows.")
+                    return redirect(url_for("workflow_engine", workflow_id=redirect_wid))
+                new_id = save_workflow_engine(
+                    db,
+                    request.form.to_dict(flat=True),
+                    username,
+                    redirect_wid,
+                    customer_id=session.get("customer_id"),
+                )
+                db.commit()
+                flash("Workflow saved.")
+                return redirect(url_for("workflow_engine", workflow_id=new_id))
+            if action == "activate_workflow" and redirect_wid:
+                if not user_can_workflow_engine(db, user_id, "activate", is_admin=admin):
+                    flash("You do not have permission to activate workflows.")
+                    return redirect(url_for("workflow_engine", workflow_id=redirect_wid))
+                activate_workflow_engine(db, redirect_wid, username)
+                db.commit()
+                flash("Workflow activated.")
+                return redirect(url_for("workflow_engine", workflow_id=redirect_wid))
+            if action == "deactivate_workflow" and redirect_wid:
+                if not user_can_workflow_engine(db, user_id, "deactivate", is_admin=admin):
+                    flash("You do not have permission to deactivate workflows.")
+                    return redirect(url_for("workflow_engine", workflow_id=redirect_wid))
+                deactivate_workflow_engine(db, redirect_wid, username)
+                db.commit()
+                flash("Workflow deactivated.")
+                return redirect(url_for("workflow_engine", workflow_id=redirect_wid))
+            if action == "delete_workflow" and redirect_wid:
+                if not user_can_workflow_engine(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete workflows.")
+                    return redirect(url_for("workflow_engine", workflow_id=redirect_wid))
+                soft_delete_workflow_engine(db, redirect_wid, username)
+                db.commit()
+                flash("Workflow deleted.")
+                return redirect(url_for("workflow_engine"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_wid:
+                return redirect(url_for("workflow_engine", workflow_id=redirect_wid))
+            return redirect(url_for("workflow_engine"))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save workflow.")
+            return redirect(url_for("workflow_engine", workflow_id=redirect_wid))
+
+    search = request.args.get("q", "")
+    status_filter = request.args.get("status", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "workflow_name")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    workflow_list = list_workflows_engine(
+        db,
+        search=search,
+        status=status_filter,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    selected_workflow = get_workflow_engine(db, workflow_id) if workflow_id else None
+    designations = query_db(
+        "SELECT * FROM designations WHERE status='Active' ORDER BY designation_name"
+    )
+    dashboard = workflow_engine_dashboard(db, user_id, is_admin=admin)
+
+    return render_template(
+        "workflow_engine.html",
+        workflows=workflow_list["items"],
+        workflow_pagination=workflow_list,
+        search=search,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        workflow_statuses=WORKFLOW_ENGINE_STATUSES,
+        workflow_modes=WORKFLOW_MODES,
+        workflow_mode_labels=WORKFLOW_MODE_LABELS,
+        default_workflow_mode=DEFAULT_WORKFLOW_MODE,
+        selected_workflow=selected_workflow,
+        show_workflow_form=bool(request.args.get("new")) or bool(selected_workflow),
+        designations=designations,
+        dashboard=dashboard,
+        workflow_permissions={
+            "view": user_can_workflow_engine(db, user_id, "view", is_admin=admin),
+            "create": user_can_workflow_engine(db, user_id, "create", is_admin=admin),
+            "edit": user_can_workflow_engine(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_workflow_engine(db, user_id, "delete", is_admin=admin),
+            "import": user_can_workflow_engine(db, user_id, "import", is_admin=admin),
+            "export": user_can_workflow_engine(db, user_id, "export", is_admin=admin),
+            "activate": user_can_workflow_engine(db, user_id, "activate", is_admin=admin),
+            "deactivate": user_can_workflow_engine(db, user_id, "deactivate", is_admin=admin),
+            "approve": user_can_workflow_engine(db, user_id, "approve", is_admin=admin),
+            "reject": user_can_workflow_engine(db, user_id, "reject", is_admin=admin),
+        },
+        audit_trail=list_workflow_engine_audit(db, workflow_id) if workflow_id else [],
+    )
+
+
+@app.route("/settings/roles-permissions", methods=["GET", "POST"])
+@login_required
+def roles_permissions():
+    db = get_db()
+    _prepare_roles_permissions_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    platform_super = is_super_admin_user()
+    if not user_can_roles_permissions(
+        db, user_id, "view", is_admin=admin, is_platform_super_admin=platform_super
+    ):
+        flash("You do not have permission to view Roles & Permissions.")
+        return redirect(url_for("dashboard"))
+    role_id = request.args.get("role_id", type=int) or request.form.get("role_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+    is_super = is_roles_super_administrator(db, user_id, is_platform_super_admin=platform_super)
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_role").strip()
+        redirect_rid = request.form.get("role_id", type=int) or role_id
+        try:
+            if action == "save_role":
+                if not is_super:
+                    flash("Only Super Administrator can create or modify roles.")
+                    return redirect(url_for("roles_permissions", role_id=redirect_rid))
+                perm = "edit" if redirect_rid else "create"
+                if not user_can_roles_permissions(
+                    db, user_id, perm, is_admin=admin, is_platform_super_admin=platform_super
+                ):
+                    flash("You do not have permission to save roles.")
+                    return redirect(url_for("roles_permissions", role_id=redirect_rid))
+                new_id = save_role_master(
+                    db,
+                    request.form.to_dict(flat=True),
+                    username,
+                    redirect_rid,
+                    customer_id=session.get("customer_id"),
+                )
+                db.commit()
+                flash("Role saved.")
+                return redirect(url_for("roles_permissions", role_id=new_id))
+            if action == "activate_role" and redirect_rid:
+                if not is_super:
+                    flash("Only Super Administrator can activate roles.")
+                    return redirect(url_for("roles_permissions", role_id=redirect_rid))
+                activate_role_master(db, redirect_rid, username)
+                db.commit()
+                flash("Role activated.")
+                return redirect(url_for("roles_permissions", role_id=redirect_rid))
+            if action == "deactivate_role" and redirect_rid:
+                if not is_super:
+                    flash("Only Super Administrator can deactivate roles.")
+                    return redirect(url_for("roles_permissions", role_id=redirect_rid))
+                deactivate_role_master(db, redirect_rid, username)
+                db.commit()
+                flash("Role deactivated.")
+                return redirect(url_for("roles_permissions", role_id=redirect_rid))
+            if action == "delete_role" and redirect_rid:
+                if not is_super:
+                    flash("Only Super Administrator can delete roles.")
+                    return redirect(url_for("roles_permissions", role_id=redirect_rid))
+                soft_delete_role_master(db, redirect_rid, username)
+                db.commit()
+                flash("Role deleted.")
+                return redirect(url_for("roles_permissions"))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_rid:
+                return redirect(url_for("roles_permissions", role_id=redirect_rid))
+            return redirect(url_for("roles_permissions"))
+
+    active_tab = request.args.get("tab", "roles")
+    search = request.args.get("q", "")
+    perm_search = request.args.get("q", "") if active_tab == "permissions" else ""
+    company_filter = request.args.get("company_id", type=int)
+    status_filter = request.args.get("status", "")
+    page = request.args.get("page", 1, type=int)
+    include_deleted = request.args.get("include_deleted") == "1"
+    role_list = list_roles_master(
+        db,
+        search=search,
+        company_id=company_filter,
+        status=status_filter,
+        include_deleted=include_deleted,
+        page=page,
+        customer_id=session.get("customer_id"),
+    )
+    permission_list = list_permissions_master(db, search=perm_search, per_page=100)
+    selected_role = get_role_master(db, role_id) if role_id else None
+    permission_matrix = get_role_permission_matrix(db, role_id) if role_id and active_tab == "matrix" else []
+    role_users = list_users_for_role(db, role_id) if role_id and active_tab == "users" else []
+
+    return render_template(
+        "roles_permissions.html",
+        roles=role_list["items"],
+        role_pagination=role_list,
+        permissions=permission_list["items"],
+        permission_pagination=permission_list,
+        search=search,
+        perm_search=perm_search,
+        company_filter=company_filter,
+        status_filter=status_filter,
+        include_deleted=include_deleted,
+        active_tab=active_tab,
+        view_mode=view_mode,
+        companies=list_companies(db, per_page=500).get("items", []),
+        role_statuses=ROLE_STATUSES,
+        selected_role=selected_role,
+        show_role_form=bool(request.args.get("new")) or bool(selected_role),
+        permission_matrix=permission_matrix,
+        role_users=role_users,
+        standard_actions=STANDARD_ACTIONS,
+        action_labels=STANDARD_ACTION_LABELS,
+        is_super_admin=is_super,
+        rp_permissions={
+            "view": user_can_roles_permissions(
+                db, user_id, "view", is_admin=admin, is_platform_super_admin=platform_super
+            ),
+            "create": is_super,
+            "edit": is_super,
+            "delete": is_super,
+            "import": is_super,
+            "export": user_can_roles_permissions(
+                db, user_id, "export", is_admin=admin, is_platform_super_admin=platform_super
+            ),
+        },
+        audit_trail=list_role_audit_trail(db, role_id) if role_id else [],
+    )
 
 
 @app.route("/settings/corporate-template-master", methods=["GET", "POST"])
@@ -14644,8 +16880,6 @@ def corporate_template_master():
 @login_required
 def corporate_template_asset(filename):
     safe = secure_filename(filename)
-    if safe == "maxek-logo.jpg" and os.path.isfile(DEFAULT_REPORT_LOGO_PATH):
-        return send_file(DEFAULT_REPORT_LOGO_PATH)
     path = os.path.join(CORPORATE_TEMPLATE_DIR, safe)
     if not os.path.isfile(path):
         abort(404)
@@ -14962,8 +17196,6 @@ def api_user_department_tabs_save(user_id):
 @admin_required
 def user_settings():
     db = get_db()
-    tenant_customer_id = session.get("customer_id")
-    tenant_user_filter = tenant_customer_id if tenant_customer_id and not is_super_admin_user() else None
     designations = query_db(
         "SELECT id, designation_name FROM designations WHERE status='Active' ORDER BY designation_name"
     )
@@ -14975,13 +17207,7 @@ def user_settings():
         action = request.form.get("action", "save")
         user_id = request.form.get("user_id", "").strip()
         if action == "toggle" and user_id:
-            if tenant_user_filter:
-                row = db.execute(
-                    "SELECT status FROM users WHERE id=? AND customer_id=?",
-                    (user_id, tenant_user_filter),
-                ).fetchone()
-            else:
-                row = db.execute("SELECT status FROM users WHERE id=?", (user_id,)).fetchone()
+            row = db.execute("SELECT status FROM users WHERE id=?", (user_id,)).fetchone()
             if row:
                 new_status = "Inactive" if row["status"] == "Active" else "Active"
                 db.execute("UPDATE users SET status=? WHERE id=?", (new_status, user_id))
@@ -15013,30 +17239,8 @@ def user_settings():
             flash("Select employee from master and ensure username is set.")
             return redirect(url_for("user_settings"))
 
-        existing_params = [username]
-        existing_sql = "SELECT id FROM users WHERE username=?"
-        if tenant_user_filter:
-            existing_sql += " AND customer_id=?"
-            existing_params.append(tenant_user_filter)
-        else:
-            existing_sql += " AND (customer_id IS NULL OR customer_id=0)"
-        if user_id:
-            existing_sql += " AND id<>?"
-            existing_params.append(user_id)
-        if db.execute(existing_sql, tuple(existing_params)).fetchone():
-            flash("Username already exists. Choose a different login ID.")
-            return redirect(url_for("user_settings"))
-
         saved_user_id = user_id
         if user_id:
-            if tenant_user_filter:
-                owned = db.execute(
-                    "SELECT id FROM users WHERE id=? AND customer_id=?",
-                    (user_id, tenant_user_filter),
-                ).fetchone()
-                if not owned:
-                    flash("User not found for this customer.")
-                    return redirect(url_for("user_settings"))
             if password:
                 db.execute(
                     "UPDATE users SET username=?, password=?, staff_id=?, employee_name=?, department=?, "
@@ -15057,18 +17261,12 @@ def user_settings():
             if not password:
                 flash("Password is required for new users.")
                 return redirect(url_for("user_settings"))
-            if tenant_user_filter:
-                try:
-                    assert_user_limit_not_exceeded(db, tenant_user_filter)
-                except ValueError as exc:
-                    flash(str(exc))
-                    return redirect(url_for("user_settings"))
             try:
                 cur = db.execute(
                     "INSERT INTO users(username, password, staff_id, employee_name, department, "
-                    "designation_id, role, workflow_role, status, customer_id) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    "designation_id, role, workflow_role, status) VALUES(?,?,?,?,?,?,?,?,?)",
                     (username, hash_password(password), staff_id, employee_name, department, designation_id,
-                     role, workflow_role, status, tenant_user_filter),
+                     role, workflow_role, status),
                 )
                 saved_user_id = cur.lastrowid
                 flash("User created successfully.")
@@ -15085,9 +17283,6 @@ def user_settings():
             db.execute("DELETE FROM user_maker_assignments WHERE user_id=?", (saved_user_id,))
 
         db.commit()
-        if saved_user_id and tenant_user_filter:
-            sync_customer_usage_counts(db, tenant_user_filter)
-            db.commit()
         if saved_user_id and not user_id:
             return redirect(url_for("user_settings", edit=saved_user_id) + "#user-permissions")
         return redirect(url_for("user_settings"))
@@ -15097,15 +17292,12 @@ def user_settings():
     edit_user_is_super_admin = False
     maker_assignments = []
     if edit_id:
-        edit_sql = (
+        edit_user = query_db(
             "SELECT u.*, d.designation_name FROM users u "
-            "LEFT JOIN designations d ON u.designation_id = d.id WHERE u.id=?"
+            "LEFT JOIN designations d ON u.designation_id = d.id WHERE u.id=?",
+            (edit_id,),
+            one=True,
         )
-        edit_params = [edit_id]
-        if tenant_user_filter:
-            edit_sql += " AND u.customer_id=?"
-            edit_params.append(tenant_user_filter)
-        edit_user = query_db(edit_sql, tuple(edit_params), one=True)
         if edit_user:
             maker_assignments = get_user_maker_assignments(db, edit_id)
             edit_user_is_super_admin = _is_super_admin_row(db, edit_user)
@@ -15118,16 +17310,10 @@ def user_settings():
     )
     workflow_modules = get_workflow_modules()
 
-    rows_sql = (
+    rows = query_db(
         "SELECT u.*, d.designation_name FROM users u "
-        "LEFT JOIN designations d ON u.designation_id = d.id"
+        "LEFT JOIN designations d ON u.designation_id = d.id ORDER BY u.id DESC"
     )
-    rows_params = ()
-    if tenant_user_filter:
-        rows_sql += " WHERE u.customer_id=?"
-        rows_params = (tenant_user_filter,)
-    rows_sql += " ORDER BY u.id DESC"
-    rows = query_db(rows_sql, rows_params)
     enriched = []
     for row in rows:
         r = dict(row)
@@ -15167,144 +17353,229 @@ USER_MGMT_WORKFLOW_ROLES = ("Maker", "Checker", "Approver", "Administrator")
 USER_MGMT_SYSTEM_ROLES = ("User", "Guest", "Admin", "Customer Admin", "Manager", "Cashier", "Accountant", "Store Keeper", "HR User")
 
 
+@app.route("/settings/user-management", methods=["GET", "POST"])
 @app.route("/admin/users", methods=["GET", "POST"])
 @login_required
 def user_management():
-    """Standalone user creation — not tied to company staff."""
-    if not is_admin_user() and not is_customer_admin_user():
-        flash("Administrator access required.")
-        return redirect(url_for("dashboard"))
+    """MODULE-004 User Management — company-scoped ERP users."""
     db = get_db()
+    _prepare_user_master_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    customer_admin = is_customer_admin_user()
+    if not user_can_user_management(
+        db, user_id, "view", is_admin=admin, is_customer_admin=customer_admin
+    ):
+        flash("You do not have permission to view User Management.")
+        return redirect(url_for("dashboard"))
+    target_user_id = request.args.get("user_id", type=int) or request.form.get("user_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
     tenant_customer_id = session.get("customer_id")
-    allowed_system_roles = USER_MGMT_SYSTEM_ROLES
-    if is_customer_admin_user() and not is_super_admin_user():
-        allowed_system_roles = CUSTOMER_ADMIN_CREATABLE_ROLES
+    allowed_system_roles = list(USER_SYSTEM_ROLES)
+    if customer_admin and not is_super_admin_user():
+        allowed_system_roles = list(CUSTOMER_ADMIN_CREATABLE_ROLES)
 
     if request.method == "POST":
-        action = request.form.get("action", "create")
-        user_id = request.form.get("user_id", "").strip()
-
-        if action == "toggle" and user_id:
-            row = db.execute("SELECT status FROM users WHERE id=?", (user_id,)).fetchone()
-            if row:
-                new_status = "Inactive" if row["status"] == "Active" else "Active"
-                db.execute("UPDATE users SET status=? WHERE id=?", (new_status, user_id))
-                db.commit()
-                flash(f"User status updated to {new_status}.")
-            return redirect(url_for("user_management", tab="list"))
-
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-        confirm_password = request.form.get("confirm_password", "").strip()
-        display_name = request.form.get("display_name", "").strip()
-        workflow_role = request.form.get("workflow_role", "Maker").strip()
-        system_role = request.form.get("system_role", "User").strip()
-        status = request.form.get("status", "Active").strip()
-
-        if workflow_role not in USER_MGMT_WORKFLOW_ROLES:
-            flash("Invalid workflow role selected.")
-            return redirect(url_for("user_management", tab="create"))
-
-        if system_role not in allowed_system_roles:
-            flash("Invalid system role selected.")
-            return redirect(url_for("user_management", tab="create"))
-
-        if is_customer_admin_user() and not is_super_admin_user():
-            if system_role in ("Admin", SUPER_ADMIN_ROLE, "Customer Admin"):
-                flash("Customer Admins cannot assign that role.")
-                return redirect(url_for("user_management", tab="create"))
-
-        if workflow_role == "Administrator":
-            system_role = "Admin"
-
-        if not username:
-            flash("Username is required.")
-            return redirect(url_for("user_management", tab="create"))
-
-        if not password:
-            flash("Password is required.")
-            return redirect(url_for("user_management", tab="create"))
-
-        if password != confirm_password:
-            flash("Password and confirmation do not match.")
-            return redirect(url_for("user_management", tab="create"))
-
-        if len(password) < 4:
-            flash("Password must be at least 4 characters.")
-            return redirect(url_for("user_management", tab="create"))
-
-        employee_name = display_name or username
-
-        existing = db.execute(
-            "SELECT id FROM users WHERE username=? AND (customer_id IS ? OR (customer_id IS NULL AND ? IS NULL))",
-            (username, tenant_customer_id, tenant_customer_id),
-        ).fetchone()
-        if existing:
-            flash("Username already exists. Choose a different login ID.")
-            return redirect(url_for("user_management", tab="create"))
-
-        if tenant_customer_id:
-            try:
-                assert_user_limit_not_exceeded(db, tenant_customer_id)
-            except ValueError as exc:
-                flash(str(exc))
-                return redirect(url_for("user_management", tab="create"))
-
+        action = request.form.get("form_action", "save_user").strip()
+        redirect_uid = request.form.get("user_id", type=int) or target_user_id
         try:
-            db.execute(
-                "INSERT INTO users(username, password, role, workflow_role, employee_name, status, customer_id) "
-                "VALUES(?,?,?,?,?,?,?)",
-                (
+            if action == "save_user":
+                perm = "edit" if redirect_uid else "create"
+                if not user_can_user_management(
+                    db, user_id, perm, is_admin=admin, is_customer_admin=customer_admin
+                ):
+                    flash("You do not have permission to save users.")
+                    return redirect(url_for("user_management", user_id=redirect_uid))
+                password = request.form.get("password", "").strip() or None
+                confirm = request.form.get("confirm_password", "").strip()
+                if password and password != confirm:
+                    raise ValueError("Password and confirmation do not match.")
+                system_role = request.form.get("system_role", "User").strip()
+                if system_role not in allowed_system_roles:
+                    raise ValueError("Invalid system role selected.")
+                if customer_admin and not is_super_admin_user():
+                    if system_role in ("Admin", SUPER_ADMIN_ROLE, "Customer Admin"):
+                        raise ValueError("Customer Admins cannot assign that role.")
+                new_id = save_user_master(
+                    db,
+                    request.form,
                     username,
-                    hash_password(password),
-                    system_role,
-                    workflow_role,
-                    employee_name,
-                    status,
-                    tenant_customer_id,
-                ),
-            )
-            db.commit()
-            if tenant_customer_id:
-                sync_customer_usage_counts(db, tenant_customer_id)
+                    user_id=redirect_uid,
+                    customer_id=tenant_customer_id,
+                    password=password,
+                    assert_user_limit_fn=assert_user_limit_not_exceeded if tenant_customer_id else None,
+                )
                 db.commit()
-            flash(f"User '{username}' created successfully.")
-            return redirect(url_for("user_management", tab="list"))
-        except sqlite3.IntegrityError:
-            flash("Username already exists.")
-            return redirect(url_for("user_management", tab="create"))
+                if tenant_customer_id:
+                    sync_customer_usage_counts(db, tenant_customer_id)
+                    db.commit()
+                flash("User saved.")
+                return redirect(url_for("user_management", user_id=new_id))
+            if action == "activate_user" and redirect_uid:
+                if not user_can_user_management(
+                    db, user_id, "activate", is_admin=admin, is_customer_admin=customer_admin
+                ):
+                    flash("Permission denied.")
+                    return redirect(url_for("user_management", user_id=redirect_uid))
+                activate_user_master(db, redirect_uid, username)
+                db.commit()
+                flash("User activated.")
+                return redirect(url_for("user_management", user_id=redirect_uid))
+            if action == "deactivate_user" and redirect_uid:
+                if not user_can_user_management(
+                    db, user_id, "deactivate", is_admin=admin, is_customer_admin=customer_admin
+                ):
+                    flash("Permission denied.")
+                    return redirect(url_for("user_management", user_id=redirect_uid))
+                deactivate_user_master(db, redirect_uid, username)
+                db.commit()
+                flash("User deactivated.")
+                return redirect(url_for("user_management", user_id=redirect_uid))
+            if action == "lock_user" and redirect_uid:
+                if not user_can_user_management(
+                    db, user_id, "lock", is_admin=admin, is_customer_admin=customer_admin
+                ):
+                    flash("Permission denied.")
+                    return redirect(url_for("user_management", user_id=redirect_uid))
+                lock_user_master(db, redirect_uid, username)
+                db.commit()
+                flash("User locked.")
+                return redirect(url_for("user_management", user_id=redirect_uid))
+            if action == "unlock_user" and redirect_uid:
+                if not user_can_user_management(
+                    db, user_id, "unlock", is_admin=admin, is_customer_admin=customer_admin
+                ):
+                    flash("Permission denied.")
+                    return redirect(url_for("user_management", user_id=redirect_uid))
+                unlock_user_master(db, redirect_uid, username)
+                db.commit()
+                flash("User unlocked.")
+                return redirect(url_for("user_management", user_id=redirect_uid))
+            if action == "delete_user" and redirect_uid:
+                if not user_can_user_management(
+                    db, user_id, "delete", is_admin=admin, is_customer_admin=customer_admin
+                ):
+                    flash("Permission denied.")
+                    return redirect(url_for("user_management", user_id=redirect_uid))
+                soft_delete_user_master(db, redirect_uid, username)
+                if tenant_customer_id:
+                    sync_customer_usage_counts(db, tenant_customer_id)
+                db.commit()
+                flash("User deleted.")
+                return redirect(url_for("user_management"))
+            if action == "reset_password" and redirect_uid:
+                if not user_can_user_management(
+                    db, user_id, "reset_password", is_admin=admin, is_customer_admin=customer_admin
+                ):
+                    flash("Permission denied.")
+                    return redirect(url_for("user_management", user_id=redirect_uid))
+                new_password = request.form.get("new_password", "").strip()
+                reset_user_password(db, redirect_uid, new_password, username)
+                db.commit()
+                flash("Password reset.")
+                return redirect(url_for("user_management", user_id=redirect_uid))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            if redirect_uid:
+                return redirect(url_for("user_management", user_id=redirect_uid))
+            return redirect(url_for("user_management", new=1))
 
-    rows = query_db(
-        "SELECT u.*, d.designation_name, s.staff_name AS linked_staff_name "
-        "FROM users u "
-        "LEFT JOIN designations d ON u.designation_id = d.id "
-        "LEFT JOIN staff s ON u.staff_id = s.id "
-        + ("WHERE u.customer_id=? " if tenant_customer_id and not is_super_admin_user() else "")
-        + "ORDER BY u.id DESC",
-        (tenant_customer_id,) if tenant_customer_id and not is_super_admin_user() else (),
+    search = request.args.get("q", "")
+    company_filter = request.args.get("company_id", type=int)
+    branch_filter = request.args.get("branch_id", type=int)
+    department_filter = request.args.get("department_id", type=int)
+    status_filter = request.args.get("status", "")
+    locked_filter = request.args.get("locked", "")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    sort_by = request.args.get("sort_by", "username")
+    sort_dir = request.args.get("sort_dir", "asc")
+    include_deleted = request.args.get("include_deleted") == "1"
+    user_list = list_users_master(
+        db,
+        search=search,
+        company_id=company_filter,
+        branch_id=branch_filter,
+        department_id=department_filter,
+        status=status_filter,
+        locked=locked_filter,
+        customer_id=tenant_customer_id if tenant_customer_id and not is_super_admin_user() else None,
+        include_deleted=include_deleted,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
     )
-    enriched = []
-    for row in rows:
-        r = dict(row)
-        if r.get("workflow_role"):
-            r["workflow_access"] = r["workflow_role"]
-        else:
-            r["workflow_access"] = get_workflow_access_label(
-                db, r.get("designation_id"), r.get("workflow_role")
-            )
-        r["user_type"] = "Staff-linked" if r.get("staff_id") else "Standalone"
-        enriched.append(r)
-
-    active_tab = request.args.get("tab", "create")
-    if active_tab not in ("create", "list"):
-        active_tab = "create"
+    selected_user = get_user_master(db, target_user_id) if target_user_id else None
+    if selected_user:
+        safe_user = dict(selected_user)
+        safe_user.pop("password", None)
+        selected_user = safe_user
 
     return render_template(
         "user_management.html",
-        rows=enriched,
-        workflow_roles=USER_MGMT_WORKFLOW_ROLES,
+        users=user_list["items"],
+        user_pagination=user_list,
+        search=search,
+        company_filter=company_filter,
+        branch_filter=branch_filter,
+        department_filter=department_filter,
+        status_filter=status_filter,
+        locked_filter=locked_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        include_deleted=include_deleted,
+        view_mode=view_mode,
+        companies=list_companies_for_user_form(db),
+        branches=list_branches_for_user_form(db, company_filter),
+        departments=list_departments_for_user_form(db, company_filter),
+        user_statuses=USER_STATUSES,
+        workflow_roles=USER_WORKFLOW_ROLES,
         system_roles=allowed_system_roles,
-        active_tab=active_tab,
+        languages=USER_LANGUAGES,
+        timezones=USER_TIMEZONES,
+        date_formats=USER_DATE_FORMATS,
+        currencies=USER_CURRENCIES,
+        selected_user=selected_user,
+        show_user_form=bool(request.args.get("new")) or bool(selected_user),
+        user_permissions={
+            "view": user_can_user_management(
+                db, user_id, "view", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "create": user_can_user_management(
+                db, user_id, "create", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "edit": user_can_user_management(
+                db, user_id, "edit", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "delete": user_can_user_management(
+                db, user_id, "delete", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "import": user_can_user_management(
+                db, user_id, "import", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "export": user_can_user_management(
+                db, user_id, "export", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "reset_password": user_can_user_management(
+                db, user_id, "reset_password", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "activate": user_can_user_management(
+                db, user_id, "activate", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "deactivate": user_can_user_management(
+                db, user_id, "deactivate", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "lock": user_can_user_management(
+                db, user_id, "lock", is_admin=admin, is_customer_admin=customer_admin
+            ),
+            "unlock": user_can_user_management(
+                db, user_id, "unlock", is_admin=admin, is_customer_admin=customer_admin
+            ),
+        },
+        audit_trail=list_user_audit_trail(db, target_user_id) if target_user_id else [],
     )
 
 
@@ -15616,18 +17887,38 @@ def workflow_delete_record():
 @app.route("/notifications")
 @login_required
 def notifications():
+    """Legacy notifications page — redirects to Notification Center."""
+    return redirect(url_for("notification_center"))
+
+
+@app.route("/settings/notification-center")
+@app.route("/notifications/center")
+@login_required
+def notification_center():
     db = get_db()
+    _prepare_notification_db(db)
     user_id = session.get("user_id")
-    items = get_notifications(db, user_id, limit=50)
-    return render_template("notifications.html", items=items)
+    admin = is_admin_user()
+    if not user_can_notification_center(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Notification Center.")
+        return redirect(url_for("dashboard"))
+    can_edit = user_can_notification_center(db, user_id, "edit", is_admin=admin)
+    return render_template("notification_center.html", can_edit=can_edit)
 
 
 @app.route("/notifications/read", methods=["POST"])
 @login_required
 def notifications_read():
-    mark_notifications_read(get_db(), session.get("user_id"))
-    get_db().commit()
-    return redirect(request.referrer or url_for("notifications"))
+    db = get_db()
+    uid = session.get("user_id")
+    try:
+        from notification_service import mark_all_as_read
+
+        mark_all_as_read(db, uid)
+    except Exception:
+        mark_notifications_read(db, uid)
+    db.commit()
+    return redirect(request.referrer or url_for("notification_center"))
 
 
 def _submit_module_request(module_id, table, fields_sql, values):
@@ -16284,8 +18575,175 @@ def _insert_boq_lines(db, boq_id, project_id, lines, actor, now_ts=None):
 
 
 @app.route("/boq-management", methods=["GET", "POST"])
+@app.route("/settings/boq-management", methods=["GET", "POST"])
 @login_required
 def boq_management():
+    from document_management_service import attach_document, list_module_documents
+
+    db = get_db()
+    _prepare_boq_management_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_boq_management(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view BOQ Management.")
+        return redirect(url_for("dashboard"))
+
+    boq_id = request.args.get("boq_id", type=int) or request.form.get("boq_id", type=int)
+    view_mode = request.args.get("view") == "1"
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "save_boq").strip()
+        redirect_bid = request.form.get("boq_id", type=int) or boq_id
+        try:
+            if action == "delete_boq" and redirect_bid:
+                if not user_can_boq_management(db, user_id, "delete", is_admin=admin):
+                    flash("You do not have permission to delete BOQs.")
+                    return redirect(url_for("boq_management", boq_id=redirect_bid))
+                soft_delete_boq_master(db, redirect_bid, username)
+                approval = get_approval_request(db, "boq", int(redirect_bid), "boq_master")
+                if approval:
+                    db.execute("DELETE FROM approval_audit WHERE approval_request_id=?", (approval["id"],))
+                    db.execute("DELETE FROM approval_requests WHERE id=?", (approval["id"],))
+                db.commit()
+                flash("BOQ deleted.")
+                return redirect(url_for("boq_management"))
+            if action == "create_revision" and redirect_bid:
+                if not user_can_boq_management(db, user_id, "revision", is_admin=admin):
+                    flash("You do not have permission to create BOQ revisions.")
+                    return redirect(url_for("boq_management", boq_id=redirect_bid))
+                new_id = copy_boq_master(
+                    db,
+                    redirect_bid,
+                    username,
+                    as_revision=True,
+                    create_approval_request_fn=create_approval_request,
+                    default_approval=RECORD_PENDING_CHECKER,
+                )
+                db.commit()
+                flash("BOQ revision created.")
+                return redirect(url_for("boq_management", boq_id=new_id))
+            if action == "submit_boq" and redirect_bid:
+                if not user_can_boq_management(db, user_id, "edit", is_admin=admin):
+                    flash("You do not have permission to submit BOQs.")
+                    return redirect(url_for("boq_management", boq_id=redirect_bid))
+                submit_boq_for_approval(db, redirect_bid, username)
+                create_approval_request(db, "boq", redirect_bid, "boq_master", username, user_id)
+                db.commit()
+                flash("BOQ submitted for approval.")
+                return redirect(url_for("boq_management", boq_id=redirect_bid))
+            if action == "approve_boq" and redirect_bid:
+                if not user_can_boq_management(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to approve BOQs.")
+                    return redirect(url_for("boq_management", boq_id=redirect_bid))
+                approve_boq_master(db, redirect_bid, username)
+                db.commit()
+                flash("BOQ approved.")
+                return redirect(url_for("boq_management", boq_id=redirect_bid, view=1))
+            if action == "reject_boq" and redirect_bid:
+                if not user_can_boq_management(db, user_id, "approve", is_admin=admin):
+                    flash("You do not have permission to reject BOQs.")
+                    return redirect(url_for("boq_management", boq_id=redirect_bid))
+                reject_boq_master(db, redirect_bid, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("BOQ rejected.")
+                return redirect(url_for("boq_management", boq_id=redirect_bid))
+            if action == "save_boq":
+                perm = "edit" if redirect_bid else "create"
+                if not user_can_boq_management(db, user_id, perm, is_admin=admin):
+                    flash("You do not have permission to save BOQs.")
+                    return redirect(url_for("boq_management", boq_id=redirect_bid))
+                new_id = save_boq_master(
+                    db,
+                    request.form,
+                    username,
+                    redirect_bid,
+                    create_approval_request_fn=create_approval_request if not redirect_bid else None,
+                    default_approval=RECORD_PENDING_CHECKER,
+                )
+                upload = request.files.get("document_file")
+                if upload and upload.filename:
+                    attach_document(
+                        db,
+                        "boq_management",
+                        new_id,
+                        upload,
+                        username,
+                        dest_root=DOCUMENT_DMS_DIR,
+                        document_type="BOQ Attachment",
+                    )
+                db.commit()
+                flash("BOQ saved.")
+                return redirect(url_for("boq_management", boq_id=new_id))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            return redirect(url_for("boq_management", boq_id=redirect_bid))
+        except sqlite3.IntegrityError as exc:
+            db.rollback()
+            flash(str(exc) or "Unable to save BOQ.")
+            return redirect(url_for("boq_management", boq_id=redirect_bid))
+
+    search = request.args.get("q", "")
+    project_filter = request.args.get("project_id", type=int)
+    status_filter = request.args.get("status", "")
+    current_only = request.args.get("current_only") == "1"
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+    boq_list = list_boqs_master(
+        db,
+        search=search,
+        project_id=project_filter,
+        status=status_filter,
+        current_only=current_only,
+        page=page,
+        per_page=per_page,
+    )
+    selected_boq = get_boq_master(db, boq_id) if boq_id else None
+    prefill_project_id = request.args.get("project_id", type=int)
+    preview_project_id = selected_boq["project_id"] if selected_boq else prefill_project_id
+    next_boq_number = (
+        selected_boq["boq_number"]
+        if selected_boq
+        else (peek_boq_management_number(db, preview_project_id) if preview_project_id else "Auto")
+    )
+    module_documents = list_module_documents(db, "boq_management", boq_id) if boq_id else []
+    return render_template(
+        "boq_management.html",
+        boqs=boq_list["items"],
+        boq_pagination=boq_list,
+        search=search,
+        project_filter=project_filter,
+        status_filter=status_filter,
+        current_only=current_only,
+        projects=list_projects_for_boq_form(db),
+        selected_boq=selected_boq,
+        next_boq_number=next_boq_number,
+        prefill_project_id=prefill_project_id,
+        show_boq_form=bool(request.args.get("new")) or bool(selected_boq),
+        view_mode=view_mode,
+        boq_statuses=BOQ_STATUSES,
+        boq_units=BOQ_UNITS,
+        max_boq_lines=BOQ_MAX_ITEMS,
+        boq_permissions={
+            "view": user_can_boq_management(db, user_id, "view", is_admin=admin),
+            "create": user_can_boq_management(db, user_id, "create", is_admin=admin),
+            "edit": user_can_boq_management(db, user_id, "edit", is_admin=admin),
+            "delete": user_can_boq_management(db, user_id, "delete", is_admin=admin),
+            "import": user_can_boq_management(db, user_id, "import", is_admin=admin),
+            "export": user_can_boq_management(db, user_id, "export", is_admin=admin),
+            "approve": user_can_boq_management(db, user_id, "approve", is_admin=admin),
+            "revision": user_can_boq_management(db, user_id, "revision", is_admin=admin),
+        },
+        audit_trail=list_boq_audit_trail(db, boq_id) if boq_id else [],
+        module_documents=module_documents,
+    )
+
+
+@app.route("/boq-legacy", methods=["GET", "POST"])
+@login_required
+def boq_legacy():
+    """Legacy BOQ entry UI (boq.html) — preserved for existing workflows."""
     db = get_db()
     ensure_boq_master_table(db)
     module_id, table, endpoint = "boq", "boq_master", "boq_management"
@@ -16299,7 +18757,7 @@ def boq_management():
             boq_id = request.form.get("boq_id", "").strip()
             if not boq_id.isdigit():
                 flash("Invalid BOQ delete request.")
-                return redirect(url_for(endpoint))
+                return redirect(url_for("boq_legacy"))
             existing_boq = query_db(
                 "SELECT * FROM boq_master WHERE id=? AND COALESCE(is_deleted, 0)=0",
                 (boq_id,),
@@ -16307,15 +18765,15 @@ def boq_management():
             )
             if not existing_boq:
                 flash("BOQ record not found.")
-                return redirect(url_for(endpoint))
+                return redirect(url_for("boq_legacy"))
             status = existing_boq["approval_status"] or RECORD_PENDING_CHECKER
             if not admin:
                 if not can_maker_delete(status):
                     flash("This BOQ cannot be deleted after verification.")
-                    return redirect(url_for(endpoint))
+                    return redirect(url_for("boq_legacy"))
                 if not user_matches_stage(db, user_id, module_id, "maker", admin):
                     flash("You are not authorized to delete this BOQ.")
-                    return redirect(url_for(endpoint))
+                    return redirect(url_for("boq_legacy"))
             username = session.get("username", "")
             now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             db.execute(
@@ -16335,7 +18793,7 @@ def boq_management():
                 db.execute("DELETE FROM approval_requests WHERE id=?", (approval["id"],))
             db.commit()
             flash(f"BOQ {existing_boq['boq_number']} deleted.")
-            return redirect(url_for(endpoint))
+            return redirect(url_for("boq_legacy"))
 
         project_id = request.form.get("project_id", "").strip()
         boq_id = request.form.get("boq_id", "").strip()
@@ -16343,16 +18801,16 @@ def boq_management():
 
         if not project_id:
             flash("Select a project.")
-            return redirect(url_for(endpoint) + "#boq-form")
+            return redirect(url_for("boq_legacy") + "#boq-form")
         if parse_error:
             flash(parse_error)
-            return redirect(url_for(endpoint) + "#boq-form")
+            return redirect(url_for("boq_legacy") + "#boq-form")
         if not lines:
             flash("Add at least one BOQ line item with a description.")
-            return redirect(url_for(endpoint) + "#boq-form")
+            return redirect(url_for("boq_legacy") + "#boq-form")
         if len(lines) > MAX_BOQ_LINES:
             flash(f"Maximum {MAX_BOQ_LINES} line items allowed per BOQ.")
-            return redirect(url_for(endpoint) + "#boq-form")
+            return redirect(url_for("boq_legacy") + "#boq-form")
 
         total_amount = round(sum(line["amount"] for line in lines), 2)
         created_by = session.get("username", "")
@@ -16366,14 +18824,13 @@ def boq_management():
             )
             if not existing_boq:
                 flash("BOQ record not found.")
-                return redirect(url_for(endpoint) + "#boq-form")
+                return redirect(url_for("boq_legacy") + "#boq-form")
             edit_role = get_edit_role_for_user(
                 db, user_id, module_id, existing_boq["approval_status"], admin
             )
             if not edit_role:
                 flash("This record is locked and cannot be edited.")
-                return redirect(url_for(endpoint, view=boq_id))
-            boq_number = existing_boq["boq_number"]
+                return redirect(url_for("boq_legacy", view=boq_id))
             db.execute(
                 "UPDATE boq_master SET project_id=?, total_amount=?, line_count=?, "
                 "modified_by=?, modified_at=? WHERE id=?",
@@ -16382,7 +18839,7 @@ def boq_management():
             db.execute("DELETE FROM boq_items WHERE boq_id=?", (boq_id,))
             _insert_boq_lines(db, boq_id, project_id, lines, created_by, created_at)
             _complete_module_save(db, module_id, table, int(boq_id), edit_role)
-            return redirect(url_for(endpoint, view=boq_id))
+            return redirect(url_for("boq_legacy", view=boq_id))
 
         boq_number = generate_boq_number(db, int(project_id))
         db.execute(
@@ -16400,7 +18857,6 @@ def boq_management():
         )
         new_boq_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
         _insert_boq_lines(db, new_boq_id, project_id, lines, created_by, created_at)
-
         create_approval_request(
             db, "boq", new_boq_id, "boq_master", created_by, session.get("user_id")
         )
@@ -16421,21 +18877,17 @@ def boq_management():
             (edit_id,),
             one=True,
         )
-        if not editing_boq:
-            flash("BOQ record not found.")
-            return redirect(url_for(endpoint))
-        edit_role = get_edit_role_for_user(
-            db, user_id, module_id, editing_boq["approval_status"], admin
-        )
-        if not edit_role:
-            flash("This record is locked and cannot be edited.")
-            return redirect(url_for(endpoint, view=edit_id))
-        wf_ctx = {"edit_role": edit_role}
-        editing_lines = query_db(
-            "SELECT * FROM boq_items WHERE boq_id=? AND COALESCE(is_deleted, 0)=0 "
-            "ORDER BY line_no, id",
-            (edit_id,),
-        )
+        if editing_boq:
+            edit_role = get_edit_role_for_user(
+                db, user_id, module_id, editing_boq["approval_status"], admin
+            )
+            if edit_role:
+                wf_ctx = {"edit_role": edit_role}
+                editing_lines = query_db(
+                    "SELECT * FROM boq_items WHERE boq_id=? AND COALESCE(is_deleted, 0)=0 "
+                    "ORDER BY line_no, id",
+                    (edit_id,),
+                )
 
     view_id = request.args.get("view", type=int) if not edit_id else None
     view_boq = None
@@ -16461,18 +18913,11 @@ def boq_management():
     show_continue_prompt = request.args.get("continue_prompt") == "1"
     saved_boq_number = request.args.get("saved", "").strip()
     prefill_project_id = request.args.get("project_id", type=int)
-    continue_project_id = (
-        prefill_project_id if show_continue_prompt else None
-    )
-
+    continue_project_id = prefill_project_id if show_continue_prompt else None
     projects = get_project_options_for_boq()
     preview_project_id = (
         editing_boq["project_id"] if editing_boq
         else (continue_project_id if show_continue_prompt else prefill_project_id)
-    )
-    boq_form_project_id = (
-        editing_boq["project_id"] if editing_boq
-        else (continue_project_id or prefill_project_id)
     )
     next_boq_number = (
         editing_boq["boq_number"] if editing_boq
@@ -16484,13 +18929,9 @@ def boq_management():
         "WHERE COALESCE(m.is_deleted, 0)=0 ORDER BY m.id DESC",
         table_alias="p",
     )
-
     ensure_library_schema(db)
     seed_typical_libraries(db)
     ensure_standard_boq_library_schema(db)
-    boq_templates = list_boq_templates(db)
-    library_items = list_standard_boq_library(db)
-
     return render_template(
         "boq.html",
         projects=projects,
@@ -16505,13 +18946,13 @@ def boq_management():
         show_continue_prompt=show_continue_prompt and bool(saved_boq_number),
         saved_boq_number=saved_boq_number,
         continue_project_id=continue_project_id,
-        boq_form_project_id=boq_form_project_id,
+        boq_form_project_id=preview_project_id,
         history=wf_ctx.get("history"),
         edit_role=wf_ctx.get("edit_role"),
         can_reopen=wf_ctx.get("can_reopen", False),
         approval_id=wf_ctx.get("approval_id"),
-        boq_templates=boq_templates,
-        library_items=library_items,
+        boq_templates=list_boq_templates(db),
+        library_items=list_standard_boq_library(db),
     )
 
 
@@ -16698,7 +19139,7 @@ def api_project_next_boq_number(project_id):
 def api_project_next_code():
     name = request.args.get("name", "").strip()
     db = get_db()
-    return jsonify({"next_project_code": peek_project_code(db, name, _dashboard_customer_id())})
+    return jsonify({"next_project_code": peek_project_code(db, name)})
 
 
 @app.route("/boq-print/<int:boq_id>")
@@ -17080,7 +19521,275 @@ def _persist_dpr_measurement_children(db, measurement_id, parsed, manpower_rows,
             )
 
 
+def _save_one_dpr_measurement(
+    db,
+    *,
+    project_id,
+    report_date,
+    boq_item_id,
+    boq_number,
+    boq_description,
+    unit,
+    work_description,
+    bill_client,
+    for_costing,
+    measurement_store,
+    parsed,
+    manpower_rows,
+    dpr_status,
+    created_by,
+    created_at,
+    measurement_id=None,
+    edit_role=None,
+):
+    """Insert or update a single DPR measurement row. Returns saved dict or None on validation failure."""
+    billing_status = "pending" if bill_client and dpr_status == "submitted" else "none"
+    costing_status = "pending" if for_costing and dpr_status == "submitted" else "none"
+    approval_status = RECORD_PENDING_CHECKER if dpr_status == "submitted" else "Draft"
+
+    if measurement_id:
+        existing = query_db(
+            "SELECT * FROM dpr_measurements WHERE id=?", (measurement_id,), one=True
+        )
+        if not existing:
+            return None
+        existing = dict(existing)
+        was_draft = (existing.get("dpr_status") or "").lower() == "draft"
+        if dpr_status == "submitted" and was_draft:
+            billing_status = "pending" if bill_client else "none"
+            costing_status = "pending" if for_costing else "none"
+        elif existing.get("billing_status") == "billed":
+            billing_status = existing["billing_status"]
+        elif not bill_client:
+            billing_status = existing.get("billing_status") or "none"
+        if existing.get("costing_status") == "linked":
+            costing_status = existing["costing_status"]
+        db.execute(
+            "UPDATE dpr_measurements SET project_id=?, report_date=?, boq_item_id=?, boq_number=?, "
+            "boq_description=?, unit=?, calculated_quantity=?, measurement_type=?, bill_client=?, "
+            "for_costing=?, billing_status=?, costing_status=?, measurement_data=?, work_description=?, "
+            "approval_status=?, dpr_status=?, modified_at=?, modified_by=? WHERE id=?",
+            (
+                project_id,
+                report_date,
+                boq_item_id,
+                boq_number,
+                boq_description,
+                unit,
+                parsed["quantity"],
+                parsed["type"],
+                bill_client,
+                for_costing,
+                billing_status,
+                costing_status,
+                json.dumps(measurement_store),
+                work_description,
+                approval_status if dpr_status == "submitted" else existing.get("approval_status") or "Draft",
+                dpr_status,
+                created_at,
+                created_by,
+                measurement_id,
+            ),
+        )
+        _persist_dpr_measurement_children(db, measurement_id, parsed, manpower_rows, for_costing)
+        if dpr_status == "submitted" and edit_role == "maker":
+            if was_draft:
+                db.execute(
+                    "UPDATE dpr_measurements SET approval_status=? WHERE id=?",
+                    (RECORD_PENDING_CHECKER, measurement_id),
+                )
+                create_approval_request(
+                    db, "dpr", measurement_id, "dpr_measurements",
+                    created_by, session.get("user_id"),
+                )
+            else:
+                _complete_module_save(db, "dpr", "dpr_measurements", measurement_id, edit_role)
+        return {
+            "id": measurement_id,
+            "quantity": parsed["quantity"],
+            "project_id": project_id,
+            "boq_number": boq_number,
+            "boq_description": boq_description,
+            "bill_client": bill_client,
+            "dpr_status": dpr_status,
+        }
+
+    db.execute(
+        "INSERT INTO dpr_measurements(project_id, report_date, boq_item_id, boq_number, "
+        "boq_description, unit, calculated_quantity, measurement_type, bill_client, for_costing, "
+        "billing_status, costing_status, measurement_data, work_description, created_by, approval_status, "
+        "created_at, dpr_status, modified_at, modified_by) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            project_id,
+            report_date,
+            boq_item_id,
+            boq_number,
+            boq_description,
+            unit,
+            parsed["quantity"],
+            parsed["type"],
+            bill_client,
+            for_costing,
+            billing_status,
+            costing_status,
+            json.dumps(measurement_store),
+            work_description,
+            created_by,
+            approval_status,
+            created_at,
+            dpr_status,
+            created_at,
+            created_by,
+        ),
+    )
+    new_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    _persist_dpr_measurement_children(db, new_id, parsed, manpower_rows, for_costing)
+    if dpr_status == "submitted":
+        create_approval_request(
+            db, "dpr", new_id, "dpr_measurements", created_by, session.get("user_id")
+        )
+    return {
+        "id": new_id,
+        "quantity": parsed["quantity"],
+        "project_id": project_id,
+        "boq_number": boq_number,
+        "boq_description": boq_description,
+        "bill_client": bill_client,
+        "dpr_status": dpr_status,
+    }
+
+
+def _save_dpr_measurements_batch_from_form():
+    """Save multiple BOQ items in one submit (multi-select DPR entry)."""
+    batch_raw = request.form.get("batch_payload", "").strip()
+    if not batch_raw:
+        return None
+    try:
+        batch = json.loads(batch_raw)
+    except json.JSONDecodeError:
+        flash("Invalid batch DPR data.")
+        return None
+
+    project_id = request.form.get("project_id", "").strip()
+    report_date = request.form.get("report_date", "").strip()
+    bill_client = 1 if _is_truthy(request.form.get("bill_client")) else 0
+    for_costing = 1 if _is_truthy(request.form.get("for_costing")) else 0
+    dpr_status = (request.form.get("dpr_status") or "submitted").strip().lower()
+    if dpr_status not in ("draft", "submitted"):
+        dpr_status = "submitted"
+
+    if not project_id:
+        flash("Select a project.")
+        return None
+    if not report_date:
+        flash("Report date is required.")
+        return None
+
+    items = batch.get("items") or []
+    if not items:
+        flash("Select at least one BOQ item.")
+        return None
+
+    entry_mode = (batch.get("entry_mode") or "shared").strip().lower()
+    shared = batch.get("shared_resources") or {}
+    shared_manpower = shared.get("manpower") or []
+    shared_materials = shared.get("materials") or []
+    shared_equipment = shared.get("equipment") or []
+    shared_additional = (shared.get("additional_details") or "").strip()
+
+    if not bill_client and not for_costing:
+        for_costing = 1
+
+    db = get_db()
+    prepare_dpr_page_db(db)
+    created_by = session.get("username", "")
+    created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    saved_rows = []
+
+    for item in items:
+        boq_item_id = item.get("boq_item_id")
+        if not boq_item_id:
+            continue
+        unit = (item.get("unit") or "").strip()
+        boq_number = (item.get("boq_number") or "").strip()
+        boq_description = (item.get("boq_description") or "").strip()
+        work_description = (item.get("work_description") or "").strip()
+        measurement_payload = item.get("measurement_payload") or {}
+        activities_rows = item.get("activities_payload") or []
+
+        try:
+            payload = measurement_payload if isinstance(measurement_payload, dict) else {}
+        except (TypeError, ValueError):
+            payload = {}
+
+        parsed = _parse_dpr_measurement_payload(payload, unit)
+        if parsed["quantity"] <= 0 and dpr_status != "draft":
+            flash(f"Enter valid measurements for BOQ {boq_number or boq_item_id} — quantity is zero.")
+            return None
+
+        if entry_mode == "per_item":
+            manpower_rows = item.get("manpower_payload") or []
+            materials_rows = item.get("materials_payload") or []
+            equipment_rows = item.get("equipment_payload") or []
+            additional_details = (item.get("additional_details") or shared_additional).strip()
+        else:
+            manpower_rows = list(shared_manpower)
+            materials_rows = list(shared_materials)
+            equipment_rows = list(shared_equipment)
+            additional_details = shared_additional
+
+        measurement_store = dict(parsed["data"])
+        if materials_rows:
+            measurement_store["materials"] = materials_rows
+        if equipment_rows:
+            measurement_store["equipment"] = equipment_rows
+        if activities_rows:
+            measurement_store["activities"] = activities_rows
+        if additional_details:
+            measurement_store["additional_details"] = additional_details
+
+        result = _save_one_dpr_measurement(
+            db,
+            project_id=project_id,
+            report_date=report_date,
+            boq_item_id=boq_item_id,
+            boq_number=boq_number,
+            boq_description=boq_description,
+            unit=unit,
+            work_description=work_description,
+            bill_client=bill_client,
+            for_costing=for_costing,
+            measurement_store=measurement_store,
+            parsed=parsed,
+            manpower_rows=manpower_rows,
+            dpr_status=dpr_status,
+            created_by=created_by,
+            created_at=created_at,
+        )
+        if result:
+            saved_rows.append(result)
+
+    if not saved_rows:
+        flash("No DPR measurements were saved.")
+        return None
+
+    db.commit()
+    return {
+        "batch": True,
+        "count": len(saved_rows),
+        "items": saved_rows,
+        "project_id": project_id,
+        "dpr_status": dpr_status,
+        "bill_client": bill_client,
+    }
+
+
 def _save_dpr_measurement_from_form():
+    batch_raw = request.form.get("batch_payload", "").strip()
+    if batch_raw and not request.form.get("measurement_id"):
+        return _save_dpr_measurements_batch_from_form()
+
     project_id = request.form.get("project_id", "").strip()
     report_date = request.form.get("report_date", "").strip()
     boq_item_id = request.form.get("boq_item_id", "").strip()
@@ -17154,11 +19863,10 @@ def _save_dpr_measurement_from_form():
     prepare_dpr_page_db(db)
     created_by = session.get("username", "")
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    billing_status = "pending" if bill_client and dpr_status == "submitted" else "none"
-    costing_status = "pending" if for_costing and dpr_status == "submitted" else "none"
-    approval_status = RECORD_PENDING_CHECKER if dpr_status == "submitted" else "Draft"
 
     measurement_id_raw = request.form.get("measurement_id", "").strip()
+    measurement_id = None
+    edit_role = None
     if measurement_id_raw:
         try:
             measurement_id = int(measurement_id_raw)
@@ -17178,124 +19886,48 @@ def _save_dpr_measurement_from_form():
         if not edit_role:
             flash("This record is locked and cannot be edited.")
             return None
-        was_draft = (existing.get("dpr_status") or "").lower() == "draft"
-        if dpr_status == "submitted" and was_draft:
-            billing_status = "pending" if bill_client else "none"
-            costing_status = "pending" if for_costing else "none"
-        elif existing.get("billing_status") == "billed":
-            billing_status = existing["billing_status"]
-        elif not bill_client:
-            billing_status = existing.get("billing_status") or "none"
-        if existing.get("costing_status") == "linked":
-            costing_status = existing["costing_status"]
-        db.execute(
-            "UPDATE dpr_measurements SET project_id=?, report_date=?, boq_item_id=?, boq_number=?, "
-            "boq_description=?, unit=?, calculated_quantity=?, measurement_type=?, bill_client=?, "
-            "for_costing=?, billing_status=?, costing_status=?, measurement_data=?, work_description=?, "
-            "approval_status=?, dpr_status=?, modified_at=?, modified_by=? WHERE id=?",
-            (
-                project_id,
-                report_date,
-                boq_item_id,
-                boq_number,
-                boq_description,
-                unit,
-                parsed["quantity"],
-                parsed["type"],
-                bill_client,
-                for_costing,
-                billing_status,
-                costing_status,
-                json.dumps(measurement_store),
-                work_description,
-                approval_status if dpr_status == "submitted" else existing.get("approval_status") or "Draft",
-                dpr_status,
-                created_at,
-                created_by,
-                measurement_id,
-            ),
-        )
-        _persist_dpr_measurement_children(db, measurement_id, parsed, manpower_rows, for_costing)
+
+    result = _save_one_dpr_measurement(
+        db,
+        project_id=project_id,
+        report_date=report_date,
+        boq_item_id=boq_item_id,
+        boq_number=boq_number,
+        boq_description=boq_description,
+        unit=unit,
+        work_description=work_description,
+        bill_client=bill_client,
+        for_costing=for_costing,
+        measurement_store=measurement_store,
+        parsed=parsed,
+        manpower_rows=manpower_rows,
+        dpr_status=dpr_status,
+        created_by=created_by,
+        created_at=created_at,
+        measurement_id=measurement_id,
+        edit_role=edit_role,
+    )
+    if not result:
+        return None
+
+    if measurement_id:
         if dpr_status == "submitted":
             if edit_role == "maker":
+                was_draft = (existing.get("dpr_status") or "").lower() == "draft"
                 if was_draft:
-                    db.execute(
-                        "UPDATE dpr_measurements SET approval_status=? WHERE id=?",
-                        (RECORD_PENDING_CHECKER, measurement_id),
-                    )
-                    create_approval_request(
-                        db, "dpr", measurement_id, "dpr_measurements",
-                        created_by, session.get("user_id"),
-                    )
                     db.commit()
                     flash("DPR submitted — Pending Checker.")
                 else:
-                    _complete_module_save(
-                        db, "dpr", "dpr_measurements", measurement_id, edit_role
-                    )
+                    db.commit()
             else:
                 db.commit()
                 flash("Changes saved. Record remains at current workflow stage.")
         else:
             db.commit()
             flash("DPR draft saved.")
-        return {
-            "id": measurement_id,
-            "quantity": parsed["quantity"],
-            "project_id": project_id,
-            "boq_number": boq_number,
-            "boq_description": boq_description,
-            "bill_client": bill_client,
-            "dpr_status": dpr_status,
-        }
-
-    db.execute(
-        "INSERT INTO dpr_measurements(project_id, report_date, boq_item_id, boq_number, "
-        "boq_description, unit, calculated_quantity, measurement_type, bill_client, for_costing, "
-        "billing_status, costing_status, measurement_data, work_description, created_by, approval_status, "
-        "created_at, dpr_status, modified_at, modified_by) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (
-            project_id,
-            report_date,
-            boq_item_id,
-            boq_number,
-            boq_description,
-            unit,
-            parsed["quantity"],
-            parsed["type"],
-            bill_client,
-            for_costing,
-            billing_status,
-            costing_status,
-            json.dumps(measurement_store),
-            work_description,
-            created_by,
-            approval_status,
-            created_at,
-            dpr_status,
-            created_at,
-            created_by,
-        ),
-    )
-    measurement_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
-
-    _persist_dpr_measurement_children(db, measurement_id, parsed, manpower_rows, for_costing)
-
-    if dpr_status == "submitted":
-        create_approval_request(
-            db, "dpr", measurement_id, "dpr_measurements", created_by, session.get("user_id")
-        )
-    db.commit()
-    return {
-        "id": measurement_id,
-        "quantity": parsed["quantity"],
-        "project_id": project_id,
-        "boq_number": boq_number,
-        "boq_description": boq_description,
-        "bill_client": bill_client,
-        "dpr_status": dpr_status,
-    }
+    else:
+        db.commit()
+    return result
 
 
 @app.route("/dpr-entry", methods=["GET", "POST"])
@@ -17358,6 +19990,23 @@ def dpr_entry():
         if not saved:
             return redirect(url_for("dpr_entry") + "#dpr-form")
 
+        if saved.get("batch"):
+            count = saved.get("count") or 0
+            flash(
+                f"{'Draft saved' if saved.get('dpr_status') == 'draft' else 'Saved'} "
+                f"{count} DPR measurement(s) for {count} BOQ item(s)."
+                + (
+                    " Sent to Client Bill Pending."
+                    if saved.get("bill_client") and saved.get("dpr_status") != "draft"
+                    else " Recorded for costing / quantity."
+                    if saved.get("dpr_status") != "draft"
+                    else ""
+                )
+            )
+            if saved.get("dpr_status") == "draft":
+                return redirect(url_for("dpr_entry") + "#dpr-form")
+            return redirect(url_for("dpr_entry") + "#dpr-measurements-list")
+
         flash(
             f"DPR {'draft saved' if saved.get('dpr_status') == 'draft' else 'measurement saved'} — "
             f"qty {saved['quantity']:,.4f} for {saved['boq_description']}."
@@ -17386,7 +20035,6 @@ def dpr_entry():
         )
 
     projects = get_project_options_for_boq()
-    dpr_boq_items = _dpr_boq_items_for_projects([p["id"] for p in projects])
     subcontractors = query_db(
         "SELECT id, subcontractor_name, subcontractor_code FROM subcontractors "
         "WHERE status IS NULL OR status = 'Active' ORDER BY subcontractor_name"
@@ -17434,7 +20082,6 @@ def dpr_entry():
         steel_shapes=[dict(s) for s in steel_shapes],
         steel_diameters=STEEL_DIAMETERS_MM,
         records=[dict(r) for r in records],
-        dpr_boq_items=dpr_boq_items,
         dpr_attachments=[dict(a) for a in dpr_attachments],
         dpr_activities=list(DEFAULT_DPR_ACTIVITIES),
         attach_filter_project=attach_filter_project,
@@ -17626,8 +20273,6 @@ def dpr_client_bill_print():
         rows = _fetch_client_bill_rows(measurement_ids=measurement_ids, pending_only=False)
     bills = [dict(r) for r in rows]
     total_amount = round(sum(float(b.get("bill_amount") or 0) for b in bills), 2)
-    attachment_ids = [int(b["id"]) for b in bills if b.get("id")]
-    attachments = _fetch_dpr_print_attachments(attachment_ids)
     db = get_db()
     _prepare_corporate_template_db(db)
     first = bills[0] if bills else {}
@@ -17646,7 +20291,6 @@ def dpr_client_bill_print():
         "dpr_client_bill_print.html",
         bills=bills,
         total_amount=total_amount,
-        attachments=attachments,
         ctx=ctx,
         autoprint=request.args.get("print") == "1",
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -17662,7 +20306,6 @@ def dpr_client_bill_print_one(measurement_id):
         flash("Client bill measurement not found.")
         return redirect(url_for("dpr_client_bill_pending"))
     total_amount = round(sum(float(b.get("bill_amount") or 0) for b in bills), 2)
-    attachments = _fetch_dpr_print_attachments([measurement_id])
     db = get_db()
     _prepare_corporate_template_db(db)
     first = bills[0]
@@ -17681,7 +20324,6 @@ def dpr_client_bill_print_one(measurement_id):
         "dpr_client_bill_print.html",
         bills=bills,
         total_amount=total_amount,
-        attachments=attachments,
         ctx=ctx,
         autoprint=request.args.get("print") == "1",
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -18092,35 +20734,6 @@ def accounts_payments():
         edit_role=wf_ctx.get("edit_role"),
         can_reopen=wf_ctx.get("can_reopen", False),
         approval_id=wf_ctx.get("approval_id"),
-    )
-
-
-@app.route("/accounts/payments/print/<int:voucher_id>")
-@login_required
-def accounts_payment_print(voucher_id):
-    db = get_db()
-    _prepare_accounts_db(db)
-    voucher = load_payment_voucher(db, voucher_id)
-    if not voucher:
-        flash("Payment voucher not found.")
-        return redirect(url_for("accounts_payments"))
-    _prepare_corporate_template_db(db)
-    ctx = _build_corporate_report_context(
-        db,
-        "payment_voucher",
-        document_number=voucher.get("voucher_number") or str(voucher_id),
-        project_name=voucher.get("project_name") or "",
-        project_id=str(voucher.get("project_id") or ""),
-        prepared_by=session.get("username", ""),
-        report_date=voucher.get("voucher_date"),
-        back_url=url_for("accounts_payments", view=voucher_id),
-        page_orientation="portrait",
-    )
-    return render_template(
-        "accounts_payment_voucher_print.html",
-        voucher=voucher,
-        ctx=ctx,
-        autoprint=request.args.get("print") == "1",
     )
 
 
@@ -18839,13 +21452,38 @@ def leave_request():
     page = _module_page_state(module_id, table, endpoint, record_sql)
     if page.get("redirect"):
         return redirect(page["redirect"])
+    staff_dropdown = list_active_employees_for_dropdown(db)
+    employee_options = [
+        {
+            "value": f"{row.get('employee_code') or ''} — {row.get('staff_name') or ''}".strip(" —"),
+            "label": f"{row.get('employee_code') or '—'} — {row.get('staff_name') or '—'}",
+        }
+        for row in staff_dropdown
+        if row.get("staff_name")
+    ]
     return render_template(
         "module_request.html",
         module_title="Leave Request",
         workflow=workflow,
         form_fields=[
-            {"name": "employee_name", "label": "Employee Name", "type": "text", "required": True},
-            {"name": "leave_type", "label": "Leave Type", "type": "text", "required": True},
+            {
+                "name": "employee_name",
+                "label": "Employee Name",
+                "type": "select",
+                "required": True,
+                "options": employee_options,
+            },
+            {
+                "name": "leave_type",
+                "label": "Leave Type",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "Full", "label": "Full"},
+                    {"value": "Half", "label": "Half"},
+                    {"value": "Hr", "label": "Hr"},
+                ],
+            },
             {"name": "from_date", "label": "From Date", "type": "date", "required": True},
             {"name": "to_date", "label": "To Date", "type": "date", "required": True},
             {"name": "days", "label": "Days", "type": "number", "required": True},
@@ -23101,24 +25739,175 @@ def sub_billing_abstract_print(bill_id):
         return redirect(url_for("sub_billing_register"))
     if not bill.get("declaration_text"):
         bill["declaration_text"] = DEFAULT_DECLARATION
-    _prepare_corporate_template_db(db)
-    ctx = _build_corporate_report_context(
-        db,
-        "subcontractor_bill_abstract",
-        document_number=bill.get("bill_number") or str(bill_id),
-        project_name=bill.get("project_name") or "",
-        project_id=str(bill.get("project_id") or ""),
-        prepared_by=session.get("username", ""),
-        report_date=bill.get("bill_date") or bill.get("period_to"),
-        back_url=url_for("sub_billing_form", view=bill["id"]),
-        page_orientation="portrait",
-    )
     return render_template(
         "sub_billing_abstract_print.html",
         bill=bill,
-        ctx=ctx,
         default_declaration=DEFAULT_DECLARATION,
         autoprint=request.args.get("print") == "1",
+    )
+
+
+# --- Enterprise Document Management (MODULE-010) ---
+
+
+def _document_management_filters():
+    archive = request.args.get("include_archived") == "1"
+    return {
+        "search": request.args.get("q", ""),
+        "folder_filter": request.args.get("folder_id", type=int),
+        "module_filter": request.args.get("module_name", ""),
+        "category_filter": request.args.get("category", ""),
+        "status_filter": request.args.get("status", ""),
+        "approval_filter": request.args.get("approval_status", ""),
+        "tag_filter": request.args.get("tag", ""),
+        "company_filter": request.args.get("company_id", type=int),
+        "date_from": request.args.get("date_from", ""),
+        "date_to": request.args.get("date_to", ""),
+        "include_archived": archive,
+        "archive_flag": 1 if archive else 0,
+        "show_advanced": request.args.get("advanced") == "1",
+        "page": request.args.get("page", 1, type=int),
+    }
+
+
+@app.route("/settings/document-management", methods=["GET", "POST"])
+@app.route("/documents", methods=["GET", "POST"])
+@login_required
+def document_management():
+    db = get_db()
+    _prepare_document_management_db(db)
+    user_id = session.get("user_id")
+    admin = is_admin_user()
+    if not user_can_document_management(db, user_id, "view", is_admin=admin):
+        flash("You do not have permission to view Document Management.")
+        return redirect(url_for("dashboard"))
+    filters = _document_management_filters()
+    username = session.get("username", "")
+
+    if request.method == "POST":
+        action = request.form.get("form_action", "").strip()
+        doc_id = request.form.get("document_id", type=int)
+        try:
+            if action == "approve_document" and doc_id:
+                if not user_can_document_management(db, user_id, "approve", is_admin=admin):
+                    flash("Permission denied.")
+                    return redirect(url_for("document_management", view_document=doc_id))
+                approve_document(db, doc_id, username)
+                db.commit()
+                flash("Document approved.")
+                return redirect(url_for("document_management", view_document=doc_id))
+            if action == "reject_document" and doc_id:
+                if not user_can_document_management(db, user_id, "approve", is_admin=admin):
+                    flash("Permission denied.")
+                    return redirect(url_for("document_management", view_document=doc_id))
+                reject_document(db, doc_id, username, request.form.get("reject_remarks", ""))
+                db.commit()
+                flash("Document rejected.")
+                return redirect(url_for("document_management", view_document=doc_id))
+            if action == "archive_document" and doc_id:
+                if not user_can_document_management(db, user_id, "archive", is_admin=admin):
+                    flash("Permission denied.")
+                    return redirect(url_for("document_management"))
+                archive_document(db, doc_id, username)
+                db.commit()
+                flash("Document archived.")
+                return redirect(url_for("document_management"))
+            if action == "restore_document" and doc_id:
+                if not user_can_document_management(db, user_id, "restore", is_admin=admin):
+                    flash("Permission denied.")
+                    return redirect(url_for("document_management"))
+                restore_document(db, doc_id, username, from_archive=True)
+                db.commit()
+                flash("Document restored.")
+                return redirect(url_for("document_management"))
+            if action == "delete_document" and doc_id:
+                if not user_can_document_management(db, user_id, "delete", is_admin=admin):
+                    flash("Permission denied.")
+                    return redirect(url_for("document_management"))
+                soft_delete_document(db, doc_id, username)
+                db.commit()
+                flash("Document deleted.")
+                return redirect(url_for("document_management"))
+            if action == "submit_document" and doc_id:
+                if not user_can_document_management(db, user_id, "upload", is_admin=admin):
+                    flash("Permission denied.")
+                    return redirect(url_for("document_management", view_document=doc_id))
+                submit_document_for_approval(db, doc_id, username)
+                db.commit()
+                flash("Submitted for approval.")
+                return redirect(url_for("document_management", view_document=doc_id))
+        except ValueError as exc:
+            db.rollback()
+            flash(str(exc))
+            return redirect(url_for("document_management"))
+
+    view_document = None
+    view_id = request.args.get("view_document", type=int)
+    if view_id:
+        view_document = get_dms_document(db, view_id)
+
+    edit_document = None
+    edit_id = request.args.get("edit_document", type=int)
+    if edit_id:
+        edit_document = get_dms_document(db, edit_id)
+
+    listing = list_dms_documents(
+        db,
+        search=filters["search"],
+        folder_id=filters["folder_filter"],
+        module_name=filters["module_filter"],
+        category=filters["category_filter"],
+        status=filters["status_filter"],
+        approval_status=filters["approval_filter"],
+        tag=filters["tag_filter"],
+        company_id=filters["company_filter"],
+        date_from=filters["date_from"],
+        date_to=filters["date_to"],
+        include_archived=filters["include_archived"],
+        page=filters["page"],
+        per_page=25,
+    )
+
+    companies = list_companies(db, per_page=200).get("items", [])
+
+    return render_template(
+        "document_management.html",
+        documents=listing["items"],
+        pagination=listing,
+        folder_tree=dms_folder_tree(db),
+        folders_flat=list_dms_folders(db),
+        categories=DOCUMENT_CATEGORIES,
+        document_statuses=DMS_DOCUMENT_STATUSES,
+        approval_statuses=DMS_APPROVAL_STATUSES,
+        view_document=view_document,
+        edit_document=edit_document,
+        show_upload=bool(request.args.get("new")),
+        show_advanced=filters["show_advanced"],
+        search=filters["search"],
+        folder_filter=filters["folder_filter"],
+        module_filter=filters["module_filter"],
+        category_filter=filters["category_filter"],
+        status_filter=filters["status_filter"],
+        approval_filter=filters["approval_filter"],
+        tag_filter=filters["tag_filter"],
+        company_filter=filters["company_filter"],
+        date_from=filters["date_from"],
+        date_to=filters["date_to"],
+        include_archived=filters["include_archived"],
+        dms_permissions={
+            "view": user_can_document_management(db, user_id, "view", is_admin=admin),
+            "upload": user_can_document_management(db, user_id, "upload", is_admin=admin),
+            "download": user_can_document_management(db, user_id, "download", is_admin=admin),
+            "edit": user_can_document_management(db, user_id, "edit", is_admin=admin),
+            "approve": user_can_document_management(db, user_id, "approve", is_admin=admin),
+            "archive": user_can_document_management(db, user_id, "archive", is_admin=admin),
+            "restore": user_can_document_management(db, user_id, "restore", is_admin=admin),
+            "share": user_can_document_management(db, user_id, "share", is_admin=admin),
+            "delete": user_can_document_management(db, user_id, "delete", is_admin=admin),
+            "export": user_can_document_management(db, user_id, "export", is_admin=admin),
+            "import": user_can_document_management(db, user_id, "import", is_admin=admin),
+        },
+        audit_trail=list_document_audit_trail(db, view_id) if view_id else [],
     )
 
 
@@ -23397,6 +26186,163 @@ if register_bulk_import_routes is not None:
         generate_client_code=generate_client_code,
         create_approval_request=create_approval_request,
         record_pending_checker=RECORD_PENDING_CHECKER,
+    )
+
+if register_company_master_routes is not None:
+    register_company_master_routes(
+        app,
+        login_required=login_required,
+        admin_required=admin_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_branch_master_routes is not None:
+    register_branch_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_department_master_routes is not None:
+    register_department_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_user_management_routes is not None:
+    register_user_management_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+        is_customer_admin_user=is_customer_admin_user,
+        assert_user_limit_fn=assert_user_limit_not_exceeded,
+        base_dir=BASE_DIR,
+    )
+
+if register_designation_master_routes is not None:
+    register_designation_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_vendor_master_routes is not None:
+    register_vendor_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_client_master_routes is not None:
+    register_client_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_employee_master_routes is not None:
+    register_employee_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_project_master_routes is not None:
+    register_project_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_subcontractor_master_routes is not None:
+    register_subcontractor_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_worker_master_routes is not None:
+    register_worker_master_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+        base_dir=BASE_DIR,
+    )
+
+if register_boq_management_routes is not None:
+    register_boq_management_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+        boq_units=BOQ_UNITS,
+        create_approval_request=create_approval_request,
+        record_pending_checker=RECORD_PENDING_CHECKER,
+    )
+
+if register_workflow_engine_routes is not None:
+    register_workflow_engine_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+    )
+
+if register_roles_permissions_routes is not None:
+    register_roles_permissions_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+        is_super_admin_user=is_super_admin_user,
+    )
+
+if register_enterprise_dashboard_routes is not None:
+    register_enterprise_dashboard_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+        is_super_admin_user=is_super_admin_user,
+    )
+
+if register_ai_core_routes is not None:
+    register_ai_core_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+        is_super_admin_user=is_super_admin_user,
+    )
+
+if register_document_management_routes is not None:
+    register_document_management_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+        dest_root=DOCUMENT_DMS_DIR,
+    )
+
+if register_notification_routes is not None:
+    register_notification_routes(
+        app,
+        login_required=login_required,
+        get_db=get_db,
+        is_admin_user=is_admin_user,
+        is_super_admin_user=is_super_admin_user,
     )
 
 if register_data_import_routes is not None:

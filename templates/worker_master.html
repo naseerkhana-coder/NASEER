@@ -1,0 +1,338 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Worker Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Worker Master' %}
+{% block page_actions %}
+{% if worker_permissions.create %}
+<a href="{{ url_for('worker_master', new=1) }}#worker-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Worker</a>
+{% endif %}
+{% if worker_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="worker-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if worker_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/worker-master/export?format=xlsx{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/worker-master/export?format=csv{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/worker-master/export?format=pdf{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('workers') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-hard-hat"></i> Legacy Workers</a>
+<a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Construction labour registry (company workers and subcontractor workers). Not company staff — use
+  <a href="{{ url_for('employee_master') }}">Employee Master</a> for HR/payroll staff.
+  Documents attach via <a href="{{ url_for('document_management') }}">Document Management</a> (module: worker_master).
+</p>
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search workers...',
+    search_name='q',
+    export_name='workers',
+    print_target='#worker-records',
+    form_panel_id='worker-form',
+    table_panel_id='worker-records',
+    new_url=url_for('worker_master', new=1) ~ '#worker-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="worker-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Workers ({{ worker_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in worker_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <select name="worker_type" onchange="this.form.submit()">
+          <option value="">All types</option>
+          {% for wt in worker_types %}
+          <option value="{{ wt }}" {% if type_filter == wt %}selected{% endif %}>{{ wt }}</option>
+          {% endfor %}
+        </select>
+        <select name="trade" onchange="this.form.submit()">
+          <option value="">All trades</option>
+          {% for t in trade_options %}
+          <option value="{{ t }}" {% if trade_filter == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Trade</th>
+            <th>Project</th>
+            <th>Subcontractor</th>
+            <th>Mobile</th>
+            <th>Status</th>
+            <th>Approval</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in workers %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
+            <td>{{ row.worker_code or '—' }}</td>
+            <td>{{ row.worker_name }}</td>
+            <td>{{ row.worker_type or '—' }}</td>
+            <td>{{ row.trade or '—' }}</td>
+            <td>{{ row.project_code or '—' }}</td>
+            <td>{{ row.subcontractor_name or '—' }}</td>
+            <td>{{ row.mobile or '—' }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>{{ row.approval_status or 'Draft' }}</td>
+            <td>
+              <a href="{{ url_for('worker_master', worker_id=row.id, view=1) }}#worker-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if worker_permissions.edit %}
+              <a href="{{ url_for('worker_master', worker_id=row.id) }}#worker-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10">No workers registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if worker_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, worker_pagination.pages + 1) %}
+      <a href="{{ url_for('worker_master', q=search, status=status_filter, worker_type=type_filter, trade=trade_filter, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == worker_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_worker_form %}
+  <div class="erp-form-card" id="worker-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and selected_worker %}View {{ selected_worker.worker_code }}
+      {% elif selected_worker %}Edit {{ selected_worker.worker_code }}
+      {% else %}New Worker{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid" enctype="multipart/form-data" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_worker">
+      {% if selected_worker %}<input type="hidden" name="worker_id" value="{{ selected_worker.id }}">{% endif %}
+
+      <div class="erp-field"><input name="worker_code" placeholder=" " value="{{ selected_worker.worker_code if selected_worker else next_worker_code }}" {% if view_mode %}readonly{% endif %}><label>Worker Code</label></div>
+      <div class="erp-field"><input name="worker_name" required placeholder=" " value="{{ selected_worker.worker_name if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Worker Name *</label></div>
+      <div class="erp-field">
+        <select name="worker_type" id="worker-type-select" class="has-value" required {% if view_mode %}disabled{% endif %}>
+          {% for wt in worker_types %}
+          <option value="{{ wt }}" {% if selected_worker and selected_worker.worker_type == wt %}selected{% elif not selected_worker and wt == 'Company Worker' %}selected{% endif %}>{{ wt }}</option>
+          {% endfor %}
+        </select>
+        <label>Worker Type *</label>
+      </div>
+      <div class="erp-field">
+        <select name="company_id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Company —</option>
+          {% for c in company_options %}
+          <option value="{{ c.id }}" {% if selected_worker and selected_worker.company_id == c.id %}selected{% endif %}>{{ c.company_code }} — {{ c.company_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Company</label>
+      </div>
+      <div class="erp-field" id="subcontractor-field">
+        <select name="subcontractor_id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Subcontractor —</option>
+          {% for s in subcontractor_options %}
+          <option value="{{ s.id }}" {% if selected_worker and selected_worker.subcontractor_id == s.id %}selected{% endif %}>{{ s.subcontractor_code }} — {{ s.subcontractor_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Subcontractor</label>
+      </div>
+      <div class="erp-field">
+        <select name="trade" class="has-value" required {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select trade —</option>
+          {% for t in trade_options %}
+          <option value="{{ t }}" {% if selected_worker and selected_worker.trade == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <label>Trade *</label>
+      </div>
+      <div class="erp-field"><input name="skill" placeholder=" " value="{{ selected_worker.skill if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Skill</label></div>
+      <div class="erp-field"><input name="designation" placeholder=" " value="{{ selected_worker.designation if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Designation</label></div>
+      <div class="erp-field">
+        <select name="project_id" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Project —</option>
+          {% for p in project_options %}
+          <option value="{{ p.id }}" {% if selected_worker and selected_worker.project_id == p.id %}selected{% endif %}>{{ p.project_code }} — {{ p.project_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Current Project</label>
+      </div>
+      <div class="erp-field"><input name="assignment_start_date" type="date" placeholder=" " value="{{ selected_worker.joining_date if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Assignment Start</label></div>
+      <div class="erp-field" style="display:flex;align-items:center;padding-top:1.25rem;">
+        <label><input type="checkbox" name="allow_multi_project" value="1" {% if selected_worker and selected_worker.allow_multi_project %}checked{% endif %} {% if view_mode %}disabled{% endif %}> Allow multiple active projects</label>
+      </div>
+      <div class="erp-field"><input name="mobile" placeholder=" " value="{{ selected_worker.mobile if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Mobile</label></div>
+      <div class="erp-field"><input name="aadhaar_number" placeholder=" " value="{{ selected_worker.aadhaar_number if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Aadhaar</label></div>
+      <div class="erp-field"><input name="pan_number" placeholder=" " value="{{ selected_worker.pan_number if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>PAN</label></div>
+      <div class="erp-field"><input name="joining_date" type="date" placeholder=" " value="{{ selected_worker.joining_date if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Joining Date</label></div>
+      <div class="erp-field">
+        <select name="salary_type" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for st in salary_types %}
+          <option value="{{ st }}" {% if selected_worker and selected_worker.salary_type == st %}selected{% elif not selected_worker and st == 'Daily' %}selected{% endif %}>{{ st }}</option>
+          {% endfor %}
+        </select>
+        <label>Salary / Wage Type</label>
+      </div>
+      <div class="erp-field"><input name="salary_amount" type="number" step="0.01" placeholder=" " value="{{ selected_worker.salary_amount if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Wage Amount</label></div>
+      <div class="erp-field">
+        <select name="ot_applicable" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="Yes" {% if selected_worker and selected_worker.ot_applicable == 'Yes' %}selected{% endif %}>Yes</option>
+          <option value="No" {% if not selected_worker or selected_worker.ot_applicable != 'Yes' %}selected{% endif %}>No</option>
+        </select>
+        <label>OT Applicable</label>
+      </div>
+      <div class="erp-field"><input name="ot_rate" type="number" step="0.01" placeholder=" " value="{{ selected_worker.ot_rate if selected_worker and selected_worker.ot_rate is not none else '' }}" {% if view_mode %}readonly{% endif %}><label>OT Rate</label></div>
+      <div class="erp-field"><input name="working_hours" type="number" step="0.5" placeholder=" " value="{{ selected_worker.working_hours if selected_worker else '8' }}" {% if view_mode %}readonly{% endif %}><label>Working Hours</label></div>
+      <div class="erp-field">
+        <select name="attendance_mode" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for am in attendance_modes %}
+          <option value="{{ am }}" {% if selected_worker and selected_worker.attendance_mode == am %}selected{% elif not selected_worker and am == 'Manual' %}selected{% endif %}>{{ am }}</option>
+          {% endfor %}
+        </select>
+        <label>Attendance Mode (config)</label>
+      </div>
+      <div class="erp-field"><input name="attendance_grace_minutes" type="number" placeholder=" " value="{{ selected_worker.attendance_grace_minutes if selected_worker else '0' }}" {% if view_mode %}readonly{% endif %}><label>Grace Minutes</label></div>
+      <div class="erp-field" style="display:flex;align-items:center;padding-top:1.25rem;">
+        <label><input type="checkbox" name="attendance_required" value="1" {% if not selected_worker or selected_worker.attendance_required %}checked{% endif %} {% if view_mode %}disabled{% endif %}> Attendance Required</label>
+      </div>
+      <div class="erp-field"><input name="bank_account" placeholder=" " value="{{ selected_worker.bank_account if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Bank Account</label></div>
+      <div class="erp-field"><input name="bank_name" placeholder=" " value="{{ selected_worker.bank_name if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Bank Name</label></div>
+      <div class="erp-field"><input name="ifsc_code" placeholder=" " value="{{ selected_worker.ifsc_code if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>IFSC</label></div>
+      <div class="erp-field"><input name="emergency_contact_name" placeholder=" " value="{{ selected_worker.emergency_contact_name if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Emergency Contact</label></div>
+      <div class="erp-field"><input name="emergency_contact_mobile" placeholder=" " value="{{ selected_worker.emergency_contact_mobile if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Emergency Mobile</label></div>
+      <div class="erp-field"><input name="medical_checkup_date" type="date" placeholder=" " value="{{ selected_worker.medical_checkup_date if selected_worker else '' }}" {% if view_mode %}readonly{% endif %}><label>Medical Checkup</label></div>
+      <div class="erp-field">
+        <select name="medical_fitness_status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">—</option>
+          {% for mf in medical_fitness_options %}
+          <option value="{{ mf }}" {% if selected_worker and selected_worker.medical_fitness_status == mf %}selected{% endif %}>{{ mf }}</option>
+          {% endfor %}
+        </select>
+        <label>Medical Fitness</label>
+      </div>
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in worker_statuses %}
+          <option value="{{ s }}" {% if selected_worker and selected_worker.status == s %}selected{% elif not selected_worker and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status</label>
+      </div>
+      <div class="erp-field span-2"><textarea name="remarks" placeholder=" " rows="2" {% if view_mode %}readonly{% endif %}>{{ selected_worker.remarks if selected_worker else '' }}</textarea><label>Remarks</label></div>
+
+      {% if not view_mode %}
+      <div class="erp-field"><input type="file" name="photo" accept="image/*"><label>Photo</label></div>
+      <div class="erp-field"><input type="file" name="id_proof" accept=".pdf,.jpg,.jpeg,.png"><label>ID Proof</label></div>
+      {% endif %}
+
+      {% if selected_worker and selected_worker.project_assignments %}
+      <div class="erp-field span-2">
+        <label class="erp-field-label">Project Assignment History</label>
+        <table class="erp-table erp-table-compact">
+          <thead><tr><th>Project</th><th>Start</th><th>End</th><th>Active</th></tr></thead>
+          <tbody>
+            {% for a in selected_worker.project_assignments %}
+            <tr>
+              <td>{{ a.project_code or a.project_id }} — {{ a.project_name or '' }}</td>
+              <td>{{ a.start_date or '—' }}</td>
+              <td>{{ a.end_date or '—' }}</td>
+              <td>{{ 'Yes' if a.is_active else 'No' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if not view_mode and selected_worker %}
+      <div class="erp-field span-2">
+        <label class="erp-field-label">Face Registration (stores template ref only)</label>
+        <input type="file" name="face_image" id="worker-face-image" accept="image/*" capture="environment">
+        <button type="button" class="erp-btn erp-btn-ghost erp-btn-sm" id="worker-face-register-btn" style="margin-top:0.5rem;">Register Face Template</button>
+        <span id="worker-face-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+      </div>
+      <div class="erp-field span-2">
+        <label class="erp-field-label">Attach Document (DMS)</label>
+        <input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx">
+      </div>
+      {% endif %}
+
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        {% if worker_permissions.edit or worker_permissions.create %}
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Worker</button>
+        {% endif %}
+        {% if selected_worker %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="worker-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        <span id="worker-ai-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+        {% endif %}
+        {% if selected_worker and worker_permissions.approve and selected_worker.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_worker" class="erp-btn erp-btn-ghost">Approve</button>
+        <button type="submit" name="form_action" value="reject_worker" class="erp-btn erp-btn-ghost" onclick="return confirm('Reject this worker?');">Reject</button>
+        {% endif %}
+        {% if selected_worker and worker_permissions.activate and selected_worker.status == 'Inactive' %}
+        <button type="submit" name="form_action" value="activate_worker" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if selected_worker and worker_permissions.deactivate and selected_worker.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_worker" class="erp-btn erp-btn-ghost" onclick="return confirm('Deactivate this worker?');">Deactivate</button>
+        {% endif %}
+        {% if selected_worker and worker_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_worker" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this worker?');">Delete</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+
+    {% if selected_worker and audit_trail %}
+    <div class="erp-form-section" style="margin-top:1.5rem;">
+      <h4>Audit Trail</h4>
+      <ul class="erp-audit-list">
+        {% for ev in audit_trail[:20] %}
+        <li><strong>{{ ev.action }}</strong> — {{ ev.changed_by }} @ {{ ev.changed_at }}{% if ev.field_name %}: {{ ev.field_name }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div id="worker-import-modal" class="erp-modal" hidden style="display:none;">
+  <div class="erp-modal-card">
+    <h3>Import Workers</h3>
+    <p><a href="/api/worker-master/import/template">Download template</a></p>
+    <input type="file" id="worker-import-file" accept=".xlsx,.xls,.csv">
+    <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="worker-import-run">Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="worker-import-close">Close</button>
+    </div>
+    <p id="worker-import-status" style="margin-top:0.75rem;font-size:0.85rem;"></p>
+  </div>
+</div>
+
+<script>
+  window.WORKER_MASTER_BOOT = {
+    workerId: {{ selected_worker.id if selected_worker else 'null' }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/worker-master.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,287 @@
+{% extends 'base_maxek.html' %}
+{% from 'macros/erp_ui.html' import erp_module_toolbar %}
+{% set page_title = 'Branch Master' %}
+{% set breadcrumbs = '<a href="' ~ url_for('dashboard') ~ '">Home</a> &gt; <a href="' ~ url_for('settings') ~ '">Settings</a> &gt; Branch Master' %}
+{% block page_actions %}
+{% if branch_permissions.create %}
+<a href="{{ url_for('branch_master', new=1) }}#branch-form" class="erp-btn erp-btn-primary"><i class="fa-solid fa-plus"></i> New Branch</a>
+{% endif %}
+{% if branch_permissions.import %}
+<button type="button" class="erp-btn erp-btn-ghost" id="branch-import-btn"><i class="fa-solid fa-file-import"></i> Import</button>
+{% endif %}
+{% if branch_permissions.export %}
+<div class="erp-btn-group" style="display:inline-flex;gap:0.25rem;">
+  <a href="/api/branch-master/export?format=xlsx{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">Excel</a>
+  <a href="/api/branch-master/export?format=csv{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">CSV</a>
+  <a href="/api/branch-master/export?format=pdf{% if company_filter %}&company_id={{ company_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="erp-btn erp-btn-ghost erp-btn-sm">PDF</a>
+</div>
+{% endif %}
+<a href="{{ url_for('settings') }}" class="erp-btn erp-btn-ghost"><i class="fa-solid fa-gear"></i> Settings</a>
+{% endblock %}
+{% block content %}
+<p class="erp-form-section-help" style="margin-bottom:1rem;">
+  Manage company branches — registration, GST/PAN, addresses, managers, and operational status.
+  Each branch belongs to one company from <a href="{{ url_for('company_master') }}">Company Master</a>.
+</p>
+
+<div class="erp-module-layout">
+  {{ erp_module_toolbar(
+    mode='standard',
+    search_placeholder='Search branches...',
+    search_name='q',
+    export_name='branches',
+    print_target='#branch-records',
+    form_panel_id='branch-form',
+    table_panel_id='branch-records',
+    new_url=url_for('branch_master', new=1) ~ '#branch-form',
+    settings_url=url_for('settings'),
+  ) }}
+
+  <div class="erp-table-panel" id="branch-records" data-erp-table style="margin-bottom:1rem;">
+    <div class="erp-table-toolbar">
+      <h3 class="erp-table-title">Branches ({{ branch_pagination.total }})</h3>
+      <form method="get" class="erp-table-controls" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input name="q" value="{{ search }}" placeholder="Search…" style="max-width:180px;">
+        <select name="company_id" onchange="this.form.submit()">
+          <option value="">All companies</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name or co.legal_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="country" onchange="this.form.submit()">
+          <option value="">All countries</option>
+          {% for c in branch_countries %}
+          <option value="{{ c }}" {% if country_filter == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All statuses</option>
+          {% for s in branch_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <select name="branch_type" onchange="this.form.submit()">
+          <option value="">All types</option>
+          {% for t in branch_types %}
+          <option value="{{ t }}" {% if branch_type_filter == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <label style="font-size:0.85rem;"><input type="checkbox" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %} onchange="this.form.submit()"> Include deleted</label>
+        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+        <button type="submit" class="erp-btn erp-btn-ghost erp-btn-sm">Filter</button>
+      </form>
+    </div>
+    <div class="erp-table-scroll">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th><a href="{{ url_for('branch_master', q=search, company_id=company_filter, country=country_filter, status=status_filter, branch_type=branch_type_filter, sort_by='branch_code', sort_dir='desc' if sort_by == 'branch_code' and sort_dir == 'asc' else 'asc') }}">Code</a></th>
+            <th><a href="{{ url_for('branch_master', q=search, company_id=company_filter, country=country_filter, status=status_filter, branch_type=branch_type_filter, sort_by='branch_name', sort_dir='desc' if sort_by == 'branch_name' and sort_dir == 'asc' else 'asc') }}">Branch Name</a></th>
+            <th>Company</th>
+            <th>Type</th>
+            <th>City</th>
+            <th>Country</th>
+            <th>Status</th>
+            <th>Approval</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in branches %}
+          <tr {% if row.is_deleted %}class="erp-row-muted"{% endif %}>
+            <td>{{ row.branch_code or '—' }}</td>
+            <td>{{ row.branch_name }}</td>
+            <td>{{ row.company_code or '—' }}</td>
+            <td>{{ row.branch_type or '—' }}</td>
+            <td>{{ row.city or '—' }}</td>
+            <td>{{ row.country or '—' }}</td>
+            <td>{{ row.status or '—' }}</td>
+            <td>{{ row.approval_status or 'Draft' }}</td>
+            <td>
+              <a href="{{ url_for('branch_master', branch_id=row.id, view=1) }}#branch-form" class="erp-btn erp-btn-ghost erp-btn-sm">View</a>
+              {% if branch_permissions.edit %}
+              <a href="{{ url_for('branch_master', branch_id=row.id) }}#branch-form" class="erp-btn erp-btn-ghost erp-btn-sm">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">No branches registered yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if branch_pagination.pages > 1 %}
+    <div class="erp-pagination" style="padding:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      {% for p in range(1, branch_pagination.pages + 1) %}
+      <a href="{{ url_for('branch_master', q=search, company_id=company_filter, country=country_filter, status=status_filter, branch_type=branch_type_filter, sort_by=sort_by, sort_dir=sort_dir, page=p, include_deleted=1 if include_deleted else None) }}"
+         class="erp-btn erp-btn-ghost erp-btn-sm {% if p == branch_pagination.page %}is-active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if show_branch_form %}
+  <div class="erp-form-card" id="branch-form">
+    <h3 class="erp-form-title">
+      {% if view_mode and selected_branch %}View {{ selected_branch.branch_code }}
+      {% elif selected_branch %}Edit {{ selected_branch.branch_code }}
+      {% else %}New Branch{% endif %}
+    </h3>
+    <form method="post" class="erp-form-grid" {% if view_mode %}data-readonly-form{% endif %}>
+      <input type="hidden" name="form_action" value="save_branch">
+      {% if selected_branch %}<input type="hidden" name="branch_id" value="{{ selected_branch.id }}">{% endif %}
+      <div class="erp-field">
+        <select name="company_id" required class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select Company —</option>
+          {% for co in companies %}
+          <option value="{{ co.id }}" {% if selected_branch and selected_branch.company_id == co.id %}selected{% elif not selected_branch and company_filter == co.id %}selected{% endif %}>{{ co.company_code }} — {{ co.company_name or co.legal_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Company *</label>
+      </div>
+      <div class="erp-field"><input name="branch_code" placeholder=" " value="{{ selected_branch.branch_code if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Branch Code{% if not selected_branch %} (auto if blank){% endif %}</label></div>
+      <div class="erp-field"><input name="branch_name" required placeholder=" " value="{{ selected_branch.branch_name if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Branch Name *</label></div>
+      <div class="erp-field">
+        <select name="branch_type" class="has-value" {% if view_mode %}disabled{% endif %}>
+          <option value="">— Select —</option>
+          {% for t in branch_types %}
+          <option value="{{ t }}" {% if selected_branch and selected_branch.branch_type == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <label>Branch Type</label>
+      </div>
+      <div class="erp-field">
+        <select name="status" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for s in branch_statuses %}
+          <option value="{{ s }}" {% if selected_branch and selected_branch.status == s %}selected{% elif not selected_branch and s == 'Active' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <label>Status</label>
+      </div>
+      <div class="erp-field"><input name="gst_number" placeholder=" " value="{{ selected_branch.gst_number if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>GST Registration Number</label></div>
+      <div class="erp-field"><input name="pan_number" placeholder=" " value="{{ selected_branch.pan_number if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>PAN Number</label></div>
+      <div class="erp-field span-2"><input name="address_line1" placeholder=" " value="{{ selected_branch.address_line1 if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Address Line 1</label></div>
+      <div class="erp-field span-2"><input name="address_line2" placeholder=" " value="{{ selected_branch.address_line2 if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Address Line 2</label></div>
+      <div class="erp-field">
+        <select name="country" id="branch-country" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for c in branch_countries %}
+          <option value="{{ c }}" {% if selected_branch and selected_branch.country == c %}selected{% elif not selected_branch and c == 'India' %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+        <label>Country *</label>
+      </div>
+      <div class="erp-field"><input name="state_region" placeholder=" " value="{{ selected_branch.state_region if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>State</label></div>
+      <div class="erp-field"><input name="district" placeholder=" " value="{{ selected_branch.district if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>District</label></div>
+      <div class="erp-field"><input name="city" placeholder=" " value="{{ selected_branch.city if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>City</label></div>
+      <div class="erp-field"><input name="postal_code" placeholder=" " value="{{ selected_branch.postal_code if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>PIN Code</label></div>
+      <div class="erp-field"><input name="latitude" type="number" step="any" placeholder=" " value="{{ selected_branch.latitude if selected_branch and selected_branch.latitude is not none else '' }}" {% if view_mode %}readonly{% endif %}><label>Latitude</label></div>
+      <div class="erp-field"><input name="longitude" type="number" step="any" placeholder=" " value="{{ selected_branch.longitude if selected_branch and selected_branch.longitude is not none else '' }}" {% if view_mode %}readonly{% endif %}><label>Longitude</label></div>
+      <div class="erp-field"><input name="phone" placeholder=" " value="{{ selected_branch.phone if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Phone</label></div>
+      <div class="erp-field"><input name="email" type="email" placeholder=" " value="{{ selected_branch.email if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Email</label></div>
+      <div class="erp-field"><input name="branch_manager" placeholder=" " value="{{ selected_branch.branch_manager if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Branch Manager</label></div>
+      <div class="erp-field"><input name="opening_date" type="date" value="{{ selected_branch.opening_date if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Opening Date</label></div>
+      <div class="erp-field"><input name="closing_date" type="date" value="{{ selected_branch.closing_date if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Closing Date</label></div>
+      <div class="erp-field"><input name="working_hours" placeholder=" " value="{{ selected_branch.working_hours if selected_branch else '' }}" {% if view_mode %}readonly{% endif %}><label>Working Hours</label></div>
+      <div class="erp-field">
+        <select name="currency" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for cur in company_currencies %}
+          <option value="{{ cur }}" {% if selected_branch and selected_branch.currency == cur %}selected{% elif not selected_branch and cur == 'INR' %}selected{% endif %}>{{ cur }}</option>
+          {% endfor %}
+        </select>
+        <label>Currency</label>
+      </div>
+      <div class="erp-field">
+        <select name="timezone" class="has-value" {% if view_mode %}disabled{% endif %}>
+          {% for tz in company_timezones %}
+          <option value="{{ tz }}" {% if selected_branch and selected_branch.timezone == tz %}selected{% elif not selected_branch and tz == 'Asia/Kolkata' %}selected{% endif %}>{{ tz }}</option>
+          {% endfor %}
+        </select>
+        <label>Timezone</label>
+      </div>
+      <div class="erp-field"><label style="position:static;"><input type="checkbox" name="is_head_office" {% if selected_branch and selected_branch.is_head_office %}checked{% endif %} {% if view_mode %}disabled{% endif %}> Head Office</label></div>
+      {% if not view_mode %}
+      <div class="erp-form-actions span-2">
+        {% if branch_permissions.edit or branch_permissions.create %}
+        <button type="submit" class="erp-btn erp-btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Branch</button>
+        {% endif %}
+        {% if selected_branch %}
+        <button type="button" class="erp-btn erp-btn-ghost" id="branch-ai-validate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Validate</button>
+        <span id="branch-ai-status" style="font-size:0.85rem;margin-left:0.5rem;"></span>
+        {% endif %}
+        {% if selected_branch and branch_permissions.approve and selected_branch.approval_status != 'Approved' %}
+        <button type="submit" name="form_action" value="approve_branch" class="erp-btn erp-btn-ghost">Approve</button>
+        <button type="submit" name="form_action" value="reject_branch" class="erp-btn erp-btn-ghost" onclick="return confirm('Reject this branch?');">Reject</button>
+        {% endif %}
+        {% if selected_branch and branch_permissions.activate and selected_branch.status == 'Inactive' %}
+        <button type="submit" name="form_action" value="activate_branch" class="erp-btn erp-btn-ghost">Activate</button>
+        {% endif %}
+        {% if selected_branch and branch_permissions.deactivate and selected_branch.status == 'Active' %}
+        <button type="submit" name="form_action" value="deactivate_branch" class="erp-btn erp-btn-ghost" onclick="return confirm('Deactivate this branch? It will not allow new transactions.');">Deactivate</button>
+        {% endif %}
+        {% if selected_branch and branch_permissions.delete %}
+        <button type="submit" name="form_action" value="delete_branch" class="erp-btn erp-btn-ghost" onclick="return confirm('Soft-delete this branch?');">Delete</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </form>
+    {% if selected_branch and audit_trail %}
+    <div style="margin-top:1rem;">
+      <h4>Audit Trail</h4>
+      <table class="erp-table erp-table-compact">
+        <thead><tr><th>When</th><th>By</th><th>Action</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+        <tbody>
+          {% for entry in audit_trail %}
+          <tr>
+            <td>{{ entry.changed_at }}</td>
+            <td>{{ entry.changed_by }}</td>
+            <td>{{ entry.action }}</td>
+            <td>{{ entry.field_name or '—' }}</td>
+            <td>{{ entry.old_value or '—' }}</td>
+            <td>{{ entry.new_value or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if branch_permissions.view %}
+  <div class="erp-form-card" style="margin-top:1rem;">
+    <h3 class="erp-form-title">Reports</h3>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <a href="/api/branch-master/reports/master" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Branch Master (JSON)</a>
+      <a href="/api/branch-master/reports/active" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Active Branches</a>
+      <a href="/api/branch-master/reports/inactive" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Inactive Branches</a>
+      <a href="/api/branch-master/reports/directory" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Branch Directory</a>
+      <a href="/api/branch-master/reports/company_wise" class="erp-btn erp-btn-ghost erp-btn-sm" target="_blank" rel="noopener">Branch-wise Company Report</a>
+      <a href="/api/branch-master/export?format=pdf&report=active" class="erp-btn erp-btn-ghost erp-btn-sm">Active Branches PDF</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if branch_permissions.import %}
+<div id="branch-import-modal" hidden style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <div class="erp-form-card" style="max-width:480px;width:90%;">
+    <h3 class="erp-form-title">Import Branches</h3>
+    <p class="erp-form-section-help"><a href="/api/branch-master/import/template">Download Excel template</a></p>
+    <input type="file" id="branch-import-file" accept=".xlsx,.xls,.csv">
+    <div id="branch-import-status" style="margin-top:0.75rem;font-size:0.9rem;"></div>
+    <div class="erp-form-actions" style="margin-top:1rem;">
+      <button type="button" class="erp-btn erp-btn-primary" id="branch-import-run">Validate &amp; Import</button>
+      <button type="button" class="erp-btn erp-btn-ghost" id="branch-import-close">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+window.BRANCH_MASTER_BOOT = {
+  branchId: {{ selected_branch.id if selected_branch else 'null' }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/branch-master.js') }}"></script>
+{% endblock %}

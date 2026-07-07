@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import re
 from datetime import date, datetime
+from io import BytesIO
 from typing import Any
 
 COMPANY_COUNTRIES = (
@@ -19,6 +22,61 @@ COMPANY_COUNTRIES = (
 )
 GCC_CONFIGURABLE_COUNTRIES = ("Qatar", "Oman", "Bahrain", "Kuwait", "Other")
 COMPANY_STATUSES = ("Active", "Inactive")
+COMPANY_TYPES = (
+    "Private Limited",
+    "Public Limited",
+    "LLP",
+    "Partnership",
+    "Proprietorship",
+    "Government",
+    "Other",
+)
+COMPANY_CURRENCIES = ("INR", "USD", "AED", "SAR", "QAR", "OMR", "BHD", "KWD", "EUR", "GBP")
+FINANCIAL_YEARS = ("April-March", "January-December")
+COMPANY_LANGUAGES = ("en", "hi", "ar")
+COMPANY_TIMEZONES = (
+    "Asia/Kolkata",
+    "Asia/Dubai",
+    "Asia/Riyadh",
+    "Asia/Qatar",
+    "Asia/Muscat",
+    "Asia/Bahrain",
+    "Asia/Kuwait",
+    "UTC",
+)
+APPROVAL_STATUSES = ("Draft", "Pending", "Approved", "Rejected")
+COMPANY_MASTER_SORT_COLUMNS = (
+    "company_code",
+    "legal_name",
+    "company_name",
+    "country",
+    "status",
+    "created_at",
+)
+COMPANY_EXPORT_COLUMNS = (
+    "company_code",
+    "company_name",
+    "legal_name",
+    "company_type",
+    "gst_number",
+    "pan_number",
+    "tan_number",
+    "cin_number",
+    "country",
+    "state_region",
+    "district",
+    "city",
+    "postal_code",
+    "phone",
+    "email",
+    "website",
+    "currency",
+    "financial_year",
+    "timezone",
+    "language",
+    "status",
+    "approval_status",
+)
 DIRECTOR_TYPES = ("Director", "Partner", "Proprietor", "Shareholder", "Authorized Signatory")
 COMPANY_DOC_TYPES = (
     "Trade License",
@@ -38,6 +96,16 @@ COMPANY_DOC_TYPES = (
 EXPIRY_ALERT_DAYS = (90, 60, 30, 7)
 MAX_COMPANY_UPLOAD_BYTES = 10 * 1024 * 1024
 COMPANY_ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx", ".xls", ".xlsx"}
+COMPANY_LOGO_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".svg"}
+
+EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+PHONE_RE = re.compile(r"^[\d\s+\-().]{7,20}$")
+WEBSITE_RE = re.compile(
+    r"^(https?://)?([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,}(/.*)?$",
+    re.I,
+)
+GSTIN_RE = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", re.I)
+PAN_RE = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$", re.I)
 
 INDIA_FIELD_DEFS = [
     ("pan", "PAN", "text", 1),
@@ -262,16 +330,35 @@ def ensure_company_master_schema(db) -> None:
     """)
     for col, ctype in (
         ("company_code", "TEXT"), ("legal_name", "TEXT"), ("trade_name", "TEXT"),
+        ("company_name", "TEXT"), ("company_type", "TEXT"),
         ("country", "TEXT"), ("status", "TEXT DEFAULT 'Active'"),
         ("address_line1", "TEXT"), ("address_line2", "TEXT"), ("city", "TEXT"),
-        ("state_region", "TEXT"), ("postal_code", "TEXT"), ("phone", "TEXT"),
-        ("email", "TEXT"), ("website", "TEXT"), ("country_fields_json", "TEXT"),
-        ("created_by", "TEXT"), ("created_at", "TEXT"), ("modified_at", "TEXT"),
+        ("state_region", "TEXT"), ("district", "TEXT"), ("postal_code", "TEXT"),
+        ("phone", "TEXT"), ("email", "TEXT"), ("website", "TEXT"),
+        ("gst_number", "TEXT"), ("pan_number", "TEXT"), ("tan_number", "TEXT"),
+        ("cin_number", "TEXT"), ("currency", "TEXT DEFAULT 'INR'"),
+        ("financial_year", "TEXT DEFAULT 'April-March'"),
+        ("timezone", "TEXT DEFAULT 'Asia/Kolkata'"),
+        ("language", "TEXT DEFAULT 'en'"),
+        ("company_logo", "TEXT"), ("approval_status", "TEXT DEFAULT 'Approved'"),
+        ("country_fields_json", "TEXT"),
+        ("created_by", "TEXT"), ("created_at", "TEXT"),
+        ("modified_by", "TEXT"), ("modified_at", "TEXT"),
+        ("approved_by", "TEXT"), ("approved_at", "TEXT"),
+        ("is_deleted", "INTEGER DEFAULT 0"),
+        ("deleted_by", "TEXT"), ("deleted_at", "TEXT"),
         ("bank_name", "TEXT"), ("bank_branch_name", "TEXT"), ("bank_branch_address", "TEXT"),
         ("bank_account_name", "TEXT"), ("bank_account_number", "TEXT"),
         ("bank_ifsc", "TEXT"), ("bank_swift", "TEXT"), ("bank_micr", "TEXT"), ("bank_upi", "TEXT"),
     ):
         _ensure_column(db, "companies", col, ctype)
+
+    try:
+        from audit_trail_service import ensure_audit_schema
+
+        ensure_audit_schema(db)
+    except Exception:
+        pass
 
     db.execute("""
         CREATE TABLE IF NOT EXISTS company_branches(
@@ -451,36 +538,82 @@ def list_country_field_config(db, country: str) -> list[dict[str, Any]]:
     return result
 
 
-def list_companies(db, search: str = "", country: str = "") -> list[dict[str, Any]]:
+def list_companies(
+    db,
+    search: str = "",
+    country: str = "",
+    status: str = "",
+    include_deleted: bool = False,
+    page: int = 1,
+    per_page: int = 25,
+    sort_by: str = "legal_name",
+    sort_dir: str = "asc",
+) -> dict[str, Any]:
+    """Paginated company list with search, filter, and sort."""
     if not _table_exists(db, "companies"):
-        return []
+        return {"items": [], "total": 0, "page": 1, "per_page": per_page, "pages": 0}
     sql = "SELECT * FROM companies WHERE 1=1"
+    count_sql = "SELECT COUNT(*) FROM companies WHERE 1=1"
     params: list[Any] = []
+    if not include_deleted:
+        sql += " AND COALESCE(is_deleted, 0)=0"
+        count_sql += " AND COALESCE(is_deleted, 0)=0"
     if search:
-        sql += " AND (legal_name LIKE ? OR trade_name LIKE ? OR company_code LIKE ?)"
+        clause = (
+            " AND (legal_name LIKE ? OR company_name LIKE ? OR trade_name LIKE ? "
+            "OR company_code LIKE ? OR gst_number LIKE ? OR pan_number LIKE ?)"
+        )
+        sql += clause
+        count_sql += clause
         like = f"%{search}%"
-        params.extend([like, like, like])
+        params.extend([like, like, like, like, like, like])
     if country:
         sql += " AND country=?"
+        count_sql += " AND country=?"
         params.append(country)
-    sql += " ORDER BY legal_name, id"
-    rows = db.execute(sql, params).fetchall()
+    if status:
+        sql += " AND status=?"
+        count_sql += " AND status=?"
+        params.append(status)
+    sort_col = sort_by if sort_by in COMPANY_MASTER_SORT_COLUMNS else "legal_name"
+    direction = "DESC" if str(sort_dir).lower() == "desc" else "ASC"
+    sql += f" ORDER BY {sort_col} {direction}, id DESC"
+    per_page = max(1, min(int(per_page or 25), 200))
+    page = max(1, int(page or 1))
+    offset = (page - 1) * per_page
+    sql += " LIMIT ? OFFSET ?"
+    total = int(db.execute(count_sql, params).fetchone()[0])
+    rows = db.execute(sql, [*params, per_page, offset]).fetchall()
     result = []
     for row in rows:
         item = dict(row)
         item["country_fields"] = _json_load(item.get("country_fields_json"))
+        if not item.get("company_name"):
+            item["company_name"] = item.get("trade_name") or item.get("legal_name") or ""
         result.append(item)
-    return result
+    pages = (total + per_page - 1) // per_page if total else 0
+    return {
+        "items": result,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+    }
 
 
-def get_company(db, company_id: int) -> dict[str, Any] | None:
+def get_company(db, company_id: int, *, include_deleted: bool = False) -> dict[str, Any] | None:
     if not company_id or not _table_exists(db, "companies"):
         return None
-    row = db.execute("SELECT * FROM companies WHERE id=?", (company_id,)).fetchone()
+    sql = "SELECT * FROM companies WHERE id=?"
+    if not include_deleted:
+        sql += " AND COALESCE(is_deleted, 0)=0"
+    row = db.execute(sql, (company_id,)).fetchone()
     if not row:
         return None
     item = dict(row)
     item["country_fields"] = _json_load(item.get("country_fields_json"))
+    if not item.get("company_name"):
+        item["company_name"] = item.get("trade_name") or item.get("legal_name") or ""
     return item
 
 
@@ -491,9 +624,49 @@ def save_company(db, form, username: str, company_id: int | None = None) -> int:
     country = (form.get("country") or "India").strip()
     if country not in COMPANY_COUNTRIES:
         raise ValueError("Select a valid country.")
-    trade_name = (form.get("trade_name") or "").strip()
+    company_name = (form.get("company_name") or form.get("trade_name") or "").strip()
+    if not company_name:
+        raise ValueError("Company name is required.")
+    trade_name = company_name
+    company_type = (form.get("company_type") or "").strip()
+    if company_type and company_type not in COMPANY_TYPES:
+        raise ValueError("Select a valid company type.")
     status = (form.get("status") or "Active").strip()
+    if status not in COMPANY_STATUSES:
+        raise ValueError("Select a valid status.")
+    email = (form.get("email") or "").strip()
+    phone = (form.get("phone") or "").strip()
+    website = (form.get("website") or "").strip()
+    validate_company_contact(email=email, phone=phone, website=website)
     country_fields = _parse_country_fields(form, country, db)
+    gst_number = (form.get("gst_number") or country_fields.get("gst") or "").strip().upper()
+    pan_number = (form.get("pan_number") or country_fields.get("pan") or "").strip().upper()
+    tan_number = (form.get("tan_number") or country_fields.get("tan") or "").strip().upper()
+    cin_number = (form.get("cin_number") or country_fields.get("cin") or "").strip().upper()
+    if country == "India":
+        if pan_number:
+            country_fields["pan"] = pan_number
+        if tan_number:
+            country_fields["tan"] = tan_number
+        if cin_number:
+            country_fields["cin"] = cin_number
+    if gst_number:
+        validate_gst_number(gst_number)
+    if pan_number:
+        validate_pan_number(pan_number)
+    currency = (form.get("currency") or "INR").strip()
+    if currency not in COMPANY_CURRENCIES:
+        raise ValueError("Select a valid currency.")
+    financial_year = (form.get("financial_year") or "April-March").strip()
+    if financial_year not in FINANCIAL_YEARS:
+        raise ValueError("Select a valid financial year.")
+    timezone = (form.get("timezone") or "Asia/Kolkata").strip()
+    if timezone not in COMPANY_TIMEZONES:
+        raise ValueError("Select a valid timezone.")
+    language = (form.get("language") or "en").strip()
+    if language not in COMPANY_LANGUAGES:
+        raise ValueError("Select a valid language.")
+    company_logo = (form.get("company_logo") or "").strip()
     now = _now_ts()
     bank_values = (
         (form.get("bank_name") or "").strip(),
@@ -509,44 +682,112 @@ def save_company(db, form, username: str, company_id: int | None = None) -> int:
     core_values = (
         legal_name,
         trade_name,
+        company_name,
+        company_type,
         country,
         status,
         (form.get("address_line1") or "").strip(),
         (form.get("address_line2") or "").strip(),
         (form.get("city") or "").strip(),
         (form.get("state_region") or "").strip(),
+        (form.get("district") or "").strip(),
         (form.get("postal_code") or "").strip(),
-        (form.get("phone") or "").strip(),
-        (form.get("email") or "").strip(),
-        (form.get("website") or "").strip(),
+        phone,
+        email,
+        website,
+        gst_number,
+        pan_number,
+        tan_number,
+        cin_number,
+        currency,
+        financial_year,
+        timezone,
+        language,
+        company_logo,
         _json_dump(country_fields),
         *bank_values,
     )
     if company_id:
+        existing = get_company(db, company_id, include_deleted=True)
+        if not existing:
+            raise ValueError("Company not found.")
+        validate_company_uniqueness(
+            db,
+            company_code=existing.get("company_code"),
+            gst_number=gst_number,
+            legal_name=legal_name,
+            company_id=company_id,
+        )
         db.execute(
-            "UPDATE companies SET legal_name=?, trade_name=?, country=?, status=?, "
-            "address_line1=?, address_line2=?, city=?, state_region=?, postal_code=?, "
-            "phone=?, email=?, website=?, country_fields_json=?, "
+            "UPDATE companies SET legal_name=?, trade_name=?, company_name=?, company_type=?, "
+            "country=?, status=?, address_line1=?, address_line2=?, city=?, state_region=?, "
+            "district=?, postal_code=?, phone=?, email=?, website=?, gst_number=?, pan_number=?, "
+            "tan_number=?, cin_number=?, currency=?, financial_year=?, timezone=?, language=?, "
+            "company_logo=?, country_fields_json=?, "
             "bank_name=?, bank_branch_name=?, bank_branch_address=?, bank_account_name=?, "
             "bank_account_number=?, bank_ifsc=?, bank_swift=?, bank_micr=?, bank_upi=?, "
-            "modified_at=? WHERE id=?",
-            (*core_values, now, company_id),
+            "modified_by=?, modified_at=? WHERE id=?",
+            (*core_values, username, now, company_id),
         )
+        log_company_field_changes(db, existing, get_company(db, company_id, include_deleted=True), username)
         return company_id
-    code = _next_company_code(db)
-    cur = db.execute(
-        "INSERT INTO companies(company_code, legal_name, trade_name, country, status, "
-        "address_line1, address_line2, city, state_region, postal_code, phone, email, "
-        "website, country_fields_json, bank_name, bank_branch_name, bank_branch_address, "
-        "bank_account_name, bank_account_number, bank_ifsc, bank_swift, bank_micr, bank_upi, "
-        "created_by, created_at, modified_at) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (code, *core_values, username, now, now),
+    manual_code = (form.get("company_code") or "").strip().upper()
+    code = manual_code or _next_company_code(db)
+    validate_company_uniqueness(
+        db,
+        company_code=code,
+        gst_number=gst_number,
+        legal_name=legal_name,
     )
-    return int(cur.lastrowid)
+    approval_status = (form.get("approval_status") or "Draft").strip()
+    if approval_status not in APPROVAL_STATUSES:
+        approval_status = "Draft"
+    cur = db.execute(
+        "INSERT INTO companies(company_code, legal_name, trade_name, company_name, company_type, "
+        "country, status, address_line1, address_line2, city, state_region, district, postal_code, "
+        "phone, email, website, gst_number, pan_number, tan_number, cin_number, currency, "
+        "financial_year, timezone, language, company_logo, country_fields_json, "
+        "bank_name, bank_branch_name, bank_branch_address, bank_account_name, bank_account_number, "
+        "bank_ifsc, bank_swift, bank_micr, bank_upi, approval_status, created_by, created_at, "
+        "modified_by, modified_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (code, *core_values, approval_status, username, now, username, now),
+    )
+    new_id = int(cur.lastrowid)
+    log_company_audit(db, new_id, "create", username, remarks=f"Created company {code}")
+    return new_id
 
 
-def delete_company(db, company_id: int) -> None:
+def delete_company(db, company_id: int, username: str = "") -> None:
+    """Soft-delete a company record."""
+    soft_delete_company(db, company_id, username)
+
+
+def soft_delete_company(db, company_id: int, username: str) -> None:
+    if not company_id:
+        raise ValueError("Invalid company.")
+    row = get_company(db, company_id, include_deleted=True)
+    if not row:
+        raise ValueError("Company not found.")
+    if row.get("is_deleted"):
+        return
+    now = _now_ts()
+    db.execute(
+        "UPDATE companies SET is_deleted=1, deleted_by=?, deleted_at=?, modified_by=?, modified_at=? "
+        "WHERE id=?",
+        (username, now, username, now, company_id),
+    )
+    log_company_audit(
+        db,
+        company_id,
+        "soft_delete",
+        username,
+        remarks=f"Soft-deleted company {row.get('company_code')}",
+    )
+
+
+def hard_delete_company(db, company_id: int) -> None:
+    """Permanently remove company and child records (Super Admin only)."""
     if not company_id:
         raise ValueError("Invalid company.")
     for table in (
@@ -592,83 +833,15 @@ def save_branch(
     *,
     customer_id: int | None = None,
 ) -> int:
-    company_id = int(form.get("company_id") or 0)
-    if not company_id:
-        raise ValueError("Company is required.")
-    branch_name = (form.get("branch_name") or "").strip()
-    if not branch_name:
-        raise ValueError("Branch name is required.")
-    if not branch_id and customer_id:
-        from super_admin_service import assert_branch_limit_not_exceeded
+    from branch_master_service import save_branch_master
 
-        assert_branch_limit_not_exceeded(db, customer_id)
-    country = (form.get("branch_country") or form.get("country") or "India").strip()
-    country_fields = _parse_country_fields(form, country, db)
-    is_ho = 1 if form.get("is_head_office") == "on" else 0
-    now = _now_ts()
-    values = (
-        company_id,
-        (form.get("branch_code") or "").strip(),
-        branch_name,
-        country,
-        (form.get("branch_address_line1") or form.get("address_line1") or "").strip(),
-        (form.get("branch_address_line2") or form.get("address_line2") or "").strip(),
-        (form.get("branch_city") or form.get("city") or "").strip(),
-        (form.get("branch_state_region") or form.get("state_region") or "").strip(),
-        (form.get("branch_postal_code") or form.get("postal_code") or "").strip(),
-        (form.get("branch_phone") or form.get("phone") or "").strip(),
-        (form.get("branch_email") or form.get("email") or "").strip(),
-        (form.get("tax_registration") or "").strip(),
-        _json_dump(country_fields),
-        is_ho,
-        (form.get("branch_status") or "Active").strip(),
-        now,
-    )
-    if branch_id:
-        db.execute(
-            "UPDATE company_branches SET company_id=?, branch_code=?, branch_name=?, country=?, "
-            "address_line1=?, address_line2=?, city=?, state_region=?, postal_code=?, phone=?, "
-            "email=?, tax_registration=?, country_fields_json=?, is_head_office=?, status=?, "
-            "modified_at=? WHERE id=?",
-            (*values, branch_id),
-        )
-        if customer_id is not None:
-            db.execute(
-                "UPDATE company_branches SET customer_id=? WHERE id=?",
-                (customer_id, branch_id),
-            )
-        return branch_id
-    insert_cols = (
-        "company_id, branch_code, branch_name, country, "
-        "address_line1, address_line2, city, state_region, postal_code, phone, email, "
-        "tax_registration, country_fields_json, is_head_office, status, created_by, created_at, "
-        "modified_at"
-    )
-    # values ends with (status, modified_at) for UPDATE; INSERT needs created_by/created_at instead.
-    insert_vals = (*values[:-1], username, now, now)
-    if customer_id is not None:
-        cur = db.execute(
-            f"INSERT INTO company_branches({insert_cols}, customer_id) "
-            f"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (*insert_vals, customer_id),
-        )
-    else:
-        cur = db.execute(
-            f"INSERT INTO company_branches({insert_cols}) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            insert_vals,
-        )
-    branch_row_id = int(cur.lastrowid)
-    if customer_id is not None:
-        from super_admin_service import sync_customer_usage_counts
-
-        sync_customer_usage_counts(db, customer_id)
-    return branch_row_id
+    return save_branch_master(db, form, username, branch_id, customer_id=customer_id)
 
 
-def delete_branch(db, branch_id: int) -> None:
-    if _table_exists(db, "company_documents"):
-        db.execute("UPDATE company_documents SET branch_id=NULL WHERE branch_id=?", (branch_id,))
-    db.execute("DELETE FROM company_branches WHERE id=?", (branch_id,))
+def delete_branch(db, branch_id: int, username: str = "") -> None:
+    from branch_master_service import soft_delete_branch_master
+
+    soft_delete_branch_master(db, branch_id, username or "system")
 
 
 def list_gst_registrations(db, company_id: int) -> list[dict[str, Any]]:
@@ -893,7 +1066,7 @@ def collect_company_expiry_alerts(db) -> dict[str, Any]:
         "c.legal_name AS company_name, c.company_code "
         "FROM company_documents d "
         "JOIN companies c ON d.company_id = c.id "
-        "WHERE d.is_active=1 AND d.expiry_date IS NOT NULL AND d.expiry_date != ''"
+        "WHERE d.is_active=1 AND COALESCE(c.is_deleted,0)=0 AND d.expiry_date IS NOT NULL AND d.expiry_date != ''"
     ).fetchall()
     for row in rows:
         item = dict(row)
@@ -969,3 +1142,352 @@ def sync_company_expiry_notifications(db, notify_fn) -> int:
             )
             created += 1
     return created
+
+
+# ---------------------------------------------------------------------------
+# MODULE-001 — validation, permissions, audit, import/export
+# ---------------------------------------------------------------------------
+
+COMPANY_AUDIT_FIELDS = (
+    "company_code",
+    "company_name",
+    "legal_name",
+    "company_type",
+    "country",
+    "status",
+    "address_line1",
+    "address_line2",
+    "city",
+    "state_region",
+    "district",
+    "postal_code",
+    "phone",
+    "email",
+    "website",
+    "gst_number",
+    "pan_number",
+    "tan_number",
+    "cin_number",
+    "currency",
+    "financial_year",
+    "timezone",
+    "language",
+    "approval_status",
+)
+
+
+def validate_email(value: str) -> None:
+    text = (value or "").strip()
+    if text and not EMAIL_RE.match(text):
+        raise ValueError("Enter a valid email address.")
+
+
+def validate_phone(value: str) -> None:
+    text = (value or "").strip()
+    if text and not PHONE_RE.match(text):
+        raise ValueError("Enter a valid phone number (7–20 digits/symbols).")
+
+
+def validate_website(value: str) -> None:
+    text = (value or "").strip()
+    if not text:
+        return
+    if not WEBSITE_RE.match(text):
+        raise ValueError("Enter a valid website URL (e.g. https://example.com).")
+
+
+def validate_company_contact(*, email: str = "", phone: str = "", website: str = "") -> None:
+    validate_email(email)
+    validate_phone(phone)
+    validate_website(website)
+
+
+def validate_gst_number(value: str) -> None:
+    text = (value or "").strip().upper()
+    if text and not GSTIN_RE.match(text):
+        raise ValueError("Enter a valid 15-character GST number.")
+
+
+def validate_pan_number(value: str) -> None:
+    text = (value or "").strip().upper()
+    if text and not PAN_RE.match(text):
+        raise ValueError("Enter a valid PAN (AAAAA9999A).")
+
+
+def validate_company_uniqueness(
+    db,
+    *,
+    company_code: str | None = None,
+    gst_number: str | None = None,
+    legal_name: str | None = None,
+    company_id: int | None = None,
+) -> None:
+    if company_code:
+        row = db.execute(
+            "SELECT id FROM companies WHERE company_code=? AND COALESCE(is_deleted,0)=0",
+            (company_code.strip().upper(),),
+        ).fetchone()
+        if row and (not company_id or int(row[0]) != int(company_id)):
+            raise ValueError(f"Company code '{company_code}' already exists.")
+    gst = (gst_number or "").strip().upper()
+    if gst:
+        row = db.execute(
+            "SELECT id, company_code FROM companies WHERE UPPER(gst_number)=? AND COALESCE(is_deleted,0)=0",
+            (gst,),
+        ).fetchone()
+        if row and (not company_id or int(row[0]) != int(company_id)):
+            raise ValueError(f"GST number '{gst}' is already registered to {row[1]}.")
+    name = (legal_name or "").strip()
+    if name:
+        row = db.execute(
+            "SELECT id, company_code FROM companies WHERE legal_name=? AND COALESCE(is_deleted,0)=0",
+            (name,),
+        ).fetchone()
+        if row and (not company_id or int(row[0]) != int(company_id)):
+            raise ValueError(f"A company with legal name '{name}' already exists ({row[1]}).")
+
+
+def log_company_audit(
+    db,
+    company_id: int,
+    action: str,
+    username: str,
+    *,
+    field_name: str | None = None,
+    old_value: str | None = None,
+    new_value: str | None = None,
+    remarks: str | None = None,
+) -> None:
+    try:
+        from audit_trail_service import log_audit_event
+
+        log_audit_event(
+            db,
+            record_table="companies",
+            record_id=company_id,
+            action=action,
+            changed_by=username,
+            field_name=field_name,
+            old_value=old_value,
+            new_value=new_value,
+            remarks=remarks,
+        )
+    except Exception:
+        pass
+
+
+def log_company_field_changes(
+    db,
+    before: dict[str, Any] | None,
+    after: dict[str, Any] | None,
+    username: str,
+) -> None:
+    if not before or not after:
+        return
+    company_id = int(after.get("id") or before.get("id") or 0)
+    if not company_id:
+        return
+    for field in COMPANY_AUDIT_FIELDS:
+        old_val = before.get(field)
+        new_val = after.get(field)
+        if str(old_val or "") != str(new_val or ""):
+            log_company_audit(
+                db,
+                company_id,
+                "update",
+                username,
+                field_name=field,
+                old_value=str(old_val or ""),
+                new_value=str(new_val or ""),
+            )
+
+
+def list_company_audit_trail(db, company_id: int, limit: int = 100) -> list[dict[str, Any]]:
+    try:
+        from audit_trail_service import list_audit_trail
+
+        return list_audit_trail(db, "companies", company_id, limit=limit)
+    except Exception:
+        return []
+
+
+def approve_company(db, company_id: int, username: str) -> None:
+    row = get_company(db, company_id)
+    if not row:
+        raise ValueError("Company not found.")
+    now = _now_ts()
+    db.execute(
+        "UPDATE companies SET approval_status='Approved', approved_by=?, approved_at=?, "
+        "modified_by=?, modified_at=? WHERE id=?",
+        (username, now, username, now, company_id),
+    )
+    log_company_audit(db, company_id, "approve", username, remarks="Company approved")
+
+
+def reject_company(db, company_id: int, username: str, remarks: str = "") -> None:
+    row = get_company(db, company_id)
+    if not row:
+        raise ValueError("Company not found.")
+    now = _now_ts()
+    db.execute(
+        "UPDATE companies SET approval_status='Rejected', modified_by=?, modified_at=? WHERE id=?",
+        (username, now, company_id),
+    )
+    log_company_audit(db, company_id, "reject", username, remarks=remarks or "Company rejected")
+
+
+def user_can_company_master(
+    db,
+    user_id: int | None,
+    action: str,
+    *,
+    is_admin: bool = False,
+) -> bool:
+    if is_admin:
+        return True
+    if not user_id:
+        return False
+    try:
+        from user_permission_service import (
+            empty_permission_actions,
+            ensure_user_tab_permissions_schema,
+            normalize_permission_actions,
+        )
+        import json as _json
+
+        ensure_user_tab_permissions_schema(db)
+        row = db.execute(
+            """
+            SELECT granted, action_flags FROM user_tab_permissions
+            WHERE user_id=? AND granted=1 AND endpoint='company_master'
+            LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+        if not row:
+            return False
+        raw_flags = row["action_flags"] if hasattr(row, "keys") else row[1]
+        actions = normalize_permission_actions(
+            _json.loads(raw_flags) if raw_flags else empty_permission_actions()
+        )
+        if action == "import":
+            return bool(actions.get("import") or actions.get("create"))
+        return bool(actions.get(action))
+    except Exception:
+        return False
+
+
+def companies_for_export(db, *, include_deleted: bool = False) -> list[dict[str, Any]]:
+    result = list_companies(db, include_deleted=include_deleted, per_page=10000)
+    rows = []
+    for item in result["items"]:
+        rows.append({col: item.get(col, "") for col in COMPANY_EXPORT_COLUMNS})
+    return rows
+
+
+def export_companies_excel(db, *, include_deleted: bool = False) -> BytesIO:
+    from openpyxl import Workbook
+
+    rows = companies_for_export(db, include_deleted=include_deleted)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Companies"
+    headers = list(COMPANY_EXPORT_COLUMNS)
+    ws.append(headers)
+    for row in rows:
+        ws.append([row.get(h, "") for h in headers])
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def export_companies_csv(db, *, include_deleted: bool = False) -> str:
+    rows = companies_for_export(db, include_deleted=include_deleted)
+    si = io.StringIO()
+    writer = csv.writer(si)
+    headers = list(COMPANY_EXPORT_COLUMNS)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow([row.get(h, "") for h in headers])
+    return si.getvalue()
+
+
+def export_companies_pdf(db, *, include_deleted: bool = False) -> BytesIO:
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.pdfgen import canvas
+
+    rows = companies_for_export(db, include_deleted=include_deleted)
+    buf = BytesIO()
+    page_size = landscape(A4)
+    c = canvas.Canvas(buf, pagesize=page_size)
+    width, height = page_size
+    y = height - 40
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(40, y, "MAXEK ERP — Company Master Export")
+    y -= 24
+    c.setFont("Helvetica", 9)
+    for row in rows[:200]:
+        line = f"{row.get('company_code')} | {row.get('company_name')} | {row.get('legal_name')} | {row.get('country')} | {row.get('status')}"
+        if y < 40:
+            c.showPage()
+            y = height - 40
+            c.setFont("Helvetica", 9)
+        c.drawString(40, y, line[:120])
+        y -= 14
+    c.save()
+    buf.seek(0)
+    return buf
+
+
+def company_import_template() -> BytesIO:
+    from bulk_import_service import build_xlsx_template
+
+    return build_xlsx_template(
+        [
+            "Company Code",
+            "Company Name",
+            "Legal Name",
+            "Company Type",
+            "GST Number",
+            "PAN Number",
+            "TAN Number",
+            "CIN Number",
+            "Country",
+            "State",
+            "District",
+            "City",
+            "PIN Code",
+            "Phone",
+            "Email",
+            "Website",
+            "Currency",
+            "Financial Year",
+            "Timezone",
+            "Language",
+            "Status",
+        ],
+        [
+            "CO-2026-0001",
+            "Sample Construction Pvt Ltd",
+            "Sample Construction Private Limited",
+            "Private Limited",
+            "",
+            "",
+            "",
+            "",
+            "India",
+            "Maharashtra",
+            "Mumbai",
+            "Mumbai",
+            "400001",
+            "+91 9876543210",
+            "info@sample.com",
+            "https://sample.com",
+            "INR",
+            "April-March",
+            "Asia/Kolkata",
+            "en",
+            "Active",
+        ],
+    )

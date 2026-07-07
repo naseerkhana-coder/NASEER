@@ -13,21 +13,25 @@
     table_panel_id='settings-modules',
     print_enabled=false,
   ) }}
-<div class="module-layout settings-module-layout settings-dashboard-layout">
-  <div class="erp-form-card settings-actions-card">
+<div class="module-layout settings-module-layout">
+  <div class="erp-form-card">
     <h3 class="erp-form-title">Workflow Administration</h3>
     <p>Configure module assignments, employee designations, and audit reporting for the MAXEK 3-step approval standard.</p>
-    <div class="settings-action-grid">
-      <a class="settings-action-card" href="{{ url_for('company_master') }}"><i class="fa-solid fa-building"></i><span>Company Master</span></a>
-      <a class="settings-action-card" href="{{ url_for('corporate_template_master') }}"><i class="fa-solid fa-palette"></i><span>Corporate Template Master</span></a>
-      <a class="settings-action-card" href="{{ url_for('corporate_reports_hub') }}"><i class="fa-solid fa-file-lines"></i><span>Corporate Reports Registry</span></a>
-      <a class="settings-action-card" href="{{ url_for('user_management') }}"><i class="fa-solid fa-user-plus"></i><span>User Management</span></a>
-      <a class="settings-action-card" href="{{ url_for('user_settings') }}"><i class="fa-solid fa-user-gear"></i><span>User Access Settings</span></a>
-      <a class="settings-action-card" href="{{ url_for('workflow_settings') }}"><i class="fa-solid fa-table"></i><span>Workflow Assignment Matrix</span></a>
-      <a class="settings-action-card" href="{{ url_for('user_activity_monitor') }}"><i class="fa-solid fa-chart-line"></i><span>User Activity Monitor</span></a>
-      <a class="settings-action-card" href="{{ url_for('staff') }}"><i class="fa-solid fa-users"></i><span>Employee Designation Mapping</span></a>
-      <a class="settings-action-card" href="{{ url_for('workflow_audit_report') }}"><i class="fa-solid fa-clipboard-list"></i><span>Workflow Audit Report</span></a>
-      <a class="settings-action-card" href="{{ url_for('approvals') }}"><i class="fa-solid fa-clipboard-check"></i><span>Approvals Queue</span></a>
+    <div class="erp-form-actions">
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('company_master') }}"><i class="fa-solid fa-building"></i> Company Master</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('vendor_master') }}"><i class="fa-solid fa-truck-field"></i> Vendor Master</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('subcontractor_master') }}"><i class="fa-solid fa-helmet-safety"></i> Subcontractor Master</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('worker_master') }}"><i class="fa-solid fa-hard-hat"></i> Worker Master</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('corporate_template_master') }}"><i class="fa-solid fa-palette"></i> Corporate Template Master</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('document_management') }}"><i class="fa-solid fa-folder-open"></i> Document Management</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('corporate_reports_hub') }}"><i class="fa-solid fa-file-lines"></i> Corporate Reports Registry</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('user_management') }}"><i class="fa-solid fa-user-plus"></i> User Management</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('user_settings') }}"><i class="fa-solid fa-user-gear"></i> User Access Settings</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('workflow_settings') }}"><i class="fa-solid fa-table"></i> Workflow Assignment Matrix</a>
+      <a class="erp-btn erp-btn-primary" href="{{ url_for('user_activity_monitor') }}"><i class="fa-solid fa-chart-line"></i> User Activity Monitor</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('staff') }}"><i class="fa-solid fa-users"></i> Employee Designation Mapping</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('workflow_audit_report') }}"><i class="fa-solid fa-clipboard-list"></i> Workflow Audit Report</a>
+      <a class="erp-btn erp-btn-ghost" href="{{ url_for('approvals') }}"><i class="fa-solid fa-clipboard-check"></i> Approvals Queue</a>
     </div>
   </div>
 

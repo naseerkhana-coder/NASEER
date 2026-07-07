@@ -660,3 +660,63 @@ def nav_slug_to_permission_department(nav_slug: str) -> str | None:
         "store-section": "store",
     }
     return mapping.get(nav_slug, nav_slug or None)
+
+
+def check_user_access_with_roles(
+    db,
+    user_id: int | None,
+    *,
+    module_name: str = "",
+    screen_name: str = "",
+    menu_name: str = "",
+    field_name: str = "",
+    action: str = "view",
+    endpoint: str = "",
+    department_slug: str = "",
+    is_admin: bool = False,
+    is_platform_super_admin: bool = False,
+) -> bool:
+    """
+    Unified access check: MODULE-006 role permissions first, then user_tab_permissions.
+    Does not alter workflow Maker/Checker logic.
+    """
+    if is_platform_super_admin or is_admin:
+        return True
+    try:
+        from roles_permissions_service import user_has_assigned_role_permission
+
+        role_result = user_has_assigned_role_permission(
+            db,
+            user_id,
+            module_name=module_name or department_slug,
+            screen_name=screen_name or endpoint,
+            menu_name=menu_name,
+            field_name=field_name,
+            action=action,
+            is_platform_super_admin=is_platform_super_admin,
+        )
+        if role_result is not None:
+            return bool(role_result)
+    except ImportError:
+        pass
+    if not user_id or not endpoint:
+        return False
+    ensure_user_tab_permissions_schema(db)
+    row = db.execute(
+        """
+        SELECT granted, action_flags FROM user_tab_permissions
+        WHERE user_id=? AND granted=1 AND endpoint=?
+        LIMIT 1
+        """,
+        (user_id, endpoint),
+    ).fetchone()
+    if not row:
+        return False
+    raw_flags = row["action_flags"] if hasattr(row, "keys") else row[1]
+    actions = normalize_permission_actions(
+        json.loads(raw_flags) if raw_flags else empty_permission_actions()
+    )
+    check = (action or "view").lower()
+    if check not in PERMISSION_ACTION_KEYS:
+        check = "view"
+    return bool(actions.get(check))
