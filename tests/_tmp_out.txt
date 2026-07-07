@@ -1,0 +1,6 @@
+﻿Total with code: 2
+EMP codes count: 2
+Last 20 EMP: [('EMP001', 0), ('EMP002', 0)]
+generate_employee_code: EMP101
+SQL max_num (active): 2
+SQL max_num (all): 2
