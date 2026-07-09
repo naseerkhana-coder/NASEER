@@ -52,12 +52,12 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-dashboard.css') }}?v=20260709-dashboard-overlap-fix">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-dashboard.css') }}?v=20260709-sidebar-platform-fix">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-table-standards.css') }}?v=20260626-entrypanels">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-field-standards.css') }}?v=20260628-biz-fields">
 
     {% if use_pro_shell|default(false) %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-pro-dashboard.css') }}?v=20260709-dashboard-overlap-fix">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/maxek-pro-dashboard.css') }}?v=20260709-sidebar-platform-fix">
     {% endif %}
 
     {% block head_extra %}{% endblock %}
@@ -541,7 +541,7 @@
     {% endif %}
 
     {% if use_pro_shell|default(false) %}
-    <script src="{{ url_for('static', filename='js/maxek-pro-dashboard.js') }}?v=20260709-dashboard-overlap-fix"></script>
+    <script src="{{ url_for('static', filename='js/maxek-pro-dashboard.js') }}?v=20260709-sidebar-platform-fix"></script>
     {% endif %}
 
     {% block scripts %}{% endblock %}
