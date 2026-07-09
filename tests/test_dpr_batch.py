@@ -56,8 +56,8 @@ class TestDprBatchMeasurements(unittest.TestCase):
 
             db.execute(
                 """
-                INSERT INTO boq_master(project_id, boq_number, boq_name, status, is_deleted)
-                VALUES (?, 'B-MULTI', 'Multi test BOQ', 'Approved', 0)
+                INSERT INTO boq_master(project_id, boq_number, total_amount, line_count, approval_status, is_deleted)
+                VALUES (?, 'B-MULTI', 0, 2, 'Approved', 0)
                 """,
                 (project_id,),
             )
