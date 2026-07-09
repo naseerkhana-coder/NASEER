@@ -3,7 +3,7 @@
 
   var PRO_THEME_STORAGE_KEY = 'maxek_pro_theme';
   var PRO_THEMES = ['midnight', 'business', 'erp-classic'];
-  var DEFAULT_PRO_THEME = 'business';
+  var DEFAULT_PRO_THEME = 'midnight';
 
   function normalizeProTheme(theme) {
     return PRO_THEMES.indexOf(theme) >= 0 ? theme : DEFAULT_PRO_THEME;
@@ -44,16 +44,12 @@
     }
     var initial = DEFAULT_PRO_THEME;
     try {
-      var stored = localStorage.getItem(PRO_THEME_STORAGE_KEY);
-      if (stored) {
-        initial = normalizeProTheme(stored);
-      } else {
-        initial = normalizeProTheme(
-          target.getAttribute('data-pro-theme') ||
-            document.documentElement.getAttribute('data-pro-theme-init') ||
-            DEFAULT_PRO_THEME
-        );
-      }
+      initial = normalizeProTheme(
+        target.getAttribute('data-pro-theme') ||
+          localStorage.getItem(PRO_THEME_STORAGE_KEY) ||
+          document.documentElement.getAttribute('data-pro-theme-init') ||
+          DEFAULT_PRO_THEME
+      );
     } catch (err) {
       initial = normalizeProTheme(target.getAttribute('data-pro-theme') || DEFAULT_PRO_THEME);
     }

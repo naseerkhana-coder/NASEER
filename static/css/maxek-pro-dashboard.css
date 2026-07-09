@@ -3295,6 +3295,82 @@
   position: relative;
 }
 
+/* 2026-07-09 live dashboard fix: single header, no overlap, dark MAXEK theme. */
+.maxek-layout.pro-dashboard-mode {
+  background: var(--pro-bg) !important;
+  overflow: hidden !important;
+}
+
+.maxek-layout.pro-dashboard-mode .main-window {
+  width: 100% !important;
+  min-height: 100vh !important;
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-shell {
+  width: 100% !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-main {
+  min-height: 100vh !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-header {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  min-height: 68px !important;
+  background: linear-gradient(180deg, rgba(15, 31, 56, 0.98) 0%, rgba(10, 22, 40, 0.98) 100%) !important;
+  border-bottom: 1px solid rgba(100, 130, 180, 0.24) !important;
+  box-shadow: 0 10px 30px -24px rgba(0, 0, 0, 0.75) !important;
+  overflow: visible !important;
+  z-index: 50 !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-dashboard-host {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding: 22px 24px 30px !important;
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.10), transparent 32rem),
+    var(--pro-bg) !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-dashboard-host > .pro-dash-content,
+.maxek-layout.pro-dashboard-mode .pro-dash-content--home {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-greeting-row {
+  margin: 0 0 20px !important;
+  padding: 0 !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-greeting-text h1 {
+  font-size: clamp(1.65rem, 2.2vw, 2.25rem) !important;
+  line-height: 1.15 !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-workflow-card-grid,
+.maxek-layout.pro-dashboard-mode .pro-dash-dept-tile-grid--mockup {
+  gap: 14px !important;
+}
+
+.maxek-layout.pro-dashboard-mode .pro-dash-workflow-card,
+.maxek-layout.pro-dashboard-mode .pro-dash-dept-tile--mockup {
+  border-color: rgba(100, 130, 180, 0.24) !important;
+  background: linear-gradient(180deg, rgba(21, 34, 56, 0.98), rgba(15, 31, 56, 0.98)) !important;
+}
+
 .pro-dash-profile--dropdown {
   display: inline-flex;
   align-items: center;
