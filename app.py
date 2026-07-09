@@ -1443,6 +1443,15 @@ def get_db():
     if db is None:
         db = g._database = sqlite3.connect(DB_PATH)
         db.row_factory = sqlite3.Row
+        try:
+            project_cols = {
+                row["name"]
+                for row in db.execute("PRAGMA table_info(projects)").fetchall()
+            }
+            if project_cols and "approval_status" not in project_cols:
+                db.execute("ALTER TABLE projects ADD COLUMN approval_status TEXT DEFAULT 'Approved'")
+        except sqlite3.OperationalError:
+            pass
     return db
 
 
@@ -1704,6 +1713,12 @@ def generate_worker_code(db, worker_category, subcontractor_id=None):
 
 
 def backfill_subcontractor_codes(db):
+    tables = {
+        row["name"]
+        for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    }
+    if "subcontractors" not in tables or "vendors" not in tables:
+        return
     rows = db.execute(
         "SELECT s.id, s.subcontractor_name, s.vendor_id, v.code AS vendor_code "
         "FROM subcontractors s "
