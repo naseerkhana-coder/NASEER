@@ -10,6 +10,7 @@ import bcrypt
 from datetime import datetime, timedelta
 from calendar import monthrange
 from zoneinfo import ZoneInfo
+from typing import Any
 
 from cost_planning_service import (
     DEFAULT_COST_ACTIVITIES,
@@ -4892,7 +4893,7 @@ def _sync_client_billing_after_workflow(db, approval_id):
         return
     if req["workflow_status"] == STATUS_APPROVED:
         on_bill_certified(db, req["record_id"])
-    elif req["workflow_status"] in (STATUS_REJECTED_CHECKER, STATUS_REJECTED_APPROVER):
+    elif req["workflow_status"] in (RECORD_REJECTED_CHECKER, RECORD_REJECTED_APPROVER):
         db.execute(
             "UPDATE client_bills SET bill_status='Draft' WHERE id=?",
             (req["record_id"],),
@@ -11665,6 +11666,7 @@ def render_choice_b_dashboard():
 @login_required
 def dashboard():
     try:
+        db = get_db()
         if is_super_admin_user():
             query_company_id = request.args.get("company_id", type=int)
             if query_company_id:
