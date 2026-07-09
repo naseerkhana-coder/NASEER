@@ -44,6 +44,13 @@ class TestDprBatchMeasurements(unittest.TestCase):
             prepare_dpr_page_db(db)
 
             project = db.execute("SELECT id FROM projects LIMIT 1").fetchone()
+            if not project:
+                db.execute(
+                    "INSERT INTO projects(project_code, project_name, approval_status) VALUES(?, ?, ?)",
+                    ("DPR-BATCH", "DPR Batch Test Project", "Approved"),
+                )
+                db.commit()
+                project = db.execute("SELECT id FROM projects LIMIT 1").fetchone()
             self.assertIsNotNone(project, "Need at least one project in test DB")
             project_id = project[0]
 
