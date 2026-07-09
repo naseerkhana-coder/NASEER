@@ -27,4 +27,4 @@ jobs:
         flake8 . --count --exit-zero --exclude=deploy,report-previews,maxek_erp_all_in_one.py --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest
+        pytest tests

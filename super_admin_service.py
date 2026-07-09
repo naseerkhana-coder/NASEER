@@ -1081,7 +1081,7 @@ def save_customer(db, data: dict[str, Any], record_id: int | None = None) -> int
     now = _now_ts()
     company_name = (data.get("company_name") or "").strip()
     code = (data.get("customer_code") or "").strip().upper()
-    if not record_id:
+    if not record_id and not code:
         code = next_customer_code(db, company_name)
     if not code:
         raise ValueError("Customer code is required.")
